@@ -34,15 +34,15 @@ Chosen: deductible €5, max payout €150, target loss ratio 0.55.
 
 | Metric | Value |
 |---|---|
-| Policies simulated | 5489 |
-| Median premium (all / tickets ≤ €300) | €10.02 / €9.74 |
-| 90th percentile premium | €29.84 |
-| Claim rate (payout > 0) | 24% |
-| Loss ratio (payouts / premiums) | 0.59 |
-| Vault return on premium (after 5% fee) | +0.36 |
-| Break-even premium / max payout | 0.051 |
-| Average premium / max payout | 0.086 |
-| Worst week / worst 4 weeks | €-260 / €11 |
+| Policies simulated | 5497 |
+| Median premium (all / tickets ≤ €300) | €3.00 / €3.00 |
+| 90th percentile premium | €13.87 |
+| Claim rate (payout > 0) | 16% |
+| Loss ratio (payouts / premiums) | 0.45 |
+| Vault return on premium (after 5% fee) | +0.50 |
+| Break-even premium / max payout | 0.019 |
+| Average premium / max payout | 0.043 |
+| Worst week / worst 4 weeks | €7 / €202 |
 
 ![Price Cap weekly P&L](img/pricing/cap_weekly.png)
 
@@ -50,19 +50,19 @@ Chosen: deductible €5, max payout €150, target loss ratio 0.55.
 
 ## Drop Guarantee
 
-Chosen: deductible €10, max payout €80, target loss ratio 0.65.
+Chosen: deductible €3, max payout €80, target loss ratio 0.55.
 
 | Metric | Value |
 |---|---|
-| Policies simulated | 5429 |
-| Median premium (all / tickets ≤ €300) | €9.68 / €9.46 |
-| 90th percentile premium | €31.08 |
-| Claim rate (payout > 0) | 35% |
-| Loss ratio (payouts / premiums) | 0.65 |
-| Vault return on premium (after 5% fee) | +0.30 |
-| Break-even premium / max payout | 0.106 |
-| Average premium / max payout | 0.163 |
-| Worst week / worst 4 weeks | €-138 / €-11 |
+| Policies simulated | 5335 |
+| Median premium (all / tickets ≤ €300) | €4.99 / €4.82 |
+| 90th percentile premium | €10.61 |
+| Claim rate (payout > 0) | 19% |
+| Loss ratio (payouts / premiums) | 0.52 |
+| Vault return on premium (after 5% fee) | +0.43 |
+| Break-even premium / max payout | 0.042 |
+| Average premium / max payout | 0.080 |
+| Worst week / worst 4 weeks | €-5 / €3 |
 
 ![Drop Guarantee weekly P&L](img/pricing/drop_weekly.png)
 
@@ -72,20 +72,20 @@ Chosen: deductible €10, max payout €80, target loss ratio 0.65.
 
 | Product | Informed share | Breakage | Loss ratio | Vault return |
 |---|---|---|---|---|
-| cap | 0% | 30% | 0.37 | +0.58 |
-| drop | 0% | 30% | 0.67 | +0.28 |
-| cap | 10% | 30% | 0.44 | +0.51 |
-| drop | 10% | 30% | 0.66 | +0.29 |
-| cap | 25% | 30% | 0.56 | +0.39 |
-| drop | 25% | 30% | 0.62 | +0.33 |
-| cap | 40% | 30% | 0.65 | +0.30 |
-| drop | 40% | 30% | 0.63 | +0.32 |
-| cap | 60% | 30% | 0.74 | +0.21 |
-| drop | 60% | 30% | 0.58 | +0.37 |
-| cap | 25% | 10% | 0.57 | +0.38 |
-| drop | 25% | 10% | 0.63 | +0.32 |
-| cap | 25% | 50% | 0.52 | +0.43 |
-| drop | 25% | 50% | 0.63 | +0.32 |
+| cap | 0% | 30% | 0.30 | +0.65 |
+| drop | 0% | 30% | 0.57 | +0.38 |
+| cap | 10% | 30% | 0.43 | +0.52 |
+| drop | 10% | 30% | 0.58 | +0.37 |
+| cap | 25% | 30% | 0.45 | +0.50 |
+| drop | 25% | 30% | 0.52 | +0.43 |
+| cap | 40% | 30% | 0.54 | +0.41 |
+| drop | 40% | 30% | 0.52 | +0.43 |
+| cap | 60% | 30% | 0.60 | +0.35 |
+| drop | 60% | 30% | 0.45 | +0.50 |
+| cap | 25% | 10% | 0.55 | +0.40 |
+| drop | 25% | 10% | 0.52 | +0.43 |
+| cap | 25% | 50% | 0.41 | +0.54 |
+| drop | 25% | 50% | 0.52 | +0.43 |
 
 ![Sensitivity to informed buyers](img/pricing/sensitivity_informed.png)
 
@@ -99,16 +99,16 @@ simulated per-policy P&L).
 
 | Product | Policies / week | Collateral (live policies) | Loss buffer (1% ruin) | P(loss after a year) |
 |---|---|---|---|---|
-| cap | 10 | €1,500 | €171 | 0% |
-| drop | 10 | €800 | €138 | 0% |
-| cap | 50 | €7,500 | €102 | 0% |
-| drop | 50 | €4,000 | €55 | 0% |
+| cap | 10 | €1,500 | €77 | 0% |
+| drop | 10 | €800 | €65 | 0% |
+| cap | 50 | €7,500 | €20 | 0% |
+| drop | 50 | €4,000 | €21 | 0% |
 | cap | 200 | €30,000 | €0 | 0% |
 | drop | 200 | €16,000 | €0 | 0% |
 
 ## Combined view (secondary)
 
-Cap + drop together: premiums €141,957, payouts €87,947. No hedge between the products is assumed;
+Cap + drop together: premiums €69,629, payouts €33,640. No hedge between the products is assumed;
 they sit in separate vaults.
 
 ## Limitations

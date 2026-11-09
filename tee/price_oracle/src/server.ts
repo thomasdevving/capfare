@@ -45,6 +45,7 @@ export async function main() {
       "GET /v1/enclave": () => ({
         service: "price_oracle",
         signing_public_key: keys.signing.publicKeyHex,
+        box_public_key: keys.box.publicKeyHex,
         measurement: keys.measurement,
         report: keys.report,
       }),

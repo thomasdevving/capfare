@@ -42,7 +42,7 @@ export function routes(cfg: AppConfig, chain: ChainOps, view?: NearViewClient): 
       if (err) throw new HttpError(403, err);
       if (!perAccountHour.hit(d.senderId) || !perAccountDay.hit(d.senderId)) throw new HttpError(429, "too many transactions for this account; try later");
       const r = await chain.relay(sd);
-      return { tx_hash: r.hash, ok: r.ok, error: r.error };
+      return { tx_hash: r.hash, ok: r.ok, error: r.error, receipt_failures: r.receipt_failures, events: r.events ?? [] };
     },
 
     "POST /v1/accounts": async (body: { name: string; public_key: string }, req) => {

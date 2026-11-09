@@ -22,3 +22,4 @@ extension/build/
 backtest/output/raw/
 *.log
 scripts/dev/*.so
+backtest/.venv/

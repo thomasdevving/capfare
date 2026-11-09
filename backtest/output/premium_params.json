@@ -1,0 +1,159 @@
+{
+  "global": {
+    "max_quote_snapshot_age_secs": 3600,
+    "max_index_snapshot_age_secs": 21600,
+    "max_attestation_age_secs": 3600,
+    "final_check_lead_secs": 86400,
+    "claim_grace_secs": 259200,
+    "sold_out_premium_refund": true,
+    "protocol_fee_bps": 500,
+    "usdc_micro_per_cent": 10800,
+    "param_timelock_secs": 172800
+  },
+  "cap": {
+    "price_bucket_bounds": [
+      10000,
+      20000,
+      35000
+    ],
+    "dtd_bucket_bounds": [
+      7,
+      21,
+      60
+    ],
+    "base_table": [
+      [
+        1459,
+        1878,
+        1089,
+        1190
+      ],
+      [
+        955,
+        2065,
+        1818,
+        1145
+      ],
+      [
+        1289,
+        1525,
+        2210,
+        2137
+      ],
+      [
+        1436,
+        2081,
+        1566,
+        2236
+      ]
+    ],
+    "momentum_mult_bps": [
+      8239,
+      8675,
+      8675,
+      12688,
+      16033
+    ],
+    "availability_mult_bps": [
+      8030,
+      18212,
+      18212,
+      18212,
+      18212
+    ],
+    "season_mult_bps": 12560,
+    "util_kink_bps": 6000,
+    "util_slope_bps": 10000,
+    "flight_slope_bps": 2000,
+    "moneyness_slope_bps": 58951,
+    "moneyness_floor_bps": 2239,
+    "min_premium": 300,
+    "max_premium": 4000,
+    "deductible": 500,
+    "max_payout": 15000,
+    "validity_secs": 604800,
+    "activation_delay_secs": 86400,
+    "flight_exposure_cap": 600000,
+    "route_week_exposure_cap": 6000000,
+    "max_per_user_per_flight": 2,
+    "max_per_user_per_day": 5,
+    "purchase_window_secs": 86400,
+    "min_secs_before_departure": 172800
+  },
+  "drop": {
+    "price_bucket_bounds": [
+      10000,
+      20000,
+      35000
+    ],
+    "dtd_bucket_bounds": [
+      7,
+      21,
+      60
+    ],
+    "base_table": [
+      [
+        1365,
+        750,
+        325,
+        331
+      ],
+      [
+        1096,
+        1066,
+        1183,
+        1241
+      ],
+      [
+        1511,
+        2053,
+        4264,
+        4744
+      ],
+      [
+        1872,
+        2600,
+        3284,
+        3682
+      ]
+    ],
+    "momentum_mult_bps": [
+      10750,
+      7000,
+      7000,
+      7000,
+      7000
+    ],
+    "availability_mult_bps": [
+      9219,
+      12178,
+      13401,
+      10135,
+      11672
+    ],
+    "season_mult_bps": 11966,
+    "util_kink_bps": 6000,
+    "util_slope_bps": 10000,
+    "flight_slope_bps": 2000,
+    "moneyness_slope_bps": 0,
+    "moneyness_floor_bps": 2500,
+    "min_premium": 300,
+    "max_premium": 4000,
+    "deductible": 1000,
+    "max_payout": 8000,
+    "validity_secs": 604800,
+    "activation_delay_secs": 0,
+    "flight_exposure_cap": 320000,
+    "route_week_exposure_cap": 3200000,
+    "max_per_user_per_flight": 2,
+    "max_per_user_per_day": 5,
+    "purchase_window_secs": 86400,
+    "min_secs_before_departure": 172800
+  },
+  "_meta": {
+    "source": "synthetic",
+    "seed": 7,
+    "flights": 1500,
+    "note": "Parameters fitted on synthetic data; see docs/PRICING.md"
+  }
+}

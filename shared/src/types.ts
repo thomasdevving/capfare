@@ -17,6 +17,20 @@ export interface FlightKey {
   fare_class: string;
 }
 
+/** Mirrors capfare_core::MAX_SEATS. */
+export const MAX_SEATS = 9;
+
+/** Any flight CapFare's oracle tracks on one route and day, in one fare class. */
+export interface RouteKey {
+  origin: string;
+  destination: string;
+  departure_date: string;
+  fare_class: string;
+}
+
+/** JSON shape of capfare_core::Coverage (externally tagged enum). */
+export type Coverage = { flight: FlightKey } | { route: RouteKey };
+
 export interface Signals {
   momentum_bucket: number;
   availability_bucket: number;
@@ -54,6 +68,8 @@ export interface BookingAttestation {
   verified_at: number;
   enclave_measurement: string;
   passenger_commitment: string; // hex
+  /** Travellers on the booking; paid_price_minor is per traveller. */
+  seats: number;
 }
 
 export interface SignedBookingAttestation {
@@ -144,8 +160,11 @@ export interface Policy {
   id: number;
   owner: string;
   product: Product;
+  /** Coverage hash: flight key hash, or route key hash for route coverage. */
   flight_key_hash: string;
-  flight_key: FlightKey;
+  coverage: Coverage;
+  seats: number;
+  /** Per traveller. */
   strike_minor: number;
   deductible_minor: number;
   max_payout_minor: number;
@@ -160,7 +179,14 @@ export interface Policy {
   index_at_booking_minor: number | null;
   paid_price_minor: number | null;
   refundable: Refundability | null;
+  /** Total for all covered travellers. */
   payout_minor: number | null;
+  booked_flight: FlightKey | null;
+  booked_flight_key_hash: string | null;
+  seats_covered: number | null;
+  trip_id: number | null;
+  auto_drop_max_premium_minor: number | null;
+  linked_policy: number | null;
   final_check_at: number | null;
   usdc_micro_per_cent: number;
   premium_usdc: string;
@@ -169,6 +195,19 @@ export interface Policy {
   passenger_commitment: string;
   busy: boolean;
   note: string | null;
+}
+
+export interface CapLeg {
+  coverage: Coverage;
+  strike_minor: number;
+  max_premium_minor: number;
+}
+
+export interface CapPurchase {
+  legs: CapLeg[];
+  seats: number;
+  passenger_commitment: string;
+  auto_drop_max_premium_minor: number | null;
 }
 
 export interface VaultState {

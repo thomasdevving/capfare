@@ -18,6 +18,7 @@ export interface ScriptedPath {
 export class ScriptedPriceAdapter implements PriceAdapter {
   readonly id = "demo";
   readonly access = "demo-only" as const;
+  readonly local = true;
   private paths = new Map<string, ScriptedPath>();
   private cursor = new Map<string, number>();
 
@@ -57,6 +58,11 @@ export class ScriptedPriceAdapter implements PriceAdapter {
     const next = to ?? (this.cursor.get(h) ?? 0) + 1;
     this.cursor.set(h, Math.max(0, Math.min(next, p.steps.length - 1)));
     return { step: this.cursor.get(h)!, of: p.steps.length };
+  }
+
+  /** Scripted flights on a route and day (all advance together in route demos). */
+  flightsOn(r: { origin: string; destination: string; departure_date: string; fare_class: string }): FlightKey[] {
+    return [...this.paths.values()].map((p) => p.flight_key).filter((k) => k.origin === r.origin && k.destination === r.destination && k.departure_date === r.departure_date && k.fare_class === r.fare_class);
   }
 
   list(): { flight_key: FlightKey; step: number; steps: number; label?: string }[] {

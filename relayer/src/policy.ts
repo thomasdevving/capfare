@@ -31,7 +31,7 @@ const STORAGE_DEPOSIT_MAX = 12_500_000_000_000_000_000_000n; // 0.0125 NEAR
 
 export function allowedMethods(c: RelayConfig): Record<string, Set<string>> {
   return {
-    [c.registry]: new Set(["buy_cap", "buy_drop", "claim_cap", "finalize_claim", "settle_drop", "retry_payout", "expire", "refund_sold_out", "withdraw_credit"]),
+    [c.registry]: new Set(["buy_cap", "buy_caps", "buy_drop", "claim_cap", "finalize_claim", "settle_drop", "retry_payout", "expire", "void_unconfirmed_claim", "refund_sold_out", "withdraw_credit"]),
     [c.capVault]: new Set(["request_withdraw", "claim_withdrawal", "roll_epoch"]),
     [c.dropVault]: new Set(["request_withdraw", "claim_withdrawal", "roll_epoch"]),
     [c.token]: new Set(["ft_transfer_call", "storage_deposit", ...(c.allowFaucet ? ["faucet"] : [])]),

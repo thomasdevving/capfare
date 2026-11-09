@@ -6,6 +6,10 @@ export interface ParsedSegment {
   origin: string;
   destination: string;
   fare_class: string; // normalised
+  /** Price of this flight per traveller, when the booking shows it per flight. */
+  paid_price_minor?: number;
+  /** Ticket type of this flight, when the booking shows it per flight. */
+  refundable?: Refundability;
 }
 
 /** Parsed booking. Contains PII (booking_ref, last_name): never leaves the enclave. */
@@ -14,9 +18,15 @@ export interface ParsedBooking {
   booking_ref: string;
   last_name?: string;
   segments: ParsedSegment[];
+  /**
+   * Price per traveller for the whole booking. Used for a flight only when the booking has
+   * a single flight; with several flights each segment must carry its own price.
+   */
   paid_price_minor: number;
   currency: string;
   refundable: Refundability;
+  /** Travellers on the booking (default 1). */
+  passengers?: number;
 }
 
 export interface StatusResult {

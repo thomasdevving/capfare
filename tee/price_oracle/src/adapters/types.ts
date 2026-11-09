@@ -1,4 +1,4 @@
-import type { FlightKey } from "@capfare/shared";
+import type { FlightKey, RouteKey } from "@capfare/shared";
 
 export interface FareObservation {
   price_minor: number; // EUR cents for the fare class
@@ -19,4 +19,8 @@ export interface PriceAdapter {
   access: "live" | "demo-only";
   supports(k: FlightKey): boolean;
   fetch(k: FlightKey): Promise<FareObservation>;
+  /** Non-stop flights this source knows on a route and day (for route coverage). */
+  flightsOn?(r: RouteKey): FlightKey[];
+  /** True if fetching makes no outbound request (demo data): no politeness rate limit. */
+  local?: boolean;
 }

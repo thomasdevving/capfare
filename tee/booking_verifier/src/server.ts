@@ -3,20 +3,24 @@
  * plaintext (emails, names, booking references) only exists inside this process.
  *   GET  /health
  *   GET  /v1/enclave                 signing + box public keys, measurement, report
- *   POST /v1/verify/eml              {sealed: box({eml_base64, flight_key?})}
- *   POST /v1/verify/status           {sealed: box({airline, booking_ref, last_name, flight_key?, booked_at?})}
+ *   POST /v1/verify/eml              {sealed: box({eml_base64, salt, flight_key? | route?})}
+ *   POST /v1/verify/status           {sealed: box({airline, booking_ref, last_name, salt, flight_key? | route?, booked_at?})}
+ *   POST /v1/verify/page             {sealed: box({url, salt, flight_key? | route?})}
  *   POST /v1/demo/fixture            (demo) {flight_key, fare_label, paid_price_minor, refundable, booked_at?, variant?}
  *   POST /v1/demo/booking-status     (demo) {booking_ref, status}
  */
 import { fileURLToPath } from "node:url";
 import { promises as dns } from "node:dns";
-import { openJson, type FlightKey, type Refundability, type SealedBox } from "@capfare/shared";
+import { openJson, type FlightKey, type Refundability, type RouteKey, type SealedBox } from "@capfare/shared";
+
+/** The covered flight, or for route coverage the route: picks the flight to attest. */
+const hintOf = (p: { flight_key?: FlightKey; route?: RouteKey }): Hint | undefined => p.flight_key ?? p.route;
 import { HttpError, loadKeys, logger, RateLimiter, serve } from "@capfare/tee-common";
 import { klm } from "./airlines/klm.ts";
 import { skyline } from "./airlines/skyline.ts";
 import { skylineResolver } from "./demo-dns.ts";
 import { DemoAirline, DemoKeys, demoResolver, makeFixtureEml } from "./demo-airline.ts";
-import { Verifier, VerifyError } from "./verifier.ts";
+import { Verifier, VerifyError, type Hint } from "./verifier.ts";
 
 const log = logger("booking_verifier");
 
@@ -68,32 +72,32 @@ export async function main() {
       "POST /v1/verify/eml": (body: { sealed: SealedBox }, req) =>
         wrap(async () => {
           guard(req);
-          const p = await openJson<{ eml_base64: string; salt: string; flight_key?: FlightKey }>(body.sealed, keys.box.secretKey).catch(() => {
+          const p = await openJson<{ eml_base64: string; salt: string; flight_key?: FlightKey; route?: RouteKey }>(body.sealed, keys.box.secretKey).catch(() => {
             throw new HttpError(400, "could not open sealed input");
           });
           const raw = Buffer.from(p.eml_base64, "base64").toString("utf8");
-          return verifier.verifyEml(raw, p.salt, p.flight_key);
+          return verifier.verifyEml(raw, p.salt, hintOf(p));
         }),
       "POST /v1/verify/status": (body: { sealed: SealedBox }, req) =>
         wrap(async () => {
           guard(req);
-          const p = await openJson<{ airline: string; booking_ref: string; last_name: string; salt: string; flight_key?: FlightKey; booked_at?: number }>(
+          const p = await openJson<{ airline: string; booking_ref: string; last_name: string; salt: string; flight_key?: FlightKey; route?: RouteKey; booked_at?: number }>(
             body.sealed,
             keys.box.secretKey,
           ).catch(() => {
             throw new HttpError(400, "could not open sealed input");
           });
-          return verifier.verifyStatus(p.airline, p.booking_ref, p.last_name, p.salt, p.flight_key, p.booked_at);
+          return verifier.verifyStatus(p.airline, p.booking_ref, p.last_name, p.salt, hintOf(p), p.booked_at);
         }),
       "POST /v1/verify/page": (body: { sealed: SealedBox }, req) =>
         wrap(async () => {
           guard(req);
-          const p = await openJson<{ url: string; salt: string; flight_key?: FlightKey }>(body.sealed, keys.box.secretKey).catch(() => {
+          const p = await openJson<{ url: string; salt: string; flight_key?: FlightKey; route?: RouteKey }>(body.sealed, keys.box.secretKey).catch(() => {
             throw new HttpError(400, "could not open sealed input");
           });
-          return verifier.verifyPage(p.url, p.salt, p.flight_key);
+          return verifier.verifyPage(p.url, p.salt, hintOf(p));
         }),
-      "POST /v1/demo/fixture": (body: { flight_key: FlightKey; fare_label: string; paid_price_minor: number; refundable: Refundability; booked_at?: number; last_name?: string; variant?: "valid" | "forwarded" | "modified" | "wrong_domain" }) =>
+      "POST /v1/demo/fixture": (body: { flight_key: FlightKey; fare_label: string; paid_price_minor: number; refundable: Refundability; booked_at?: number; last_name?: string; passengers?: number; variant?: "valid" | "forwarded" | "modified" | "wrong_domain" }) =>
         wrap(async () => {
           if (!demoKeys || !demoAirline) throw new HttpError(404, "not a demo deployment");
           const fk = body.flight_key;
@@ -108,6 +112,7 @@ export async function main() {
               refundable: body.refundable,
               booked_at: new Date((body.booked_at ?? Math.floor(Date.now() / 1000)) * 1000),
               last_name: body.last_name,
+              passengers: body.passengers,
               subject_prefix: body.variant === "forwarded" ? "Fwd: " : undefined,
             },
             demoKeys,

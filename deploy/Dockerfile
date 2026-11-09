@@ -2,8 +2,9 @@
 # Runs: local NEAR sandbox node -> contract deployment (prebuilt wasm in contracts/res) ->
 # price_oracle + booking_verifier (demo mode, development keys) -> relayer -> web app.
 # Every page shows "Network: Local sandbox". State resets on each restart.
-# Full bookworm image: ships gcc and curl, so no apt step is needed.
-FROM node:22-bookworm
+# Full Debian trixie image: ships gcc and curl (no apt step), and glibc ≥ 2.39 for near-sandbox.
+ARG BASE_IMAGE=node:22-trixie
+FROM ${BASE_IMAGE}
 RUN --mount=type=secret,id=ca,required=false sh -c 'if [ -s /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi; npm install -g pnpm@10.0.0'
 WORKDIR /app
 COPY . .

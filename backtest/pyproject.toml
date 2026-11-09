@@ -1,0 +1,12 @@
+[project]
+name = "capfare-backtest"
+version = "0.1.0"
+description = "CapFare pricing backtest: synthetic/real fare paths, buyer models, vault P&L, parameter export"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26", "matplotlib>=3.8"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

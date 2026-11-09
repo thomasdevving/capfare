@@ -1,0 +1,215 @@
+{
+  "seed": 7,
+  "flights": 1500,
+  "buyers_per_flight": 4.0,
+  "informed_share": 0.25,
+  "synthetic": true,
+  "cap": {
+    "policies": 5489,
+    "premium_total_eur": 70957.56,
+    "payout_total_eur": 41987.78,
+    "loss_ratio": 0.5917308881534258,
+    "vault_return_on_premium": 0.3582691118465742,
+    "pnl_per_policy_eur": 4.631426853707414,
+    "claim_rate": 0.2372016760794316,
+    "median_premium_eur": 10.02,
+    "median_premium_le_300_eur": 9.74,
+    "p90_premium_eur": 29.84,
+    "break_even_premium_over_max_payout": 0.05099627133053987,
+    "avg_premium_over_max_payout": 0.08618152668974312,
+    "worst_week_eur": -259.88199999999995,
+    "worst_month_eur": 11.124500000000001,
+    "weeks": 65
+  },
+  "drop": {
+    "policies": 5429,
+    "premium_total_eur": 70999.49,
+    "payout_total_eur": 45959.4,
+    "loss_ratio": 0.647320142722152,
+    "vault_return_on_premium": 0.302679857277848,
+    "pnl_per_policy_eur": 3.958392982132989,
+    "claim_rate": 0.3501565665868484,
+    "median_premium_eur": 9.68,
+    "median_premium_le_300_eur": 9.46,
+    "p90_premium_eur": 31.08,
+    "break_even_premium_over_max_payout": 0.10581921164118623,
+    "avg_premium_over_max_payout": 0.163472762018788,
+    "worst_week_eur": -138.06200000000004,
+    "worst_month_eur": -10.740500000000088,
+    "weeks": 65
+  },
+  "cap_best": {
+    "deductible": 500,
+    "max_payout": 15000,
+    "target_lr": 0.55,
+    "ok": true,
+    "median_le_300": 9.14,
+    "return": 0.39014733772166327,
+    "loss_ratio": 0.5598526622783367
+  },
+  "drop_best": {
+    "deductible": 1000,
+    "max_payout": 8000,
+    "target_lr": 0.65,
+    "ok": true,
+    "median_le_300": 9.37,
+    "return": 0.3373071196276238,
+    "loss_ratio": 0.6126928803723762
+  },
+  "sensitivity": [
+    {
+      "product": "cap",
+      "informed_share": 0.0,
+      "breakage": 0.3,
+      "loss_ratio": 0.36919584944360223,
+      "return": 0.5808041505563977
+    },
+    {
+      "product": "drop",
+      "informed_share": 0.0,
+      "breakage": 0.3,
+      "loss_ratio": 0.6705976209850306,
+      "return": 0.2794023790149694
+    },
+    {
+      "product": "cap",
+      "informed_share": 0.1,
+      "breakage": 0.3,
+      "loss_ratio": 0.43841320348514595,
+      "return": 0.511586796514854
+    },
+    {
+      "product": "drop",
+      "informed_share": 0.1,
+      "breakage": 0.3,
+      "loss_ratio": 0.6608027940014749,
+      "return": 0.28919720599852505
+    },
+    {
+      "product": "cap",
+      "informed_share": 0.25,
+      "breakage": 0.3,
+      "loss_ratio": 0.5640038401395533,
+      "return": 0.3859961598604466
+    },
+    {
+      "product": "drop",
+      "informed_share": 0.25,
+      "breakage": 0.3,
+      "loss_ratio": 0.6226193927717454,
+      "return": 0.32738060722825457
+    },
+    {
+      "product": "cap",
+      "informed_share": 0.4,
+      "breakage": 0.3,
+      "loss_ratio": 0.6469880482568583,
+      "return": 0.3030119517431417
+    },
+    {
+      "product": "drop",
+      "informed_share": 0.4,
+      "breakage": 0.3,
+      "loss_ratio": 0.62663394887797,
+      "return": 0.32336605112202993
+    },
+    {
+      "product": "cap",
+      "informed_share": 0.6,
+      "breakage": 0.3,
+      "loss_ratio": 0.7412435637493642,
+      "return": 0.20875643625063572
+    },
+    {
+      "product": "drop",
+      "informed_share": 0.6,
+      "breakage": 0.3,
+      "loss_ratio": 0.583829874959882,
+      "return": 0.3661701250401179
+    },
+    {
+      "product": "cap",
+      "informed_share": 0.25,
+      "breakage": 0.1,
+      "loss_ratio": 0.574578349616451,
+      "return": 0.37542165038354897
+    },
+    {
+      "product": "drop",
+      "informed_share": 0.25,
+      "breakage": 0.1,
+      "loss_ratio": 0.6278013808418976,
+      "return": 0.3221986191581024
+    },
+    {
+      "product": "cap",
+      "informed_share": 0.25,
+      "breakage": 0.5,
+      "loss_ratio": 0.5152417634636314,
+      "return": 0.4347582365363685
+    },
+    {
+      "product": "drop",
+      "informed_share": 0.25,
+      "breakage": 0.5,
+      "loss_ratio": 0.6278013808418976,
+      "return": 0.3221986191581024
+    }
+  ],
+  "capital": [
+    {
+      "product": "cap",
+      "policies_per_week": 10,
+      "ruin_prob": 0.01,
+      "loss_buffer_eur": 170.59749000000002,
+      "collateral_eur": 1500.0,
+      "total_capital_eur": 1670.59749,
+      "p_loss_after_year": 0.0
+    },
+    {
+      "product": "drop",
+      "policies_per_week": 10,
+      "ruin_prob": 0.01,
+      "loss_buffer_eur": 138.14252500000003,
+      "collateral_eur": 800.0,
+      "total_capital_eur": 938.142525,
+      "p_loss_after_year": 0.0
+    },
+    {
+      "product": "cap",
+      "policies_per_week": 50,
+      "ruin_prob": 0.01,
+      "loss_buffer_eur": 102.25876499999998,
+      "collateral_eur": 7500.0,
+      "total_capital_eur": 7602.258765,
+      "p_loss_after_year": 0.0
+    },
+    {
+      "product": "drop",
+      "policies_per_week": 50,
+      "ruin_prob": 0.01,
+      "loss_buffer_eur": 54.50277500000004,
+      "collateral_eur": 4000.0,
+      "total_capital_eur": 4054.502775,
+      "p_loss_after_year": 0.0
+    },
+    {
+      "product": "cap",
+      "policies_per_week": 200,
+      "ruin_prob": 0.01,
+      "loss_buffer_eur": -0.0,
+      "collateral_eur": 30000.0,
+      "total_capital_eur": 30000.0,
+      "p_loss_after_year": 0.0
+    },
+    {
+      "product": "drop",
+      "policies_per_week": 200,
+      "ruin_prob": 0.01,
+      "loss_buffer_eur": -0.0,
+      "collateral_eur": 16000.0,
+      "total_capital_eur": 16000.0,
+      "p_loss_after_year": 0.0
+    }
+  ]
+}

@@ -5,12 +5,14 @@
 # Full Debian trixie image: ships gcc and curl (no apt step), and glibc ≥ 2.39 for near-sandbox.
 ARG BASE_IMAGE=node:22-trixie
 FROM ${BASE_IMAGE}
-RUN --mount=type=secret,id=ca,required=false sh -c 'if [ -s /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi; npm install -g pnpm@10.0.0'
+RUN npm install -g pnpm@10.0.0
 WORKDIR /app
 COPY . .
-# Optional extra CA (only for builds behind a TLS-intercepting proxy): --secret id=ca,src=...
-RUN --mount=type=secret,id=ca,required=false sh -c 'if [ -s /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi; pnpm install --frozen-lockfile' 
-RUN --mount=type=secret,id=ca,required=false sh -c 'if [ -s /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi; pnpm --filter web build'
+RUN pnpm install --frozen-lockfile
+# Railway passes service variables as build arguments. Use the public URL for
+# prerendered metadata and label this all-in-one demo as a sandbox from first load.
+ARG SITE_URL=http://localhost:3000
+RUN SITE_URL=$SITE_URL CAPFARE_NETWORK=sandbox pnpm --filter web build
 RUN gcc -shared -fPIC -o scripts/dev/librlimit_shim.so scripts/dev/rlimit_shim.c -ldl
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 STACK_QUIET=1
 EXPOSE 3000

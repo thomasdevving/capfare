@@ -25,9 +25,17 @@ export function signAttestation(a: BookingAttestation, k: EnclaveKey): SignedBoo
 }
 
 export function verifySnapshot(s: SignedSnapshot): boolean {
-  return ed25519.verify(hexToBytes(s.signature), snapshotDigest(s.snapshot), hexToBytes(s.signer));
+  try {
+    return ed25519.verify(hexToBytes(s.signature), snapshotDigest(s.snapshot), hexToBytes(s.signer), { zip215: false });
+  } catch {
+    return false;
+  }
 }
 
 export function verifyAttestation(a: SignedBookingAttestation): boolean {
-  return ed25519.verify(hexToBytes(a.signature), attestationDigest(a.attestation), hexToBytes(a.signer));
+  try {
+    return ed25519.verify(hexToBytes(a.signature), attestationDigest(a.attestation), hexToBytes(a.signer), { zip215: false });
+  } catch {
+    return false;
+  }
 }

@@ -1,11 +1,24 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>CapFare</title>
-<style>body{font:14px/1.45 system-ui,sans-serif;width:280px;margin:0;padding:14px;color:#1e2228}h1{font-size:16px;margin:0 0 8px}a{color:#1d5fd1}p{margin:0 0 8px}.t{font-size:12px;color:#5a626e}</style></head>
-<body>
-<h1>CapFare (testnet)</h1>
-<p>On supported booking pages, CapFare shows what it costs to lock a maximum price for that exact flight.</p>
-<p><a id="app" target="_blank" rel="noopener">Open CapFare</a></p>
+<style>
+  body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; width: 300px; margin: 0; color: #fff;
+    background: linear-gradient(170deg, #0f2c55 0%, #0b2447 46%, #081b36 100%); border-top: 2px solid #ffd100; }
+  .in { padding: 16px; }
+  h1 { display: flex; align-items: center; gap: 8px; font: 700 17px/1 "Outfit", system-ui, sans-serif; margin: 0 0 4px; }
+  .tag { display: inline-block; margin: 0 0 12px; padding: 2px 8px; border-radius: 6px; background: #ffd100; color: #0b2447; font-weight: 650; font-size: 11px; }
+  p { margin: 0 0 10px; }
+  .cta { display: block; text-align: center; background: #ffd100; color: #0b2447; font-weight: 700; text-decoration: none; padding: 11px; border-radius: 12px; margin: 14px 0 12px; }
+  .cta:hover { background: #ffdc3d; }
+  .cta:focus-visible { outline: 3px solid #ffd100; outline-offset: 2px; }
+  .t { font-size: 12px; color: #c7d5e8; padding: 10px 12px; background: rgba(211, 227, 249, 0.09); border: 1px solid rgba(211, 227, 249, 0.14); border-radius: 12px; margin: 0; }
+</style></head>
+<body><div class="in">
+<h1><svg width="26" height="20" viewBox="0 0 104 80" aria-hidden="true"><g fill="#FFD100" stroke="#FFD100" stroke-width="9" stroke-linejoin="round"><path d="M9 74 L41 16 L60 16 L28 74 Z"/><path d="M45 74 L67 34 L86 34 L64 74 Z"/></g><g transform="translate(70 -2) rotate(45 15 15) scale(1.25)" fill="#FFD100"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg>CapFare</h1>
+<span class="tag">Testnet</span>
+<p>On supported booking pages, CapFare shows what it costs to lock a maximum price for that flight (or protect a booking against a drop), for everyone travelling.</p>
+<a class="cta" id="app" target="_blank" rel="noopener">Open CapFare</a>
 <p class="t">Supported now: Skyline Travel, the CapFare demo booking site. The extension reads only those pages, sends no analytics and never sees your bookings.</p>
+</div>
 <script src="popup.js"></script>
 </body></html>

@@ -29,6 +29,12 @@ describe("Skyline Travel (demo) adapter, saved HTML snapshots", () => {
     expect(r.flights[0]).toMatchObject({ flight_number: "KL1695", fare_class: "economy_standard" });
     expect(r.flights[0].displayed_price_minor).toBeGreaterThan(0);
   });
+  it("travellers: from the search and from the booking", () => {
+    const url = u("/booker/results?from=AMS&to=BCN&date=2027-06-14&pax=3");
+    expect(adapterFor(url)!.extract(load("search.html"), url)!.travellers).toBe(3);
+    const conf = u("/booker/confirmation");
+    expect(adapterFor(conf)!.extract(load("confirmation.html"), conf)!.travellers).toBe(1);
+  });
   it("manage page is recognised (offers the live check)", () => {
     const url = u("/booker/manage");
     expect(adapterFor(url)!.extract(load("manage.html"), url)!.kind).toBe("manage");

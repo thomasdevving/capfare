@@ -12,6 +12,8 @@ export interface ExtractedFlight {
 export interface PageExtraction {
   kind: "search" | "details" | "confirmation" | "manage";
   flights: ExtractedFlight[];
+  /** Travellers in the search or on the booking, if the page shows it. */
+  travellers?: number;
 }
 
 export interface SiteAdapter {

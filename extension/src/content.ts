@@ -20,7 +20,8 @@ async function run() {
   const f: ExtractedFlight = page.flights.slice().sort((a, b) => (a.displayed_price_minor ?? 1e12) - (b.displayed_price_minor ?? 1e12))[0];
   const product = page.kind === "confirmation" ? "drop" : "cap";
   const { url: app } = await ask<{ url: string }>({ type: "app-url" });
-  const r = await ask<{ ok: boolean; data: QuoteView & { error?: string } }>({ type: "quote", flight: f, product });
+  const travellers = page.travellers ?? 1;
+  const r = await ask<{ ok: boolean; data: QuoteView & { error?: string } }>({ type: "quote", flight: f, product, travellers });
   if (!r?.ok) return; // no price source for this flight: stay silent
   const q = new URLSearchParams({
     fn: f.flight_number,
@@ -29,6 +30,7 @@ async function run() {
     to: f.destination,
     fare: f.fare_class,
     product,
+    ...(travellers > 1 ? { pax: String(travellers) } : {}),
     ...(f.displayed_price_minor ? { hint: String(f.displayed_price_minor) } : {}),
   });
   const view = product === "drop" ? { ...r.data, price_minor: f.displayed_price_minor ?? r.data.price_minor } : r.data;

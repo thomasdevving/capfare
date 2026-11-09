@@ -170,3 +170,21 @@ card). All three are captured from the built extension by `scripts/src/extension
 |---|---|
 | ![Hero desktop](img/landing/desktop-hero.png) | ![Hero mobile](img/landing/mobile-hero.png) |
 | ![How it works desktop](img/landing/desktop-how.png) | ![How it works mobile](img/landing/mobile-how.png) |
+
+### Revision 6 — photographic hero and white landing body
+
+The owner's latest reference replaces the illustrated landing sky with a real in-flight
+photograph and a white page below it. The hero and navigation now sit over a locally hosted,
+optimized WebP photograph of an aircraft wing above the clouds at sunset. A dark overlay
+keeps the existing white hero text readable; the interactive fare chart retains its glass
+surface. Photo source and license are recorded in `web/public/images/README.md`.
+
+The rest of the landing page is one continuous white surface with rounded upper corners
+(48 px on desktop, 32 px on mobile) overlapping the bottom of the hero. Locally scoped light
+tokens provide dark text, purple links and readable live/error states. Existing copy,
+translations, screenshots and behavior are preserved. Other application pages retain their
+existing dusk theme.
+
+Validation: production web build and the four existing hero tests passed. Browser checks at
+1440 px and 390 px, in English and Dutch, confirmed image loading, no horizontal overflow,
+white content surfaces, no JavaScript errors and keyboard interaction with the price cap.

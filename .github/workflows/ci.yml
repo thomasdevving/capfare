@@ -1,0 +1,69 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: contracts }
+      - name: Install cargo-near
+        run: |
+          sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+          cargo install cargo-near --version 0.23.0 --locked
+      - name: Unit, property and conformance tests
+        run: cd contracts && cargo test --workspace --exclude capfare-integration-tests
+      - name: Build wasm
+        run: ./scripts/build-contracts.sh
+      - name: Sandbox integration tests
+        run: cd contracts && cargo test -p capfare-integration-tests -- --test-threads=1
+
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.0.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Extension build (for manifest test)
+        run: pnpm --filter @capfare/extension build
+      - name: Tests (shared, TEE services, relayer, extension, web)
+        run: pnpm -r test
+      - name: Web build
+        run: pnpm --filter web build
+
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r backtest/requirements.txt
+      - run: cd backtest && python -m pytest -q
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.0.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm --filter web build
+      - name: Start the local stack (sandbox + services + web) and run the scripted demo
+        run: |
+          (pnpm --filter @capfare/scripts stack -- --web > stack.log 2>&1 &)
+          for i in $(seq 1 240); do grep -q "web: http" stack.log && break; sleep 2; done
+          cat stack.log | tail -5
+      - name: Playwright (quote → buy → claim → payout, UI vs contract premium)
+        run: pnpm --filter web e2e

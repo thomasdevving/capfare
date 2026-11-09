@@ -1,0 +1,9 @@
+**/node_modules
+**/.next
+contracts/target
+backtest/.venv
+**/test-results
+**/playwright-report
+extension/build
+deployments/*.json
+.git

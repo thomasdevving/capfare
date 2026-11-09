@@ -44,7 +44,8 @@ async function waitFor(url: string, tries = 60) {
 export async function stack(opts: { web: boolean; webPort: number }) {
   const { sandbox, info } = await startSandbox(DEPLOY_DIR);
   console.log(`sandbox: ${info.rpcUrl}`);
-  const common = { CAPFARE_DEPLOYMENT: "demo", CORS_ORIGINS: `http://localhost:${opts.webPort}` };
+  const site = process.env.SITE_URL ?? `http://localhost:${opts.webPort}`;
+  const common = { CAPFARE_DEPLOYMENT: "demo", CORS_ORIGINS: `${site},http://localhost:${opts.webPort}` };
   const tsx = join(ROOT_DIR, "scripts", "node_modules", ".bin", "tsx");
   run("verifier", [tsx, "tee/booking_verifier/src/server.ts"], { ...common, PORT: "8082" });
   run("oracle", [tsx, "tee/price_oracle/src/server.ts"], { ...common, PORT: "8081", RELAYER_URL: "http://localhost:8083" });
@@ -90,6 +91,7 @@ export async function stack(opts: { web: boolean; webPort: number }) {
     RAMP_ACCOUNT_ID: d.root,
     RAMP_PRIVATE_KEY: info.rootKey,
     CAPFARE_DEMO: "true",
+    SITE_URL: site,
   };
   writeFileSync(join(ROOT_DIR, "web", ".env.local"), Object.entries(webEnv).map(([k, v]) => `${k}=${v}`).join("\n") + "\n");
   console.log("stack ready: oracle :8081, verifier :8082, relayer :8083; web env written to web/.env.local");

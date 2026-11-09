@@ -32,10 +32,13 @@ export function saveDeployment(d: Deployment) {
   writeFileSync(join(DEPLOY_DIR, `${d.network}.json`), JSON.stringify(d, null, 2));
 }
 
+/** Freshly built wasm if present, else the committed prebuilt copy in contracts/res. */
 export function wasm(name: string): string {
-  const p = join(ROOT_DIR, "contracts", "target", "near", name, `${name}.wasm`);
-  if (!existsSync(p)) throw new Error(`missing ${p}: run ./scripts/build-contracts.sh`);
-  return p;
+  const built = join(ROOT_DIR, "contracts", "target", "near", name, `${name}.wasm`);
+  if (existsSync(built)) return built;
+  const res = join(ROOT_DIR, "contracts", "res", `${name}.wasm`);
+  if (existsSync(res)) return res;
+  throw new Error(`missing ${built}: run ./scripts/build-contracts.sh`);
 }
 
 export function loadParams(file: string): Record<string, unknown> {

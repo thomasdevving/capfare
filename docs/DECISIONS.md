@@ -109,3 +109,17 @@ liquidity and is removed from `total_assets` accounting until withdrawn.
 **D21. Payout destination.** Payouts go to the owner's NEAR account (USDC). Sold-out premium
 refunds go back to credit. IBAN off-ramp and Intents payouts start from the user's balance
 (mock ramp / dry quotes on testnet).
+
+**D22. Visual direction changed by the project owner.** The original plan (white surfaces,
+graphite text, yellow accent, no gradients) was replaced on the owner's instruction by a
+dusk-sky background with translucent glass panels on every page and in the extension, plus
+the owner's logo. Outfit is used for headings and the wordmark. See LANDING_DESIGN.md,
+revisions 2–4, for what was taken from the reference and what was left out.
+
+**D23. Demo booking site.** `/demo-airline` on the web app is a clearly labelled stand-in
+booking site ("Skyline Travel (demo)"). It is the only site the extension has a working,
+fixture-tested adapter for, so it is the only one named on the landing page.
+
+**D24. Extension permissions.** The manifest requests no API permissions and a single host
+permission: the CapFare app origin (API and demo site). Content scripts run only on
+`/demo-airline*` there. Adding a real site means adding its origin, an adapter and fixtures.

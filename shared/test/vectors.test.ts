@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
-  attestationDigest, bytesToHex, capPayout, computePremium, dropPayout, encodeAttestation, encodeSnapshot,
+  attestationDigest, bytesToHex, capPayout, coverageCovers, coverageHash, legNullifier, routeKeyHash, validateRouteKey, computePremium, dropPayout, encodeAttestation, encodeSnapshot,
   flightKeyHash, keyFromSeed, routeWeekKey, signAttestation, signSnapshot, snapshotDigest, validateFlightKey,
   verifyAttestation, verifySnapshot,
 } from "../src/index.ts";
@@ -23,6 +23,17 @@ describe("conformance with contracts/core", () => {
   it("attestation borsh + digest", () => {
     expect(bytesToHex(encodeAttestation(V.attestation.value))).toBe(V.attestation.borsh_hex);
     expect(bytesToHex(attestationDigest(V.attestation.value))).toBe(V.attestation.digest);
+  });
+  it("route keys, coverages and leg nullifiers", () => {
+    expect(validateRouteKey(V.route_key.value)).toBeNull();
+    expect(routeKeyHash(V.route_key.value)).toBe(V.route_key.hash);
+    for (const c of V.coverages) expect(coverageHash(c.coverage)).toBe(c.hash);
+    const l = V.leg_nullifier;
+    expect(legNullifier(l.booking_nullifier, l.flight_key_hash)).toBe(l.leg_nullifier);
+    const flight = V.flight_keys[0].flight_key;
+    expect(coverageCovers(V.coverages[1].coverage, { ...flight, flight_number: "VY1234", airline: "VY" })).toBe(true);
+    expect(coverageCovers(V.coverages[1].coverage, { ...flight, departure_date: "2027-06-15" })).toBe(false);
+    expect(coverageCovers(V.coverages[0].coverage, { ...flight, flight_number: "KL1696" })).toBe(false);
   });
   it("route week key", () => {
     const r = V.route_week;

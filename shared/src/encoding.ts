@@ -1,6 +1,6 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { BorshWriter, bytesToHex, hexToBytes } from "./borsh.ts";
-import type { BookingAttestation, FlightKey, PriceSnapshot } from "./types.ts";
+import type { BookingAttestation, Coverage, FlightKey, PriceSnapshot, RouteKey } from "./types.ts";
 import { FARE_CLASSES } from "./types.ts";
 
 const enc = new TextEncoder();
@@ -8,6 +8,8 @@ export const FLIGHT_KEY_DOMAIN = "capfare/flight-key/v1";
 export const SNAPSHOT_DOMAIN = "capfare/price-snapshot/v1";
 export const ATTESTATION_DOMAIN = "capfare/booking-attestation/v1";
 export const ROUTE_WEEK_DOMAIN = "capfare/route-week/v1";
+export const ROUTE_KEY_DOMAIN = "capfare/route-key/v1";
+export const LEG_NULLIFIER_DOMAIN = "capfare/leg-nullifier/v1";
 
 function digest(domain: string, body: Uint8Array): Uint8Array {
   const d = enc.encode(domain);
@@ -30,6 +32,55 @@ export function encodeFlightKey(k: FlightKey): Uint8Array {
 
 export function flightKeyHash(k: FlightKey): string {
   return bytesToHex(digest(FLIGHT_KEY_DOMAIN, encodeFlightKey(k)));
+}
+
+export function routeKeyHash(r: RouteKey): string {
+  return bytesToHex(digest(ROUTE_KEY_DOMAIN, new BorshWriter().string(r.origin).string(r.destination).string(r.departure_date).string(r.fare_class).bytes()));
+}
+
+export function coverageHash(c: Coverage): string {
+  return "flight" in c ? flightKeyHash(c.flight) : routeKeyHash(c.route);
+}
+
+/** H(booking nullifier || flight key hash): each flight of a booking is used once per product. */
+export function legNullifier(bookingNullifier: string, flightKeyHashHex: string): string {
+  const body = new Uint8Array(64);
+  body.set(hexToBytes(bookingNullifier), 0);
+  body.set(hexToBytes(flightKeyHashHex), 32);
+  return bytesToHex(digest(LEG_NULLIFIER_DOMAIN, body));
+}
+
+/** Same rules as RouteKey::validate in Rust. */
+export function validateRouteKey(r: RouteKey): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.departure_date)) return "departure_date must be YYYY-MM-DD";
+  if (!/^[A-Z]{3}$/.test(r.origin) || !/^[A-Z]{3}$/.test(r.destination)) return "airports must be 3-letter uppercase IATA codes";
+  if (r.origin === r.destination) return "origin and destination must differ";
+  if (!(FARE_CLASSES as readonly string[]).includes(r.fare_class)) return "unknown fare_class";
+  return null;
+}
+
+export function validateCoverage(c: Coverage): string | null {
+  return "flight" in c ? validateFlightKey(c.flight) : validateRouteKey(c.route);
+}
+
+/** True if a booking for flight `k` can be used with coverage `c` (RouteKey::matches in Rust). */
+export function coverageCovers(c: Coverage, k: FlightKey): boolean {
+  if ("flight" in c) return flightKeyHash(c.flight) === flightKeyHash(k);
+  const r = c.route;
+  return k.origin === r.origin && k.destination === r.destination && k.departure_date === r.departure_date && k.fare_class === r.fare_class;
+}
+
+/** Route, day and fare class of any coverage. */
+export function coverageRoute(c: Coverage): RouteKey {
+  if ("route" in c) return c.route;
+  const f = c.flight;
+  return { origin: f.origin, destination: f.destination, departure_date: f.departure_date, fare_class: f.fare_class };
+}
+
+/** "KL1695 AMS→BCN, 2027-06-14" or "Any flight AMS→BCN, 2027-06-14". */
+export function coverageLabel(c: Coverage): string {
+  const r = coverageRoute(c);
+  return `${"flight" in c ? c.flight.flight_number : "Any flight"} ${r.origin}→${r.destination}, ${r.departure_date}`;
 }
 
 /** Same rules as FlightKey::validate in Rust. Returns an error message or null. */
@@ -101,6 +152,7 @@ export function encodeAttestation(a: BookingAttestation): Uint8Array {
     .u64(a.verified_at)
     .fixed(hexToBytes(a.enclave_measurement), 32)
     .fixed(hexToBytes(a.passenger_commitment), 32)
+    .u8(a.seats)
     .bytes();
 }
 

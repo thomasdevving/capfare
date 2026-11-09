@@ -2,12 +2,13 @@
  * price_oracle service.
  *   GET  /health
  *   GET  /v1/enclave            signing key, measurement, attestation report
- *   POST /v1/snapshot           {flight_key, submit?} -> signed snapshot (on-demand, for quotes)
+ *   POST /v1/snapshot           {flight_key | route, submit?} -> signed snapshot (on-demand, for quotes);
+ *                               for a route also the per-flight snapshots and prices
  *   GET  /v1/demo/paths         (demo only) scripted paths and cursors
- *   POST /v1/demo/advance       (demo only) {flight_key, to?}
+ *   POST /v1/demo/advance       (demo only) {flight_key | route, to?}
  */
 import { fileURLToPath } from "node:url";
-import { NearViewClient, type FlightKey } from "@capfare/shared";
+import { NearViewClient, type FlightKey, type RouteKey } from "@capfare/shared";
 import { HttpError, loadKeys, logger, RateLimiter, serve } from "@capfare/tee-common";
 import { ScriptedPriceAdapter } from "./adapters/scripted.ts";
 import { DemoModelAdapter } from "./adapters/demo-model.ts";
@@ -23,9 +24,11 @@ export async function main() {
   const keys = await loadKeys("price_oracle");
   const adapters: PriceAdapter[] = [];
   let scripted: ScriptedPriceAdapter | undefined;
+  let model: DemoModelAdapter | undefined;
   if (mode === "demo" || mode === "test") {
     scripted = ScriptedPriceAdapter.fromFile(process.env.DEMO_PATHS ?? fileURLToPath(new URL("../demo/price_paths.json", import.meta.url)));
-    adapters.push(scripted, new DemoModelAdapter());
+    model = new DemoModelAdapter();
+    adapters.push(scripted, model);
   }
   for (const site of AIRLINE_SITES) {
     const a = new AirlineSiteAdapter(site);
@@ -50,9 +53,17 @@ export async function main() {
         measurement: keys.measurement,
         report: keys.report,
       }),
-      "POST /v1/snapshot": async (body: { flight_key: FlightKey; submit?: boolean }, req) => {
+      "POST /v1/snapshot": async (body: { flight_key?: FlightKey; route?: RouteKey; submit?: boolean }, req) => {
         if (!perClient.take(req.socket.remoteAddress ?? "?")) throw new HttpError(429, "too many requests");
-        if (!body?.flight_key) throw new HttpError(400, "flight_key required");
+        if (body?.route) {
+          const r = await oracle.routeSnapshot(body.route).catch((e) => {
+            throw new HttpError(422, String(e instanceof Error ? e.message : e));
+          });
+          // Flights first, then the route index, in one batch (relayer limit: 50).
+          const results = body.submit === false ? [] : await submit([...r.flights.slice(0, 49), r.route]);
+          return { snapshot: r.route, flights: r.detail, submitted: results[results.length - 1] ?? null };
+        }
+        if (!body?.flight_key) throw new HttpError(400, "flight_key or route required");
         const s = await oracle.snapshot(body.flight_key).catch((e) => {
           throw new HttpError(422, String(e instanceof Error ? e.message : e));
         });
@@ -63,9 +74,15 @@ export async function main() {
         if (!scripted) throw new HttpError(404, "not a demo deployment");
         return scripted.list();
       },
-      "POST /v1/demo/advance": (body: { flight_key: FlightKey; to?: number }) => {
-        if (!scripted) throw new HttpError(404, "not a demo deployment");
-        return scripted.advance(body.flight_key, body.to);
+      "POST /v1/demo/advance": (body: { flight_key?: FlightKey; route?: RouteKey; to?: number }) => {
+        if (!scripted || !model) throw new HttpError(404, "not a demo deployment");
+        if (body.route) {
+          // The whole route gets pricier; scripted flights on it take their next step too.
+          for (const k of scripted.flightsOn(body.route)) scripted.advance(k);
+          return model.advanceRoute(body.route, body.to);
+        }
+        if (!body.flight_key) throw new HttpError(400, "flight_key or route required");
+        return scripted.supports(body.flight_key) ? scripted.advance(body.flight_key, body.to) : model.advanceRoute(body.flight_key, body.to);
       },
     },
   });

@@ -57,6 +57,9 @@ describe("relayer policy", () => {
     expect(checkDelegate(v(signed(cfg.token, "ft_transfer_call", { receiver_id: "evil.testnet" }, 1n)), cfg)).toMatch(/only to CapFare/);
     expect(checkDelegate(v(signed(cfg.token, "ft_transfer_call", { receiver_id: cfg.registry, msg: "\"top_up\"" }, 1n)), cfg)).toBeNull();
     expect(checkDelegate(v(signed(cfg.token, "ft_transfer", { receiver_id: cfg.registry }, 1n)), cfg)).toMatch(/not sponsored/);
+    // Trips/travellers/route purchases and closing unconfirmed held claims are sponsored.
+    expect(checkDelegate(v(signed(cfg.registry, "buy_caps", { purchase: {} })), cfg)).toBeNull();
+    expect(checkDelegate(v(signed(cfg.registry, "void_unconfirmed_claim", { policy_id: 1 })), cfg)).toBeNull();
   });
 
   it("rate-limits per account", async () => {

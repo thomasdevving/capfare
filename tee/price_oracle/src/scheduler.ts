@@ -1,5 +1,5 @@
-/** Periodic snapshots for every flight with an active or claimed policy. */
-import { flightKeyHash, NearViewClient, type Policy, type SignedSnapshot } from "@capfare/shared";
+/** Periodic snapshots for every flight or route with an active or claimed policy. */
+import { NearViewClient, type Policy, type SignedSnapshot } from "@capfare/shared";
 import type { Oracle } from "./oracle.ts";
 
 export interface SchedulerOptions {
@@ -33,10 +33,15 @@ export async function tick(o: SchedulerOptions, lastAt: Map<string, number>): Pr
   const batch: SignedSnapshot[] = [];
   for (const p of due) {
     try {
-      batch.push(await o.oracle.snapshot(p.flight_key));
-      lastAt.set(flightKeyHash(p.flight_key), now);
+      if ("route" in p.coverage) {
+        const r = await o.oracle.routeSnapshot(p.coverage.route);
+        batch.push(r.route, ...r.flights);
+      } else {
+        batch.push(await o.oracle.snapshot(p.coverage.flight));
+      }
+      lastAt.set(p.flight_key_hash, now);
     } catch (e) {
-      o.log?.("snapshot_failed", { flight: p.flight_key.flight_number, error: String(e) });
+      o.log?.("snapshot_failed", { policy: p.id, error: String(e) });
     }
   }
   for (let i = 0; i < batch.length; i += 50) await o.submit(batch.slice(i, i + 50));

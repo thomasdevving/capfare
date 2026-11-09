@@ -31,15 +31,19 @@ export function parseKlmText(text: string): ParsedBooking | null {
   }
   if (!segments.length) return null;
   const totalLine = field(text, /Total price|Totaalprijs/);
-  const paid = totalLine ? parseEurAmount(totalLine) : null;
-  if (!paid) return null;
+  const total = totalLine ? parseEurAmount(totalLine) : null;
+  if (!total) return null;
+  // "Passengers: 2" / "Passagiers: 2"; the total covers all of them.
+  const paxLine = field(text, /Passengers|Passagiers/);
+  const passengers = paxLine && /^\d+\b/.test(paxLine) ? Math.max(1, parseInt(paxLine, 10)) : 1;
+  const paid = Math.floor(total / passengers);
   const lower = text.toLowerCase();
   const refundable = /non-refundable|not refundable|niet restitueerbaar/.test(lower)
     ? "non_refundable"
     : /fully refundable|refundable ticket|restitueerbaar/.test(lower)
       ? "refundable"
       : "unknown";
-  const last = field(text, /Passenger|Passagier/);
+  const last = field(text, /Passenger(?!s)|Passagier(?!s)/);
   return {
     airline: "KL",
     booking_ref: refM[1],
@@ -49,6 +53,7 @@ export function parseKlmText(text: string): ParsedBooking | null {
     paid_price_minor: paid,
     currency: "EUR",
     refundable,
+    passengers,
   };
 }
 

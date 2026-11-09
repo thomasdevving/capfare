@@ -19,17 +19,52 @@ export function viewDelegate(sd: SignedDelegate): DelegateView {
   return { senderId: da.senderId, receiverId: da.receiverId, calls };
 }
 
+export interface RelayOutcome {
+  hash: string;
+  ok: boolean;
+  error?: string;
+  receipt_failures?: string[];
+  events?: { event: string; data: any }[];
+}
+
 export interface ChainOps {
-  relay(sd: SignedDelegate): Promise<{ hash: string; ok: boolean; error?: string }>;
+  relay(sd: SignedDelegate): Promise<RelayOutcome>;
   createUser(accountId: string, publicKey: string, nearYocto: bigint): Promise<void>;
   registerOnToken(token: string, accountId: string): Promise<void>;
   submitSnapshots(attestation: string, snapshots: unknown[]): Promise<string[]>;
 }
 
-function outcome(r: any): { hash: string; ok: boolean; error?: string } {
+function outcome(r: any): RelayOutcome {
   const st = r?.status ?? r?.final_execution_status;
   const failure = st && typeof st === "object" && "Failure" in st ? JSON.stringify(st.Failure) : undefined;
-  return { hash: r?.transaction?.hash ?? r?.transaction_outcome?.id ?? "", ok: !failure, error: failure };
+  // Inner receipt failures (e.g. a rejected attestation in a callback chain) are reported
+  // separately: some are expected and handled by the contracts' rollback callbacks.
+  const receiptFailures = (r?.receipts_outcome ?? [])
+    .map((x: any) => x?.outcome?.status?.Failure)
+    .filter(Boolean)
+    .map((f: any) => {
+      const m = JSON.stringify(f);
+      return /ExecutionError":"([^"]+)/.exec(m)?.[1] ?? m.slice(0, 300);
+    });
+  const events = (r?.receipts_outcome ?? [])
+    .flatMap((x: any) => x?.outcome?.logs ?? [])
+    .filter((l: string) => l.startsWith("EVENT_JSON:"))
+    .map((l: string) => {
+      try {
+        const e = JSON.parse(l.slice(11));
+        return { event: e.event, data: e.data?.[0] };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+  return {
+    events,
+    hash: r?.transaction?.hash ?? r?.transaction_outcome?.id ?? "",
+    ok: !failure,
+    error: failure,
+    receipt_failures: receiptFailures.length ? receiptFailures : undefined,
+  };
 }
 
 export function nearChain(rpcUrl: string, relayerId: string, secretKey: string): ChainOps {

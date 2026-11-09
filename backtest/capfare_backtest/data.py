@@ -79,11 +79,11 @@ class SyntheticSource:
         # Revenue-management level: driven by load and time, with bursty noise.
         level = np.zeros(T)
         noise = 0.0
-        vol_state = 0.15
+        vol_state = 0.05
         for t in range(T):
-            if rng.random() < 0.02:  # volatility regime switch
-                vol_state = 0.6 if vol_state < 0.3 else 0.15
-            noise = 0.97 * noise + rng.normal(0, vol_state)
+            if rng.random() < 0.015:  # volatility regime switch (bursts of bucket changes)
+                vol_state = 0.22 if vol_state < 0.1 else 0.05
+            noise = 0.95 * noise + rng.normal(0, vol_state)
             late = max(0.0, (21 - dtd[t]) / 21)
             level[t] = 6.0 * max(0.0, load[t] - 0.35) / 0.65 + 2.2 * late + noise + (0.6 if season else 0.0)
         lvl = np.clip(np.round(level), 0, len(self.LADDER) - 1).astype(int)
@@ -92,7 +92,7 @@ class SyntheticSource:
         promo = np.ones(T)
         t = 0
         while t < T:
-            if rng.random() < 0.004 and dtd[t] > 10:
+            if rng.random() < 0.0015 and dtd[t] > 10:
                 length = int(rng.integers(1, 4)) * STEPS_PER_DAY
                 promo[t : t + length] = 1 - rng.uniform(0.10, 0.25)
                 t += length

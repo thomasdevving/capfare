@@ -94,7 +94,7 @@ export async function stack(opts: { web: boolean; webPort: number }) {
   writeFileSync(join(ROOT_DIR, "web", ".env.local"), Object.entries(webEnv).map(([k, v]) => `${k}=${v}`).join("\n") + "\n");
   console.log("stack ready: oracle :8081, verifier :8082, relayer :8083; web env written to web/.env.local");
   if (opts.web) {
-    run("web", ["pnpm", "--filter", "web", "start", "--", "-p", String(opts.webPort)], { ...webEnv, PORT: String(opts.webPort) });
+    run("web", ["pnpm", "--filter", "web", "exec", "next", "start", "-p", String(opts.webPort)], { ...webEnv, PORT: String(opts.webPort) });
     await waitFor(`http://localhost:${opts.webPort}/api/health`, 120);
     console.log(`web: http://localhost:${opts.webPort}`);
   }

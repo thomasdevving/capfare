@@ -14,15 +14,21 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@capfare/booking-verifier": "workspace:*",
+    "@capfare/price-oracle": "workspace:*",
+    "@capfare/relayer": "workspace:*",
     "@capfare/shared": "workspace:*",
     "@capfare/tee-common": "workspace:*",
-    "@capfare/relayer": "workspace:*",
-    "@capfare/price-oracle": "workspace:*",
-    "@capfare/booking-verifier": "workspace:*",
     "borsh": "2.0.0",
     "near-api-js": "7.4.0",
     "near-sandbox": "0.3.5",
     "tsx": "4.23.15"
   },
-  "devDependencies": { "typescript": "5.9.3", "vitest": "5.1.0", "@types/node": "^22", "@noble/hashes": "2.4.0" }
+  "devDependencies": {
+    "@noble/hashes": "2.4.0",
+    "@types/node": "^22",
+    "playwright": "1.63.0",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
 }

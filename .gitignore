@@ -26,3 +26,7 @@ backtest/.venv/
 deployments/*.json
 !deployments/README.md
 web/.env.local
+web/test-results/
+web/playwright-report/
+extension/build/
+web/next-env.d.ts

@@ -1,0 +1,18 @@
+[package]
+name = "capfare-attestation-registry"
+description = "CapFare attestation registry: enclave keys, oracle snapshots, booking attestations, nullifiers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = { workspace = true }
+capfare-core = { workspace = true }
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = "0.8"

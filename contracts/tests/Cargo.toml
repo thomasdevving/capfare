@@ -1,0 +1,18 @@
+[package]
+name = "capfare-integration-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+
+[dev-dependencies]
+capfare-core = { workspace = true }
+near-sdk = { workspace = true, features = ["unit-testing"] }
+near-sandbox = "0.4.0"
+near-api = "0.8.7"
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+ed25519-dalek = "2"
+anyhow = "1"

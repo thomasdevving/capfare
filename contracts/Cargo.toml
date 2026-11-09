@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = ["core", "vault", "attestation_registry", "policy_registry", "mock_ft", "tests"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/thomasdevving/capfare"
+
+[workspace.dependencies]
+near-sdk = { version = "5.30.1" }
+near-contract-standards = "5.30.1"
+capfare-core = { path = "core" }
+proptest = "1.12"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

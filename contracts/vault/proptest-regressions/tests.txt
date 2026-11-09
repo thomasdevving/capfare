@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 58c450c4f6e82a1cdc6c5532972a8e5d89ea8b11be5909dd3b6ff969d58d57d8 # shrinks to actions = [RequestWithdraw(0, 1), Roll]
+cc 81b8925e23eff26f6985b2798c301d4c1c84fc0be725b447c92110efbc4e3c85 # shrinks to actions = [Refund(17, true), Roll, RequestWithdraw(0, 81), Roll, Deposit(2, 954504573), Payout(9, 88, false)]
+cc 10a2d4d86afdca2ce509e5a353a0085a8af299548ef9ebabbc1cff7b82133ab1 # shrinks to actions = [RequestWithdraw(0, 1), Roll]

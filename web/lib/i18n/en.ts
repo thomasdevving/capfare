@@ -9,10 +9,10 @@ export const en = {
   },
   nav: { how: "How it works", protection: "Protection", payout: "Your payout", faq: "FAQ", app: "Check a flight", switchTo: "Nederlands", switchHref: "/nl" },
   hero: {
-    h1a: "Lock the price of your flight.",
-    h1b: "Book wherever you want.",
-    sub: "If the price goes up before you book, you get the difference back. The money for your payout is locked before you pay.",
-    ctaChrome: "Add to Chrome",
+    h1a: "Protect your flight price.",
+    h1b: "Before and after booking.",
+    sub: "Set a price cap before you book, or cover a price drop after. Protection follows one exact flight, date and fare class, with a deductible and payout limit agreed upfront.",
+    ctaChrome: "Get the extension",
     ctaCheck: "Check a flight",
     chromeNote: "Chrome extension: load it unpacked from the repository while it is in review.",
   },
@@ -80,29 +80,29 @@ export const en = {
     cap: {
       name: "Price Cap",
       when: "Before you book",
-      body: "For when you are not ready to book yet. Lock a maximum price for up to 7 days.",
+      body: "Lock a maximum price for 7 days. If the price rises, claim the eligible difference after booking.",
       example: (d: number, m: number) =>
-        `Example: the price is €170 today and you lock €180. The price climbs to €260 and you book at €255. You get €255 − €180 − ${eur(d)} deductible = ${eur(Math.min(25500 - 18000 - d, m))}. A cap pays at most ${eur(m)}.`,
+        `Book at €255 with a €180 cap and ${eur(d)} deductible: ${eur(Math.max(0, Math.min(25500 - 18000 - d, m)))} back.`,
     },
     drop: {
       name: "Drop Guarantee",
       when: "Right after you book",
-      body: "For when you have just booked. If the price of the same flight drops within 7 days, you get the difference.",
+      body: "Already booked? If the same flight gets cheaper within 7 days, claim the eligible difference.",
       example: (d: number, m: number) =>
-        `Example: you booked at €220. In the next 7 days the airline's price for the same flight falls to €195. You get €220 − €195 − ${eur(d)} deductible = ${eur(Math.max(0, Math.min(22000 - 19500 - d, m)))}. A Drop Guarantee pays at most ${eur(m)}.`,
+        `Book at €220, then the price drops to €195. After a ${eur(d)} deductible: ${eur(Math.max(0, Math.min(22000 - 19500 - d, m)))} back.`,
     },
     paramsNote: (live: boolean): string => (live ? "Deductibles and maximums are the current contract parameters." : "Deductibles and maximums shown are example parameters."),
   },
   anywhere: {
     title: "Book where you want",
     body: [
-      "Coverage follows the flight, not the website. What counts is the flight number, date, airports and fare class on your booking confirmation, so you can book with the airline, a travel agency or a comparison site.",
-      "The Chrome extension shows a quote while you browse. Today it works on Skyline Travel, the demo booking site that ships with CapFare; support for airline and travel-agency websites is in progress. On your phone, use Check a flight on this website.",
+      "Protection follows the flight, date and fare class on your verified booking.",
+      "Try the extension on Skyline Travel, our demo booking site. Airline integrations are in progress.",
     ],
   },
   payout: {
     title: "Your payout already exists",
-    body: "Before you pay, the maximum payout of your policy is locked in a vault. Anyone can check these figures on the blockchain.",
+    body: "Your maximum payout is reserved in a vault before you pay. Check the live balances below.",
     rows: { assets: "Money in the vaults", locked: "Locked for active policies", active: "Active policies", solvency: "Solvency check" },
     solvencyDetail: "money in the vaults ≥ locked + pending withdrawals",
     passed: "Passed",
@@ -111,19 +111,18 @@ export const en = {
     error: (t: string | null): string => (t ? `We couldn't load live vault data. Last updated ${t}.` : "We couldn't load live vault data. Try again in a minute."),
     stale: (t: string) => `Live data is delayed. Last updated ${t}.`,
     updated: (t: string) => `Updated ${t}`,
-    link: "See every number on the transparency page",
+    link: "View vault details",
     sumNote: "Both vaults, in test USDC.",
   },
   privacy: {
-    title: "We never see who you are",
+    title: "Your booking stays private",
     body: [
-      "You upload your booking confirmation or type your booking reference. It is encrypted on your device and only opened inside a secure enclave: an isolated part of a processor that not even the server's operator can look into.",
-      "The enclave passes on four things: the flight, the date, the fare class and the price. Your name, email address and booking reference never reach CapFare's servers or the blockchain.",
+      "Your confirmation is encrypted on your device. Only flight details and a passenger fingerprint are sent to the blockchain.",
     ],
-    note: "In this testnet prototype the services run with development keys, not in a hardware enclave yet. The transparency page shows which keys are registered.",
+    note: "This demo uses development keys; hardware-enclave verification is not active yet.",
   },
   fine: {
-    title: "The fine print, in plain words",
+    title: "Policy details",
     items: [
       "Coverage is for one exact flight, date, fare class and airport pair. A different flight or fare class is not covered.",
       (h: number): string => `A Price Cap starts ${h === 1 ? "1 hour" : `${h} hours`} after you buy it. Bookings made before that do not count.`,
@@ -138,7 +137,7 @@ export const en = {
   },
   lp: {
     title: "For liquidity providers",
-    body: "Liquidity providers fund the vaults and earn the premiums; payouts come out of the vaults. Deposits and withdrawals are processed once per epoch at a published share price, and every policy's maximum payout stays locked until it ends.",
+    body: "Fund the protection vaults and earn premiums. Deposits and withdrawals settle once per epoch.",
     risk: "You can lose money: if many travellers are paid out, the vault shrinks.",
     link: "Open the LP dashboard",
   },

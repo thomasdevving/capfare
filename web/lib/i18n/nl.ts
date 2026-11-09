@@ -11,12 +11,12 @@ export const nl: Dict = {
   },
   nav: { how: "Zo werkt het", protection: "Bescherming", payout: "Jouw uitbetaling", faq: "Vragen", app: "Check een vlucht", switchTo: "English", switchHref: "/" },
   hero: {
-    h1a: "Zet de prijs van je vlucht vast.",
-    h1b: "Boek waar je wilt.",
-    sub: "Gaat de prijs omhoog voordat je boekt, dan krijg je het verschil terug. Het geld voor je uitbetaling staat al vast voordat je betaalt.",
-    ctaChrome: "Toevoegen aan Chrome",
+    h1a: "Bescherm je vluchtprijs.",
+    h1b: "Voor en na het boeken.",
+    sub: "Zet vooraf een prijsplafond vast of bescherm je tegen een prijsdaling na het boeken. Voor één exacte vlucht, datum en tariefklasse, met een vooraf afgesproken eigen risico en uitbetalingslimiet.",
+    ctaChrome: "Download de extensie",
     ctaCheck: "Check een vlucht",
-    chromeNote: "Chrome-extensie: laad hem uitgepakt vanuit de repository zolang hij in review is.",
+    chromeNote: "Laad de Chrome-extensie vanuit de repository.",
   },
   chart: {
     caption: "Voorbeeldvlucht KL1695, Amsterdam naar Barcelona op 14 juni, Economy Light. De prijs was € 170 toen het plafond werd gekocht; de reiziger boekte voor € 255 toen de airline € 260 vroeg.",

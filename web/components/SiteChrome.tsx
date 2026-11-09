@@ -20,6 +20,7 @@ export function Header({ locale, variant = "landing" }: { locale: Locale; varian
               <a className="anchor" href="#protection">{t.nav.protection}</a>
               <a className="anchor" href="#payout">{t.nav.payout}</a>
               <a className="anchor" href="#faq">{t.nav.faq}</a>
+              <Link className="lp-nav" href="/lp">LP providers</Link>
             </>
           ) : (
             <>
@@ -31,15 +32,12 @@ export function Header({ locale, variant = "landing" }: { locale: Locale; varian
               <Link href="/account">Account</Link>
             </>
           )}
-          <span className="netbadge">{t.app.network(net)}</span>
+          {variant === "app" ? <span className="netbadge">{t.app.network(net)}</span> : null}
           {variant === "landing" ? (
             <a className="btn btn-primary btn-sm" href={serverConfig().extensionUrl ?? `${serverConfig().githubUrl}/tree/main/extension#install`}>
               {t.hero.ctaChrome}
             </a>
           ) : null}
-          <a href={variant === "landing" ? t.nav.switchHref : "/nl"} hrefLang={locale === "nl" ? "en" : "nl"} lang={locale === "nl" ? "en" : "nl"}>
-            {t.nav.switchTo}
-          </a>
         </nav>
       </div>
     </header>

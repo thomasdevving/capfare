@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Params } from "@capfare/shared";
 import { dict, type Locale } from "@/lib/i18n";
 import { duration } from "@/lib/format";
@@ -13,12 +14,14 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
   const hours = Math.max(1, Math.round(params.cap.activation_delay_secs / 3600));
   const delayText = params.cap.activation_delay_secs >= 3600 ? hours : 0;
   return (
-    <>
+    <div className="landing">
+      <main id="main">
+      <div className="landing-masthead">
+        <Image className="landing-flight" src="/images/hero-flight.webp" alt="" fill priority sizes="100vw" />
       <div className="top-overlay">
         <p className="testnet-pill" role="note">{t.footer.testnet}</p>
         <Header locale={locale} />
       </div>
-      <main id="main">
         <div className="hero-band">
           <section className="wrap hero" aria-labelledby="hero-title">
             <div className="hero-text">
@@ -41,6 +44,8 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
             </div>
         </section>
         </div>
+      </div>
+      <div className="landing-content">
         <div id="how" className="wrap how-title">
           <h2 id="how-title">{t.how.title}</h2>
         </div>
@@ -155,8 +160,9 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
           </dl>
           </div>
         </section>
+      </div>
       </main>
       <Footer locale={locale} />
-    </>
+    </div>
   );
 }

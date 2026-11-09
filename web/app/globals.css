@@ -228,7 +228,7 @@ table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabul
 table.data th, table.data td { text-align: left; padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 table.data td.r, table.data th.r { text-align: right; }
 .tag { display: inline-block; font-size: 12px; padding: 2px 10px; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 999px; }
-.mono-wrap { word-break: break-all; font-size: var(--s1); }
+.mono-wrap { overflow-wrap: anywhere; font-size: var(--s1); }
 .claim-result .big { font-family: var(--display); font-size: var(--s7); font-weight: 700; line-height: 1; margin: 4px 0 16px; color: var(--yellow); }
 details summary { cursor: pointer; }
 

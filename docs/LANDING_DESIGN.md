@@ -101,6 +101,65 @@ sub-line) because it *is* the explanation; CTAs stack full-width.
 What stays: the yellow-on-graphite primary button (wayfinding sign), the departure-board
 tabular figures, and the chart as the single bold element.
 
-## 3. Build critique
+## 3. Build critique and revisions
 
-See the end of this file (screenshots and the element removed after review).
+### Revision 1 — first build (plan as written)
+
+![First build, desktop](img/landing/rev1-desktop.png)
+
+Review of the first screenshots at 1280 px and 390 px:
+
+* Section padding overrode the grid gutters (sections started at 40 px instead of 64 px). Fixed.
+* Chart axis labels became ~6 px on phones. The chart now switches to a compact geometry
+  below 600 px instead of scaling the desktop drawing down.
+* The mobile header wrapped into three rows. Anchor links are hidden on small screens.
+* **Removed decorative element:** the boarding-pass "stub" labels under each step
+  ("Max price", "Booked", "Paid to you"). They repeated the step titles and carried no
+  information. Later the brand square in the header was replaced by the real logo.
+
+### Revision 2 — the owner's reference: dusk sky hero, glass fare card
+
+The project owner supplied a reference mockup (dusk sky above the clouds, a translucent
+fare card, yellow call to action) and asked for the page to follow it "but less generic".
+This overrides parts of the original plan (white surfaces, no gradients). What we took and
+what we deliberately left out:
+
+| From the reference | Kept? | Why |
+|---|---|---|
+| Dusk sky behind the hero, drawn in SVG (no stock photo) | Kept | It is the owner's direction and ties the page to flying without clip-art. The horizon was moved low so hero text stays on the dark part (contrast ≥ 7:1 for body text). |
+| Glass fare card with route header, dashed yellow cap line with a label pill, lavender price line, yellow payout fill | Kept | It carries the product's one idea; the cap pill is the drag handle. |
+| Yellow primary button in the header and the hero | Kept | Same rule as before: yellow = your money / your action. |
+| Eyebrow pill "Flight price protection on NEAR" | Dropped | Listed tell; the headline already says it. |
+| Accent word with a hand-drawn underline ("any site") | Dropped | Listed tell. |
+| Check-mark trio under the buttons ("Payout in seconds" …) | Dropped | Two of the three claims were not accurate for refundable tickets. |
+| Four-icon trust strip | Dropped | Generic; the live vault figures make the same point with real numbers. |
+| "Works with KLM, Transavia, Booking.com" | Dropped | Not true today; the brief forbids naming sites without working adapters. |
+| Icon cards with arrows for "How it works" | Replaced | See revision 4. |
+| "Watch 1-min demo" button | Dropped | No video yet; "Check a flight" does something real. |
+
+### Revision 3 — glass across the whole site, new logo
+
+The owner asked for the translucent "bubble" style everywhere, including the Chrome
+extension, and supplied the CapFare logo (two slanted bars and a climbing plane). The sky is
+now fixed behind every page; content sits on glass panels whose opacity (0.72) keeps body
+text at ≥ 4.5:1 even over the bright horizon. Headings and the wordmark use **Outfit**
+(closest open font to the logo's lettering); body text stays Atkinson Hyperlegible Next.
+The site uses one (dark) scheme in both system modes. The extension overlay uses the same
+glass panel and logo mark. To avoid a page of identical panels, related sections are paired
+side by side (privacy with "book where you want", fine print with the LP note).
+
+### Revision 4 — one large section per real screenshot
+
+At the owner's request "How it works" became three large sections, each with the
+explanation on the left and a real screenshot on the right, bleeding to the panel's right and
+bottom edge. The screenshots are not mock-ups: steps 1 and 2 are captured from the built
+extension running on the demo booking site (`scripts/src/extension-shots.ts`), step 3 from
+the web app at the end of the end-to-end test (`web/e2e/flow.spec.ts`). The hero chart was
+made shorter so the card has room beneath it.
+
+### Current screenshots
+
+| Desktop (1280 px) | Mobile (390 px) |
+|---|---|
+| ![Hero desktop](img/landing/desktop-hero.png) | ![Hero mobile](img/landing/mobile-hero.png) |
+| ![How it works desktop](img/landing/desktop-how.png) | ![How it works mobile](img/landing/mobile-how.png) |

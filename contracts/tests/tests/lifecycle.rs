@@ -176,8 +176,12 @@ impl Env {
     }
 
     fn sign_snapshot(&self, price: u64, observed_at: u64, available: bool) -> SignedSnapshot {
+        self.sign_snapshot_for(flight_key_hash(&flight()), price, observed_at, available)
+    }
+
+    fn sign_snapshot_for(&self, key: Hash32, price: u64, observed_at: u64, available: bool) -> SignedSnapshot {
         let s = PriceSnapshot {
-            flight_key_hash: flight_key_hash(&flight()),
+            flight_key_hash: key,
             price_minor: price,
             currency: "EUR".into(),
             available,
@@ -205,13 +209,28 @@ impl Env {
         Ok(())
     }
 
+    /// Pushes one snapshot per key in a single batch (all observed now).
+    async fn push_prices(&self, prices: &[(Hash32, u64)]) -> R<()> {
+        let now = self.now().await?;
+        let batch: Vec<SignedSnapshot> = prices.iter().map(|(k, p)| self.sign_snapshot_for(*k, *p, now, true)).collect();
+        let r: Vec<String> = self.call(&self.lp, &self.att, "submit_snapshots", json!({"snapshots": batch}), 0).await?.into_full().expect("final").json()?;
+        assert!(r.iter().all(|x| x == "ok"), "{r:?}");
+        tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn sign_att(&self, paid: u64, refundable: Refundability, status: BookingStatus, nullifier: u8, booked_at: u64, verified_at: u64) -> SignedBookingAttestation {
+        self.sign_att_for(&flight(), 1, paid, refundable, status, nullifier, booked_at, verified_at)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn sign_att_for(&self, f: &FlightKey, seats: u8, paid: u64, refundable: Refundability, status: BookingStatus, nullifier: u8, booked_at: u64, verified_at: u64) -> SignedBookingAttestation {
         let a = BookingAttestation {
-            flight_key_hash: flight_key_hash(&flight()),
+            flight_key_hash: flight_key_hash(f),
             paid_price_minor: paid,
             currency: "EUR".into(),
-            fare_class: "economy_light".into(),
+            fare_class: f.fare_class.clone(),
             refundable,
             booking_ref_nullifier: Hash32([nullifier; 32]),
             status,
@@ -220,6 +239,7 @@ impl Env {
             verified_at,
             enclave_measurement: Hash32(M),
             passenger_commitment: Hash32(PC),
+            seats,
         };
         let sig = self.verifier.sign(&attestation_digest(&a));
         SignedBookingAttestation { attestation: a, signer: Hash32(self.verifier.verifying_key().to_bytes()), signature: Sig64(sig.to_bytes()) }
@@ -388,7 +408,7 @@ async fn full_lifecycles_and_forced_failures() -> R<()> {
     let now = e.now().await?;
     let booking = e.sign_att(22_000, Refundability::NonRefundable, BookingStatus::Active, 22, now - 60, now);
     e.call(&e.alice, &e.reg, "buy_drop", json!({"attestation": booking, "flight_key": flight(), "max_premium_minor": 5_000}), 0).await?;
-    let used: bool = e.view(&e.att, "is_nullifier_used", json!({"product": "drop", "nullifier": Hash32([22; 32])})).await?;
+    let used: bool = e.view(&e.att, "is_nullifier_used", json!({"product": "drop", "nullifier": Hash32([22; 32]), "flight_key_hash": flight_key_hash(&flight())})).await?;
     assert!(!used, "nullifier must be released when the purchase fails");
     e.check_books().await?;
 
@@ -428,6 +448,103 @@ async fn full_lifecycles_and_forced_failures() -> R<()> {
     let stale = e.sign_snapshot(17_000, now - 10_000, true);
     let r: Vec<String> = e.call(&e.lp, &e.att, "submit_snapshots", json!({"snapshots": [stale]}), 0).await?.into_full().expect("final").json()?;
     assert_eq!(r, vec!["stale snapshot".to_string()]);
+    Ok(())
+}
+
+fn return_flight() -> FlightKey {
+    FlightKey { flight_number: "KL1700".into(), departure_date: "2027-06-21".into(), origin: "BCN".into(), destination: "AMS".into(), ..flight() }
+}
+
+fn route() -> RouteKey {
+    RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), fare_class: "economy_light".into() }
+}
+
+#[tokio::test]
+async fn return_trips_travellers_routes_and_drop_after_claim() -> R<()> {
+    let e = Env::new().await?;
+    e.ft_call(&e.alice, &e.reg, 90 * USDC, "\"top_up\"").await?;
+    let (out_h, back_h, route_h) = (flight_key_hash(&flight()), flight_key_hash(&return_flight()), route_key_hash(&route()));
+    e.push_prices(&[(out_h, 17_000), (back_h, 15_000), (route_h, 12_000)]).await?;
+
+    // ------------- return trip for two travellers, bought in one call (Drop option on)
+    let stats: Value = e.view(&e.reg, "get_stats", json!({})).await?;
+    let first = stats["policies_total"].as_u64().unwrap() + 1;
+    e.ok(&e.alice, &e.reg, "buy_caps", json!({"purchase": {
+        "legs": [
+            {"coverage": {"flight": flight()}, "strike_minor": 18_000, "max_premium_minor": 10_000},
+            {"coverage": {"flight": return_flight()}, "strike_minor": 16_000, "max_premium_minor": 10_000}
+        ],
+        "seats": 2, "passenger_commitment": Hash32(PC), "auto_drop_max_premium_minor": 10_000
+    }})).await?;
+    let (out, back) = (e.policy(first).await?, e.policy(first + 1).await?);
+    for p in [&out, &back] {
+        assert_eq!(p["state"], "active", "{p}");
+        assert_eq!(p["seats"], 2);
+        assert_eq!(p["trip_id"], first);
+        assert_eq!(p["lock_usdc"], (2 * 10_000u128 * 10_800).to_string());
+    }
+    e.check_books().await?;
+
+    // Prices rise; one booking (one reference) for both legs and both travellers.
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    e.push_prices(&[(out_h, 26_000), (back_h, 21_000), (route_h, 23_000)]).await?;
+    let now = e.now().await?;
+    let a_out = e.sign_att_for(&flight(), 2, 25_500, Refundability::NonRefundable, BookingStatus::Active, 40, now - 1, now);
+    let a_back = e.sign_att_for(&return_flight(), 2, 21_000, Refundability::NonRefundable, BookingStatus::Active, 40, now - 1, now);
+    let before = e.balance(&e.alice).await?;
+    e.ok(&e.alice, &e.reg, "claim_cap", json!({"policy_id": first, "attestation": a_out})).await?;
+    e.ok(&e.alice, &e.reg, "claim_cap", json!({"policy_id": first + 1, "attestation": a_back})).await?;
+    let (out, back) = (e.policy(first).await?, e.policy(first + 1).await?);
+    assert_eq!(out["state"], "paid_out", "{out}");
+    assert_eq!(back["state"], "paid_out", "{back}");
+    // (min(26_000, 25_500) - 18_000 - 1_000) x 2 and (21_000 - 16_000 - 1_000) x 2
+    assert_eq!(out["payout_minor"], 13_000);
+    assert_eq!(back["payout_minor"], 8_000);
+    assert_eq!(e.balance(&e.alice).await? - before, 21_000 * 10_800);
+    e.check_books().await?;
+    // The same leg cannot be claimed twice.
+    let a_again = e.sign_att_for(&flight(), 2, 25_500, Refundability::NonRefundable, BookingStatus::Active, 40, now - 1, now);
+    let used: bool = e.view(&e.att, "is_nullifier_used", json!({"product": "cap", "nullifier": a_again.attestation.booking_ref_nullifier, "flight_key_hash": out_h})).await?;
+    assert!(used);
+
+    // ------------- Drop Guarantee added with the claimed booking (opt-in), linked to the cap
+    e.ok(&e.alice, &e.reg, "buy_drop", json!({"attestation": a_again, "flight_key": flight(), "max_premium_minor": 10_000, "from_cap": first})).await?;
+    let drop_id = first + 2;
+    let d = e.policy(drop_id).await?;
+    assert_eq!(d["state"], "active", "{d}");
+    assert_eq!(d["seats"], 2);
+    assert_eq!(d["linked_policy"], first);
+    assert_eq!(e.policy(first).await?["linked_policy"], drop_id);
+    e.check_books().await?;
+
+    // ------------- route coverage: any flight on AMS-BCN that day, index = cheapest fare
+    e.push_prices(&[(route_h, 17_000)]).await?;
+    let rid = drop_id + 1;
+    e.ft_call(&e.bob, &e.reg, 20 * USDC, "\"top_up\"").await?;
+    e.ok(&e.bob, &e.reg, "buy_caps", json!({"purchase": {
+        "legs": [{"coverage": {"route": route()}, "strike_minor": 18_000, "max_premium_minor": 5_000}],
+        "seats": 1, "passenger_commitment": Hash32(PC)
+    }})).await?;
+    let rp = e.policy(rid).await?;
+    assert_eq!(rp["state"], "active", "{rp}");
+    assert_eq!(rp["flight_key_hash"], json!(route_h));
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    e.push_prices(&[(route_h, 24_000)]).await?;
+    let other = FlightKey { airline: "VY".into(), flight_number: "VY8301".into(), ..flight() };
+    let now = e.now().await?;
+    let a = e.sign_att_for(&other, 1, 27_000, Refundability::NonRefundable, BookingStatus::Active, 41, now - 1, now);
+    // A flight on another day is refused.
+    let wrong = FlightKey { departure_date: "2027-06-15".into(), ..other.clone() };
+    let aw = e.sign_att_for(&wrong, 1, 27_000, Refundability::NonRefundable, BookingStatus::Active, 42, now - 1, now);
+    let r = e.call(&e.bob, &e.reg, "claim_cap", json!({"policy_id": rid, "attestation": aw, "booked_flight": wrong}), 0).await?;
+    assert!(!r.is_success());
+    e.ok(&e.bob, &e.reg, "claim_cap", json!({"policy_id": rid, "attestation": a, "booked_flight": other})).await?;
+    let rp = e.policy(rid).await?;
+    assert_eq!(rp["state"], "paid_out", "{rp}");
+    // min(route index 24_000, paid 27_000) - 18_000 - 1_000
+    assert_eq!(rp["payout_minor"], 5_000);
+    assert_eq!(rp["booked_flight"]["flight_number"], "VY8301");
+    e.check_books().await?;
     Ok(())
 }
 

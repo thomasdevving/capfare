@@ -50,8 +50,12 @@ fn fkh() -> Hash32 {
 }
 
 fn snap(h: &H, price: u64, at: u64, source: &str) -> SignedSnapshot {
+    snap_for(h, fkh(), price, at, source)
+}
+
+fn snap_for(h: &H, key: Hash32, price: u64, at: u64, source: &str) -> SignedSnapshot {
     let s = PriceSnapshot {
-        flight_key_hash: fkh(),
+        flight_key_hash: key,
         price_minor: price,
         currency: "EUR".into(),
         available: true,
@@ -79,6 +83,7 @@ fn att(h: &H, booked_at: u64, verified_at: u64, n: u8) -> SignedBookingAttestati
         verified_at,
         enclave_measurement: h.m,
         passenger_commitment: PC,
+        seats: 1,
     };
     let sig = h.verifier.sign(&attestation_digest(&a));
     SignedBookingAttestation { attestation: a, signer: Hash32(h.verifier.verifying_key().to_bytes()), signature: Sig64(sig.to_bytes()) }
@@ -170,13 +175,13 @@ fn nullifier_is_single_use_per_product() {
     assert_eq!(h.c.submit_snapshots(vec![snap(&h, 26_000, now - 200, "demo")]), vec!["ok"]);
     ctx(registry(), now);
     let a = att(&h, now - 100, now - 10, 4);
-    h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600);
-    assert!(h.c.is_nullifier_used(Product::Cap, Hash32([4; 32])));
-    assert!(!h.c.is_nullifier_used(Product::Drop, Hash32([4; 32])));
+    h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600, None);
+    assert!(h.c.is_nullifier_used(Product::Cap, Hash32([4; 32]), fkh()));
+    assert!(!h.c.is_nullifier_used(Product::Drop, Hash32([4; 32]), fkh()));
     // Drop can still use the same booking once.
-    h.c.consume_booking(a.clone(), Product::Drop, 3600, 6 * 3600);
+    h.c.consume_booking(a.clone(), Product::Drop, 3600, 6 * 3600, None);
     let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600);
+        h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600, None);
     }));
     assert!(r.is_err(), "double claim must be rejected");
 }
@@ -188,10 +193,10 @@ fn cap_claim_needs_an_index_price() {
     ctx(registry(), now);
     let a = att(&h, now - 100, now - 10, 4);
     let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600);
+        h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600, None);
     }));
     assert!(r.is_err());
-    assert!(!h.c.is_nullifier_used(Product::Cap, Hash32([4; 32])));
+    assert!(!h.c.is_nullifier_used(Product::Cap, Hash32([4; 32]), fkh()));
 }
 
 #[test]
@@ -201,7 +206,7 @@ fn only_registry_consumes() {
     let now = T0 + 4000;
     ctx(accounts(4), now);
     let a = att(&h, now - 100, now - 10, 4);
-    h.c.consume_booking(a, Product::Cap, 3600, 6 * 3600);
+    h.c.consume_booking(a, Product::Cap, 3600, 6 * 3600, None);
 }
 
 #[test]
@@ -211,7 +216,7 @@ fn stale_attestation_rejected() {
     let now = T0 + 40_000;
     ctx(registry(), now);
     let a = att(&h, now - 10_000, now - 7200, 4);
-    h.c.consume_booking(a, Product::Cap, 3600, 6 * 3600);
+    h.c.consume_booking(a, Product::Cap, 3600, 6 * 3600, None);
 }
 
 #[test]
@@ -222,7 +227,7 @@ fn forged_attestation_rejected() {
     ctx(registry(), now);
     let mut a = att(&h, now - 100, now - 10, 4);
     a.attestation.paid_price_minor = 99_999;
-    h.c.consume_booking(a, Product::Cap, 3600, 6 * 3600);
+    h.c.consume_booking(a, Product::Cap, 3600, 6 * 3600, None);
 }
 
 #[test]
@@ -264,4 +269,62 @@ fn tls_page_is_a_live_check() {
     a.signature = Sig64(h.verifier.sign(&attestation_digest(&a.attestation)).to_bytes());
     let r = h.c.check_status(a, Hash32([4; 32]), fkh(), PC, true, 0, 3600, None, None);
     assert_eq!(r.status, BookingStatus::Active);
+}
+
+fn resign(h: &H, a: &mut SignedBookingAttestation) {
+    a.signature = Sig64(h.verifier.sign(&attestation_digest(&a.attestation)).to_bytes());
+}
+
+#[test]
+fn each_leg_of_a_return_booking_is_used_once() {
+    let mut h = setup(true);
+    let now = T0 + 4000;
+    let back = Hash32([15u8; 32]);
+    ctx(accounts(3), now - 200);
+    assert_eq!(h.c.submit_snapshots(vec![snap(&h, 26_000, now - 200, "demo"), snap_for(&h, back, 24_000, now - 200, "demo")]), vec!["ok", "ok"]);
+    ctx(registry(), now);
+    let out = att(&h, now - 100, now - 10, 4);
+    let mut ret = out.clone();
+    ret.attestation.flight_key_hash = back;
+    resign(&h, &mut ret);
+    // Same booking reference, two flights: both legs can be claimed.
+    assert_eq!(h.c.consume_booking(out.clone(), Product::Cap, 3600, 6 * 3600, None).index_price, Some(26_000));
+    assert_eq!(h.c.consume_booking(ret.clone(), Product::Cap, 3600, 6 * 3600, None).index_price, Some(24_000));
+    assert!(h.c.is_nullifier_used(Product::Cap, Hash32([4; 32]), back));
+    // But neither leg twice.
+    let again = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        h.c.consume_booking(ret.clone(), Product::Cap, 3600, 6 * 3600, None);
+    }));
+    assert!(again.is_err());
+    // Releasing one leg does not release the other.
+    h.c.release_nullifier(Product::Cap, Hash32([4; 32]), back);
+    assert!(!h.c.is_nullifier_used(Product::Cap, Hash32([4; 32]), back));
+    assert!(h.c.is_nullifier_used(Product::Cap, Hash32([4; 32]), fkh()));
+}
+
+#[test]
+fn route_coverage_uses_the_route_index() {
+    let mut h = setup(true);
+    let now = T0 + 4000;
+    let route = Hash32([33u8; 32]);
+    ctx(accounts(3), now - 200);
+    // The booked flight costs 26_000 but the cheapest flight on the route was 21_000.
+    h.c.submit_snapshots(vec![snap(&h, 26_000, now - 200, "demo"), snap_for(&h, route, 21_000, now - 200, "demo")]);
+    ctx(registry(), now);
+    let a = att(&h, now - 100, now - 10, 4);
+    assert_eq!(h.c.consume_booking(a, Product::Cap, 3600, 6 * 3600, Some(route)).index_price, Some(21_000));
+}
+
+#[test]
+#[should_panic(expected = "number of travellers out of range")]
+fn seats_must_be_in_range() {
+    let mut h = setup(true);
+    let now = T0 + 4000;
+    ctx(accounts(3), now - 200);
+    h.c.submit_snapshots(vec![snap(&h, 26_000, now - 200, "demo")]);
+    ctx(registry(), now);
+    let mut a = att(&h, now - 100, now - 10, 4);
+    a.attestation.seats = 0;
+    resign(&h, &mut a);
+    h.c.consume_booking(a, Product::Cap, 3600, 6 * 3600, None);
 }

@@ -19,6 +19,11 @@ function base(root: Element): Omit<ExtractedFlight, "fare_class" | "displayed_pr
   return fn && r && d ? { flight_number: fn, departure_date: d, origin: r[1], destination: r[2] } : null;
 }
 
+const paxOf = (url: URL, facts?: Element | null): number | undefined => {
+  const n = Number(text(facts?.querySelector('[data-k="pax"]')) || url.searchParams.get("pax") || "");
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+};
+
 export const skylineSite: SiteAdapter = {
   id: "skyline-travel-demo",
   matches: (u) => u.pathname.startsWith("/booker"),
@@ -30,7 +35,7 @@ export const skylineSite: SiteAdapter = {
       const b = base(facts);
       if (!b) return null;
       const f: ExtractedFlight = { ...b, fare_class: FARES[text(facts.querySelector(".fare-name")).toLowerCase()] ?? "economy_light", displayed_price_minor: parseEuro(text(facts.querySelector(".fare-price"))) };
-      return { kind: manage ? "manage" : "confirmation", flights: [f] };
+      return { kind: manage ? "manage" : "confirmation", flights: [f], travellers: paxOf(url, facts) };
     }
     const detail = doc.querySelector(".sk-flight-detail");
     if (detail) {
@@ -39,7 +44,7 @@ export const skylineSite: SiteAdapter = {
       const flights = [...doc.querySelectorAll(".sk-fare")]
         .map((el) => ({ ...b, fare_class: FARES[text(el.querySelector(".sk-fare-name")).toLowerCase()] ?? "", displayed_price_minor: parseEuro(text(el.querySelector(".sk-fare-price"))) }))
         .filter((f) => f.fare_class && f.displayed_price_minor !== undefined);
-      return { kind: "details", flights };
+      return { kind: "details", flights, travellers: paxOf(url) };
     }
     const cards = [...doc.querySelectorAll(".sk-flight")];
     if (!cards.length) return null;
@@ -49,7 +54,6 @@ export const skylineSite: SiteAdapter = {
         return b ? { ...b, fare_class: "economy_light", displayed_price_minor: parseEuro(text(c.querySelector(".sk-price"))) } : null;
       })
       .filter(Boolean) as ExtractedFlight[];
-    void url;
-    return { kind: "search", flights } as PageExtraction;
+    return { kind: "search", flights, travellers: paxOf(url) } as PageExtraction;
   },
 };

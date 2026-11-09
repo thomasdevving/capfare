@@ -13,7 +13,7 @@ export const nl: Dict = {
   hero: {
     h1a: "Bescherm je vluchtprijs.",
     h1b: "Voor en na het boeken.",
-    sub: "Zet vooraf een prijsplafond vast of bescherm je tegen een prijsdaling na het boeken. Voor één exacte vlucht, datum en tariefklasse, met een vooraf afgesproken eigen risico en uitbetalingslimiet.",
+    sub: "Zet vooraf een prijsplafond vast of bescherm je tegen een prijsdaling na het boeken. Voor één exacte vlucht of elke vlucht op een route en dag, enkele reis of retour, voor iedereen op de boeking, met een vooraf afgesproken eigen risico en uitbetalingslimiet.",
     ctaChrome: "Download de extensie",
     ctaCheck: "Check een vlucht",
     chromeNote: "Laad de Chrome-extensie vanuit de repository.",
@@ -47,6 +47,7 @@ export const nl: Dict = {
         points: (d: number): string[] => [
           "Je ziet het plafond, de premie, het eigen risico (€ " + (d / 100).toFixed(0) + ") en de maximale uitbetaling voordat je betaalt.",
           "Het plafond geldt 7 dagen en gaat in na een korte wachttijd.",
+          "Samen op reis of retour? Eén plafond dekt tot 9 reizigers, en beide vluchten van een retour.",
           "Geen extensie? Met Check een vlucht op deze website doe je hetzelfde op je telefoon.",
         ],
       },
@@ -55,6 +56,7 @@ export const nl: Dict = {
         points: (_d: number): string[] => [
           "De dekking hoort bij de vlucht, niet bij de website.",
           "Je boeking zelf blijft tussen jou en de airline.",
+          "Meldingen via push of e-mail laten weten wanneer de prijs boven je plafond komt, zodat je weet wanneer je moet boeken.",
         ],
       },
       {
@@ -127,7 +129,7 @@ export const nl: Dict = {
   fine: {
     title: "De kleine lettertjes, in gewone taal",
     items: [
-      "De dekking geldt voor één exacte vlucht, datum, tariefklasse en route. Een andere vlucht of tariefklasse valt er niet onder.",
+      "De dekking geldt voor één exacte vlucht, datum, tariefklasse en route, of (routedekking) elke vlucht die CapFare op die route en dag volgt in die tariefklasse, uitbetaald tegen het goedkoopste tarief. Iets anders valt er niet onder.",
       (h: number) => `Een prijsplafond gaat ${h === 1 ? "1 uur" : `${h} uur`} na aankoop in. Boekingen van daarvoor tellen niet mee.`,
       "Van elke uitbetaling gaat een eigen risico af, en elke polis heeft een maximale uitbetaling. Je ziet beide voordat je betaalt.",
       (refund: boolean) =>

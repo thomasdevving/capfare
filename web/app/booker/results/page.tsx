@@ -23,7 +23,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         <div className="sk-wrap">
           <h1>{t.leg === 2 ? "Choose your return flight" : t.ret ? "Choose your outbound flight" : `${city(leg.from)} to ${city(leg.to)}`}</h1>
           <p>
-            {city(leg.from)} to {city(leg.to)} · {longDate(leg.date)} · {t.pax} adult{t.pax > 1 ? "s" : ""} · {t.ret ? (t.leg === 2 ? "return flight" : `return, back ${longDate(t.ret)}`) : "one-way"}
+            {t.ret ? `${city(leg.from)} to ${city(leg.to)} · ` : ""}{longDate(leg.date)} · {t.pax} adult{t.pax > 1 ? "s" : ""} · {t.ret ? (t.leg === 2 ? "return flight" : `return, back ${longDate(t.ret)}`) : "one-way"}
           </p>
         </div>
       </section>

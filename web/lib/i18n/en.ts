@@ -11,7 +11,7 @@ export const en = {
   hero: {
     h1a: "Protect your flight price.",
     h1b: "Before and after booking.",
-    sub: "Set a price cap before you book, or cover a price drop after. Protection follows one exact flight, date and fare class, with a deductible and payout limit agreed upfront.",
+    sub: "Set a price cap before you book, or cover a price drop after. Protect one exact flight or any flight on a route and day, one-way or return, for everyone on the booking, with a deductible and payout limit agreed upfront.",
     ctaChrome: "Get the extension",
     ctaCheck: "Check a flight",
     chromeNote: "Chrome extension: load it unpacked from the repository while it is in review.",
@@ -45,6 +45,7 @@ export const en = {
         points: (d: number): string[] => [
           "You see the cap, premium, deductible (" + "€" + (d / 100).toFixed(0) + ") and maximum payout before you pay.",
           "The lock lasts 7 days and starts after a short activation delay.",
+          "Travelling together or returning? One lock covers up to 9 travellers, and both flights of a return trip.",
           "No extension? Check a flight on this website does the same on your phone.",
         ],
       },
@@ -53,6 +54,7 @@ export const en = {
         points: (_d: number): string[] => [
           "Coverage follows the flight, not the website.",
           "Your booking itself stays between you and the airline.",
+          "Alerts by push or email tell you when the price passes your cap, so you know when to book.",
         ],
       },
       {
@@ -124,7 +126,7 @@ export const en = {
   fine: {
     title: "Policy details",
     items: [
-      "Coverage is for one exact flight, date, fare class and airport pair. A different flight or fare class is not covered.",
+      "Coverage is for one exact flight, date, fare class and airport pair, or (route cover) any flight CapFare tracks on that route and day in that fare class, paid against the cheapest fare. Anything else is not covered.",
       (h: number): string => `A Price Cap starts ${h === 1 ? "1 hour" : `${h} hours`} after you buy it. Bookings made before that do not count.`,
       "A deductible is taken off every payout, and each policy has a maximum payout. Both are shown before you pay.",
       (refund: boolean): string =>

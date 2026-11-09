@@ -1,4 +1,5 @@
 "use client";
+import { coverageLabel, coverageRoute } from "@capfare/shared";
 import { useEffect, useState } from "react";
 import type { Params, ProductParams } from "@capfare/shared";
 import { dateTime, duration, eur, short, usdc } from "@/lib/format";
@@ -99,7 +100,7 @@ export default function TransparencyClient() {
           <tbody>
             {Object.values(
               o.activePolicies.reduce<Record<string, { key: string; h: string; n: number }>>((m, p) => {
-                const k = `${p.flight_key.flight_number} ${p.flight_key.departure_date} ${p.flight_key.fare_class}`;
+                const k = `${coverageLabel(p.coverage)} ${coverageRoute(p.coverage).fare_class}`;
                 m[p.flight_key_hash] = { key: k, h: p.flight_key_hash, n: (m[p.flight_key_hash]?.n ?? 0) + 1 };
                 return m;
               }, {}),

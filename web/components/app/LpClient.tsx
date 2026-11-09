@@ -1,4 +1,5 @@
 "use client";
+import { coverageLabel, coverageRoute } from "@capfare/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Policy, VaultState } from "@capfare/shared";
 import { gasless } from "@/lib/wallet";
@@ -53,9 +54,9 @@ export default function LpClient() {
 
   const v = o?.vaults[which];
   const policies = useMemo(() => (o?.activePolicies ?? []).filter((p) => p.product === which), [o, which]);
-  const byFlight = useMemo(() => group(policies, (p) => `${p.flight_key.flight_number} ${p.flight_key.departure_date} ${p.flight_key.fare_class}`), [policies]);
+  const byFlight = useMemo(() => group(policies, (p) => `${coverageLabel(p.coverage)} ${coverageRoute(p.coverage).fare_class}`), [policies]);
   const byRouteWeek = useMemo(
-    () => group(policies, (p) => `${p.flight_key.origin}→${p.flight_key.destination}, week of ${new Date(Math.floor(p.departure_ts / 604800) * 604800 * 1000).toISOString().slice(0, 10)}`),
+    () => group(policies, (p) => `${coverageRoute(p.coverage).origin}→${coverageRoute(p.coverage).destination}, week of ${new Date(Math.floor(p.departure_ts / 604800) * 604800 * 1000).toISOString().slice(0, 10)}`),
     [policies],
   );
   const epochs = lp?.history ?? [];

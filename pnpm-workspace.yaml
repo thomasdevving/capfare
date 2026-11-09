@@ -4,6 +4,7 @@ packages:
   - tee/price_oracle
   - tee/booking_verifier
   - relayer
+  - notifier
   - web
   - extension
   - scripts

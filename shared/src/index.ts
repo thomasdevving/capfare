@@ -8,3 +8,4 @@ export * from "./near-rpc.ts";
 export * from "./passenger.ts";
 export * from "./demo-fares.ts";
 export * from "./alerts.ts";
+export * from "./account-sig.ts";

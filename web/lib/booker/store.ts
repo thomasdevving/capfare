@@ -21,17 +21,29 @@ export interface Passenger {
   last: string;
 }
 
+type LegFlight = Pick<DemoFlight, "airline" | "airlineName" | "flight_number" | "origin" | "destination" | "departure_date" | "dep" | "arr" | "durationMin" | "departure_ts">;
+type LegFare = { id: FareId; name: string; bag: string; refundable: boolean; changeable: boolean };
+
+/** Return flight of a return booking (same travellers, same booking code). */
+export interface ReturnLeg {
+  flight: LegFlight;
+  fare: LegFare;
+  pricePerPassenger: number; // cents
+}
+
 export interface Booking {
   ref: string;
   token: string;
   createdAt: number;
   status: "confirmed" | "cancelled";
   cancelledAt?: number;
-  flight: Pick<DemoFlight, "airline" | "airlineName" | "flight_number" | "origin" | "destination" | "departure_date" | "dep" | "arr" | "durationMin" | "departure_ts">;
-  fare: { id: FareId; name: string; bag: string; refundable: boolean; changeable: boolean };
+  /** Outbound (or only) flight. */
+  flight: LegFlight;
+  fare: LegFare;
   passengers: Passenger[];
   email: string;
-  pricePerPassenger: number; // cents
+  pricePerPassenger: number; // cents, outbound flight
+  ret?: ReturnLeg;
   total: number;
   cardLast4: string;
 }
@@ -132,25 +144,36 @@ export function manageUrl(b: Booking, origin = serverConfig().siteUrl): string {
   return `${origin.replace(/\/$/, "")}/booker/manage?ref=${b.ref}&t=${b.token}`;
 }
 
+function legLines(prefix: string, flight: LegFlight, fare: LegFare, price: number): string[] {
+  const [y, m, d] = flight.departure_date.split("-").map(Number);
+  const cap = (x: string) => (prefix ? x.toLowerCase() : x);
+  return [
+    `${prefix}${cap("Flight")}: ${flight.flight_number} ${cityOf(flight.origin)} (${flight.origin}) to ${cityOf(flight.destination)} (${flight.destination})`,
+    `${prefix}${cap("Date")}: ${d} ${MON[m - 1]} ${y}, departs ${flight.dep}, arrives ${flight.arr}`,
+    `${prefix}${cap("Fare")}: ${fare.name}`,
+    `${prefix}${cap("Ticket type")}: ${fare.refundable ? "Refundable" : "Non-refundable"}`,
+    `${prefix}${cap("Price per passenger")}: ${eur(price)}`,
+  ];
+}
+
 function emailText(b: Booking, kind: "confirmation" | "cancellation"): string {
-  const [y, m, d] = b.flight.departure_date.split("-").map(Number);
   const lead = b.passengers[0];
+  const legs = b.ret
+    ? ["Trip: Return", ...legLines("Outbound ", b.flight, b.fare, b.pricePerPassenger), ...legLines("Return ", b.ret.flight, b.ret.fare, b.ret.pricePerPassenger)]
+    : legLines("", b.flight, b.fare, b.pricePerPassenger);
+  const refundable = b.fare.refundable && (!b.ret || b.ret.fare.refundable);
   const lines = [
     "DEMO BOOKING - Skyline Travel is CapFare's mock booking site. This is not a real ticket.",
     "",
-    kind === "confirmation" ? "Your flight is booked" : "Your booking has been cancelled",
+    kind === "confirmation" ? (b.ret ? "Your trip is booked" : "Your flight is booked") : "Your booking has been cancelled",
     "",
     `Booking code: ${b.ref}`,
     `Lead passenger: ${lead.last.toUpperCase()}/${lead.first.toUpperCase()} ${lead.title.toUpperCase()}`,
     `Passengers: ${b.passengers.length}`,
-    `Flight: ${b.flight.flight_number} ${cityOf(b.flight.origin)} (${b.flight.origin}) to ${cityOf(b.flight.destination)} (${b.flight.destination})`,
-    `Date: ${d} ${MON[m - 1]} ${y}, departs ${b.flight.dep}, arrives ${b.flight.arr}`,
-    `Fare: ${b.fare.name}`,
-    `Ticket type: ${b.fare.refundable ? "Refundable" : "Non-refundable"}`,
-    `Price per passenger: ${eur(b.pricePerPassenger)}`,
+    ...legs,
     `Total paid: ${eur(b.total)} (card ending ${b.cardLast4})`,
     "",
-    kind === "confirmation" ? `Manage your booking: ${manageUrl(b)}` : `Refund: ${b.fare.refundable ? eur(b.total) + " will be returned to your card (demo)" : "none, this ticket is non-refundable"}`,
+    kind === "confirmation" ? `Manage your booking: ${manageUrl(b)}` : `Refund: ${refundable ? eur(b.total) + " will be returned to your card (demo)" : "none for non-refundable flights"}`,
     "",
   ];
   return lines.join("\r\n");
@@ -158,7 +181,8 @@ function emailText(b: Booking, kind: "confirmation" | "cancellation"): string {
 
 async function sendEmail(b: Booking, kind: "confirmation" | "cancellation") {
   const s = load();
-  const subject = kind === "confirmation" ? `Booking confirmed: ${b.flight.flight_number} on ${b.flight.departure_date} (${b.ref})` : `Booking cancelled (${b.ref})`;
+  const what = b.ret ? `${b.flight.flight_number} + ${b.ret.flight.flight_number}` : `${b.flight.flight_number} on ${b.flight.departure_date}`;
+  const subject = kind === "confirmation" ? `Booking confirmed: ${what} (${b.ref})` : `Booking cancelled (${b.ref})`;
   const date = Math.floor(Date.now() / 1000);
   const msg = [
     `From: Skyline Travel (demo) <bookings@${BOOKER_DOMAIN}>`,
@@ -180,30 +204,51 @@ async function sendEmail(b: Booking, kind: "confirmation" | "cancellation") {
   save();
 }
 
-export async function createBooking(input: { fn: string; origin: string; destination: string; date: string; fare: FareId; passengers: Passenger[]; email: string; card: string }): Promise<Booking> {
-  const f = findFlight(input.fn, input.origin, input.destination, input.date);
+export interface LegInput {
+  fn: string;
+  origin: string;
+  destination: string;
+  date: string;
+  fare: FareId;
+}
+
+async function priceLeg(l: LegInput) {
+  const f = findFlight(l.fn, l.origin, l.destination, l.date);
   if (!f) throw new Error("This flight is not available");
-  const fare = f.fares.find((x) => x.id === input.fare);
+  const fare = f.fares.find((x) => x.id === l.fare);
   if (!fare) throw new Error("Unknown fare");
+  const { price, available } = await currentFare(f, l.fare);
+  if (!available) throw new Error(`The ${fare.name} fare on ${f.flight_number} is sold out`);
+  return {
+    flight: { airline: f.airline, airlineName: f.airlineName, flight_number: f.flight_number, origin: f.origin, destination: f.destination, departure_date: f.departure_date, dep: f.dep, arr: f.arr, durationMin: f.durationMin, departure_ts: f.departure_ts },
+    fare: { id: fare.id, name: fare.name, bag: fare.bag, refundable: fare.refundable, changeable: fare.changeable },
+    pricePerPassenger: price,
+  };
+}
+
+export async function createBooking(input: { fn: string; origin: string; destination: string; date: string; fare: FareId; ret?: LegInput; passengers: Passenger[]; email: string; card: string }): Promise<Booking> {
   if (!input.passengers.length || input.passengers.length > 4) throw new Error("1 to 4 passengers");
   for (const p of input.passengers) if (!p.first.trim() || !p.last.trim()) throw new Error("Enter every passenger's first and last name");
   if (!/^\S+@\S+\.\S+$/.test(input.email)) throw new Error("Enter a valid email address");
   const digits = input.card.replace(/\D/g, "");
   if (digits.length < 12) throw new Error("Enter a card number (any test number works)");
-  const { price, available } = await currentFare(f, input.fare);
-  if (!available) throw new Error("This fare is sold out");
+  const out = await priceLeg({ fn: input.fn, origin: input.origin, destination: input.destination, date: input.date, fare: input.fare });
+  const ret = input.ret ? await priceLeg(input.ret) : undefined;
+  if (ret && ret.flight.departure_ts <= out.flight.departure_ts) throw new Error("The return flight must leave after the outbound flight");
   const s = load();
+  const n = input.passengers.length;
   const b: Booking = {
     ref: newRef(),
     token: randomBytes(16).toString("hex"),
     createdAt: Math.floor(Date.now() / 1000),
     status: "confirmed",
-    flight: { airline: f.airline, airlineName: f.airlineName, flight_number: f.flight_number, origin: f.origin, destination: f.destination, departure_date: f.departure_date, dep: f.dep, arr: f.arr, durationMin: f.durationMin, departure_ts: f.departure_ts },
-    fare: { id: fare.id, name: fare.name, bag: fare.bag, refundable: fare.refundable, changeable: fare.changeable },
+    flight: out.flight,
+    fare: out.fare,
     passengers: input.passengers.map((p) => ({ title: p.title, first: p.first.trim(), last: p.last.trim() })),
     email: input.email.trim(),
-    pricePerPassenger: price,
-    total: price * input.passengers.length,
+    pricePerPassenger: out.pricePerPassenger,
+    ...(ret ? { ret } : {}),
+    total: (out.pricePerPassenger + (ret?.pricePerPassenger ?? 0)) * n,
     cardLast4: digits.slice(-4),
   };
   s.bookings.push(b);

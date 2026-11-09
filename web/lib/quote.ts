@@ -1,8 +1,15 @@
-import { computePremium, flightKeyHash, type FlightKey, type Params, type SnapshotRecord, type VaultState } from "@capfare/shared";
+import { coverageHash, type Coverage, type FlightKey, type Params, type SnapshotRecord, type VaultState } from "@capfare/shared";
 import { viewClient } from "./chain";
 import { serverConfig } from "./config";
 
+export interface RouteFlight {
+  flight_key: FlightKey;
+  price_minor: number;
+  available: boolean;
+}
+
 export interface QuoteInputs {
+  /** Coverage hash (flight key hash, or route key hash). */
   flight_key_hash: string;
   snapshot: SnapshotRecord;
   vault: VaultState;
@@ -10,20 +17,25 @@ export interface QuoteInputs {
   exposure: [number, number];
   now: number;
   oracleNote: string | null;
+  /** Route coverage: the flights in the index and their prices now. */
+  routeFlights?: RouteFlight[];
 }
 
 /** Fresh oracle snapshot (submitted on-chain via the relayer), then the on-chain inputs. */
-export async function quoteInputs(fk: FlightKey, product: "cap" | "drop", refresh = true): Promise<QuoteInputs | { error: string; status: number }> {
+export async function quoteInputs(coverage: Coverage, product: "cap" | "drop", refresh = true): Promise<QuoteInputs | { error: string; status: number }> {
   const c = serverConfig();
-  const fkh = flightKeyHash(fk);
+  const fkh = coverageHash(coverage);
   const v = viewClient();
   let oracleNote: string | null = null;
+  let routeFlights: RouteFlight[] | undefined;
   if (refresh && c.oracleUrl) {
     try {
-      const r = await fetch(`${c.oracleUrl}/v1/snapshot`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ flight_key: fk, submit: true }), cache: "no-store" });
-      const j = (await r.json()) as { snapshot?: { snapshot: { observed_at: number } }; error?: string };
+      const body = "route" in coverage ? { route: coverage.route, submit: true } : { flight_key: coverage.flight, submit: true };
+      const r = await fetch(`${c.oracleUrl}/v1/snapshot`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+      const j = (await r.json()) as { snapshot?: { snapshot: { observed_at: number } }; flights?: RouteFlight[]; error?: string };
       if (!r.ok) oracleNote = j.error ?? "no fresh price";
       else {
+        routeFlights = j.flights;
         const target = j.snapshot!.snapshot.observed_at;
         for (let i = 0; i < 16; i++) {
           const s = await v.view<SnapshotRecord | null>(c.attestation, "get_latest_snapshot", { flight_key_hash: fkh });
@@ -45,28 +57,13 @@ export async function quoteInputs(fk: FlightKey, product: "cap" | "drop", refres
   ]);
   if (!snapshot) {
     return {
-      error: oracleNote?.includes("no price source") ? "We don't have a price source for this flight yet." : `No verified price for this flight yet${oracleNote ? ` (${oracleNote})` : ""}.`,
+      error: oracleNote?.includes("no price source") ? `We don't have a price source for ${"route" in coverage ? "flights on this route and day" : "this flight"} yet.` : `No verified price yet${oracleNote ? ` (${oracleNote})` : ""}.`,
       status: 404,
     };
   }
-  return { flight_key_hash: fkh, snapshot, vault: vs, params, exposure, now, oracleNote };
+  return { flight_key_hash: fkh, snapshot, vault: vs, params, exposure, now, oracleNote, routeFlights };
 }
 
-export function premiumFor(q: QuoteInputs, product: "cap" | "drop", strike: number) {
-  const pp = q.params[product];
-  return computePremium(pp, {
-    product,
-    current_price: q.snapshot.price_minor,
-    strike,
-    signals: q.snapshot.signals,
-    now: q.now,
-    departure_ts: q.snapshot.departure_ts,
-    vault_total_assets: q.vault.total_assets,
-    vault_locked: q.vault.locked_coverage,
-    vault_reserved: q.vault.pending_withdrawals,
-    new_lock: (BigInt(pp.max_payout) * BigInt(q.params.global.usdc_micro_per_cent)).toString(),
-    flight_exposure: q.exposure[0],
-  });
-}
+export { premiumFor } from "./premium";
 
 export const defaultCap = (price: number) => Math.ceil((price * 1.06) / 500) * 500;

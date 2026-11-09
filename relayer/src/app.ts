@@ -13,7 +13,8 @@ export function routes(cfg: AppConfig, chain: ChainOps, view?: NearViewClient): 
   const perAccountHour = new Quota(40, 3_600_000);
   const perAccountDay = new Quota(200, 86_400_000);
   const perIpHour = new Quota(120, 3_600_000);
-  const accountsPerIpDay = new Quota(5, 86_400_000);
+  // New named accounts per IP per day (anti-abuse). Test stacks raise it; see .github/workflows/ci.yml.
+  const accountsPerIpDay = new Quota(Math.max(1, Number(process.env.RELAYER_ACCOUNTS_PER_IP_DAY ?? 5) || 5), 86_400_000);
   const snapshotsPerMin = new Quota(30, 60_000);
   let signers: { at: number; keys: Set<string> } = { at: 0, keys: new Set() };
 

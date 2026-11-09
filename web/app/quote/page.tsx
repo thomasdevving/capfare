@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default function Page() {
   const c = serverConfig();
   return (
-    <AppPage title="Check a flight" intro="Protection is for one exact flight, date and fare class. The premium comes from the public formula on the blockchain.">
+    <AppPage title="Check a flight" intro="Protect one exact flight, or any flight on a route and day; one-way or return, for up to 9 travellers on one booking. The premium comes from the public formula on the blockchain.">
       <Suspense>
         <QuoteClient cfg={{ registry: c.registry, token: c.token, demo: c.demo }} />
       </Suspense>

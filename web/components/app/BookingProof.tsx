@@ -5,7 +5,7 @@
  * booking_verifier's X25519 key; CapFare's web server only forwards ciphertext.
  */
 import { useEffect, useState } from "react";
-import { sealJson, type FlightKey, type Refundability, type SignedBookingAttestation } from "@capfare/shared";
+import { sealJson, type FlightKey, type Refundability, type RouteKey, type SignedBookingAttestation } from "@capfare/shared";
 import { errText, getJson, Msg, postJson } from "./ui";
 import { passengerSalt, rememberedLastName } from "@/lib/wallet";
 import { eur } from "@/lib/format";
@@ -29,7 +29,16 @@ const MAIL_HELP = [
   ["Thunderbird", "Open the email → … → Save As → File. Keep the .eml extension."],
 ];
 
-export default function BookingProof({ flightKey, onVerified, demo, defaultPaid, liveOnly = false }: { flightKey?: FlightKey; onVerified: (r: ProofResult) => void; demo: boolean; defaultPaid?: number; liveOnly?: boolean }) {
+type Hint = FlightKey | RouteKey;
+const hintField = (h?: Hint) => (!h ? {} : "flight_number" in h ? { flight_key: h } : { route: h });
+
+/**
+ * `hints`: the flights (or routes) to attest from this one booking, e.g. both legs of a return
+ * trip; the checker attests each separately. Results go to `onVerifiedAll` in the same order.
+ */
+export default function BookingProof({ flightKey, hints, onVerified, onVerifiedAll, demo, defaultPaid, defaultPassengers = 1, liveOnly = false }: { flightKey?: FlightKey; hints?: Hint[]; onVerified: (r: ProofResult) => void; onVerifiedAll?: (r: ProofResult[]) => void; demo: boolean; defaultPaid?: number; defaultPassengers?: number; liveOnly?: boolean }) {
+  const targets: (Hint | undefined)[] = hints?.length ? hints : [flightKey];
+  const routeOnly = targets.some((h) => h && !("flight_number" in h));
   const [enclave, setEnclave] = useState<Enclave | null>(null);
   const [mode, setMode] = useState<"eml" | "link" | "status" | "demo">(liveOnly ? "link" : "eml");
   const [link, setLink] = useState("");
@@ -39,6 +48,7 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid,
   const [last, setLast] = useState("");
   const [paid, setPaid] = useState(defaultPaid ? String(defaultPaid / 100) : "255");
   const [refundable, setRefundable] = useState<Refundability>("non_refundable");
+  const [pax, setPax] = useState(String(defaultPassengers));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -47,10 +57,17 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid,
     setDemoLast(rememberedLastName());
   }, []);
 
-  async function verifyEml(b64: string) {
+  async function verifyEml(b64: string, h: Hint | undefined = flightKey) {
     if (!enclave) throw new Error("verifier not loaded");
-    const sealed = await sealJson({ eml_base64: b64, salt: await passengerSalt(), flight_key: flightKey }, enclave.box_public_key);
+    const sealed = await sealJson({ eml_base64: b64, salt: await passengerSalt(), ...hintField(h) }, enclave.box_public_key);
     return postJson<ProofResult>("/api/verify-eml", { sealed });
+  }
+
+  /** Runs one check per target flight with the same input. */
+  async function each(f: (h: Hint | undefined) => Promise<ProofResult>): Promise<ProofResult[]> {
+    const out: ProofResult[] = [];
+    for (const h of targets) out.push(await f(h));
+    return out;
   }
 
   async function submit(e: React.FormEvent) {
@@ -58,22 +75,27 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid,
     setBusy(true);
     setErr(null);
     try {
-      let r: ProofResult;
+      let rs: ProofResult[];
       if (mode === "eml") {
         if (!file) throw new Error("Choose the .eml file first");
         if (file.size > 2_000_000) throw new Error("That file is too large for a confirmation email");
         const buf = new Uint8Array(await file.arrayBuffer());
         let bin = "";
         for (const b of buf) bin += String.fromCharCode(b);
-        r = await verifyEml(btoa(bin));
+        const b64 = btoa(bin);
+        rs = await each((h) => verifyEml(b64, h));
       } else if (mode === "link") {
         if (!enclave) throw new Error("verifier not loaded");
-        const sealed = await sealJson({ url: link.trim(), salt: await passengerSalt(), flight_key: flightKey }, enclave.box_public_key);
-        r = await postJson<ProofResult>("/api/verify-page", { sealed });
+        const salt = await passengerSalt();
+        rs = await each(async (h) => postJson<ProofResult>("/api/verify-page", { sealed: await sealJson({ url: link.trim(), salt, ...hintField(h) }, enclave.box_public_key) }));
       } else if (mode === "status") {
         if (!enclave) throw new Error("verifier not loaded");
-        const sealed = await sealJson({ airline: flightKey?.airline ?? "KL", booking_ref: ref.trim().toUpperCase(), last_name: last.trim(), salt: await passengerSalt(), flight_key: flightKey }, enclave.box_public_key);
-        r = await postJson<ProofResult>("/api/verify-status", { sealed });
+        const salt = await passengerSalt();
+        rs = await each(async (h) =>
+          postJson<ProofResult>("/api/verify-status", {
+            sealed: await sealJson({ airline: flightKey?.airline ?? "KL", booking_ref: ref.trim().toUpperCase(), last_name: last.trim(), salt, ...hintField(h) }, enclave.box_public_key),
+          }),
+        );
       } else {
         if (!flightKey) throw new Error("Enter the flight first");
         const cents = Math.round(Number(paid.replace(",", ".")) * 100);
@@ -83,10 +105,13 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid,
           paid_price_minor: cents,
           refundable,
           last_name: demoLast || "Tester",
+          passengers: Math.max(1, Math.min(9, Number(pax) || 1)),
         });
-        r = await verifyEml(fx.eml_base64);
+        // The synthetic confirmation holds one flight: it is checked for that flight only.
+        rs = [await verifyEml(fx.eml_base64, flightKey)];
       }
-      onVerified(r);
+      if (onVerifiedAll) onVerifiedAll(rs);
+      else onVerified(rs[0]);
     } catch (x) {
       setErr(errText(x));
     } finally {
@@ -103,7 +128,7 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid,
         ) : null}
         <button type="button" role="tab" aria-selected={mode === "link"} className={`btn ${mode === "link" ? "btn-primary" : ""}`} onClick={() => setMode("link")}>Booking page link</button>
         <button type="button" role="tab" aria-selected={mode === "status"} className={`btn ${mode === "status" ? "btn-primary" : ""}`} onClick={() => setMode("status")}>Booking code and last name</button>
-        {demo && !liveOnly ? (
+        {demo && !liveOnly && !routeOnly && targets.length === 1 ? (
           <button type="button" role="tab" aria-selected={mode === "demo"} className={`btn ${mode === "demo" ? "btn-primary" : ""}`} onClick={() => setMode("demo")}>Demo confirmation</button>
         ) : null}
       </div>
@@ -123,6 +148,8 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid,
           </dl>
         </>
       ) : null}
+      {targets.length > 1 ? <p className="small muted">One booking, {targets.length} flights: we check each flight on it.</p> : null}
+      {routeOnly ? <p className="small muted">Route cover: we find the flight on your booking that matches the covered route, day and fare class.</p> : null}
       {liveOnly ? (
         <p className="small muted">This is a refundable ticket, so we check the booking as it is now on the booking site. An email can&apos;t show a later cancellation.</p>
       ) : null}
@@ -160,6 +187,10 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid,
           <div>
             <label htmlFor="dl">Lead passenger last name</label>
             <input id="dl" value={demoLast} onChange={(e) => setDemoLast(e.target.value)} autoComplete="family-name" />
+          </div>
+          <div>
+            <label htmlFor="pax">Travellers on the booking</label>
+            <input id="pax" inputMode="numeric" value={pax} onChange={(e) => setPax(e.target.value)} />
           </div>
           <div>
             <label htmlFor="rf">Ticket type</label>

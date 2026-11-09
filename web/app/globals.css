@@ -351,3 +351,30 @@ details summary { cursor: pointer; }
 @media (min-width: 601px) and (max-width: 1100px) {
   .landing .nav .anchor { display: none; }
 }
+
+/* ---- quote options: coverage scope, trip, travellers, Drop option ---- */
+.choice-row { border: 0; padding: 0; margin: 16px 0 0; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
+.choice-row legend { font-weight: 600; padding: 0; margin-bottom: 6px; width: 100%; }
+.choice-row > label { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-weight: 400; white-space: nowrap; }
+.choice-row input[type="radio"], label.check input[type="checkbox"] { width: 18px; height: 18px; min-height: 0; padding: 0; margin: 0; flex: 0 0 auto; }
+.choice-row .inline-select { gap: 10px; }
+.choice-row .inline-select select { width: auto; min-width: 72px; }
+.choice-row .tag { font-size: 11px; padding: 1px 8px; }
+.leg-title { font-size: var(--s3); margin: 18px 0 4px; }
+.quote-leg + .quote-leg { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 4px; }
+.route-flights { list-style: none; padding: 0; margin: 6px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 16px; max-width: 520px; }
+.route-flights li { display: flex; justify-content: space-between; }
+label.check { display: flex; gap: 12px; align-items: flex-start; font-weight: 400; margin: 4px 0 16px; max-width: 40em; padding: 12px 14px; border: 1px solid var(--glass-border); border-radius: 12px; background: var(--glass-soft); }
+label.check input { margin-top: 4px; flex: 0 0 auto; width: auto; }
+
+/* ---- alerts (in-app notifications) ---- */
+.alerts { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 10px; }
+.alert { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--glass-border); background: var(--glass-strong); }
+.alert.urgent { border-color: var(--yellow); box-shadow: 0 0 0 1px var(--yellow) inset; }
+.alert.action { border-color: rgba(255, 209, 0, 0.55); }
+.alert h3 { font-size: var(--s3); margin: 0 0 2px; }
+.alert p { margin: 0; font-size: var(--s1); color: var(--muted); }
+.alert .btn { flex: 0 0 auto; }
+.alert-dot { display: inline-block; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--yellow); color: var(--on-yellow); font: 700 12px/20px var(--font); text-align: center; margin-left: 6px; vertical-align: 1px; }
+.trip-badge { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: rgba(255, 209, 0, 0.16); border: 1px solid rgba(255, 209, 0, 0.5); margin-left: 8px; vertical-align: 3px; }
+@media (max-width: 640px) { .alert { flex-direction: column; } }

@@ -1,23 +1,32 @@
 import Link from "next/link";
 import { BookerShell, dur, eur, longDate } from "@/components/booker/Shell";
 import { findFlight, pricesFor } from "@/lib/booker/store";
+import { legOf, tripOf, tripQuery } from "@/lib/booker/trip";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Skyline Travel (demo) — choose your fare", robots: { index: false } };
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const q = await searchParams;
-  const pax = Math.min(4, Math.max(1, Number(q.pax ?? 1)));
-  const f = findFlight(q.fn ?? "", q.from ?? "", q.to ?? "", q.date ?? "");
+  const t = tripOf(q);
+  const leg = legOf(t);
+  const f = findFlight(q.fn ?? "", leg.from, leg.to, leg.date);
   if (!f) return <BookerShell><div className="sk-wrap sk-section"><div className="sk-err">This flight is no longer available.</div></div></BookerShell>;
   const live = await pricesFor(f);
-  const base = `fn=${f.flight_number}&from=${f.origin}&to=${f.destination}&date=${f.departure_date}&pax=${pax}`;
+  const pax = t.pax;
+  // Next step: outbound of a return trip -> choose the return flight; otherwise -> checkout.
+  const next = (fare: string) =>
+    t.ret && t.leg === 1
+      ? `/booker/results?${tripQuery({ ...t, leg: 2, o: f.flight_number, of: fare })}`
+      : t.leg === 2
+        ? `/booker/checkout?${tripQuery({ ...t, leg: 1, o: undefined, of: undefined }, { fn: t.o!, fare: t.of!, rfn: f.flight_number, rfare: fare })}`
+        : `/booker/checkout?${tripQuery(t, { fn: f.flight_number, fare })}`;
   return (
     <BookerShell>
       <div className="sk-wrap sk-section">
-        <p><Link href={`/booker/results?from=${f.origin}&to=${f.destination}&date=${f.departure_date}&pax=${pax}`}>← Back to results</Link></p>
+        <p><Link href={`/booker/results?${tripQuery(t)}`}>← Back to results</Link></p>
         <article className="sk-card sk-flight-detail">
-          <h1 style={{ fontSize: 24 }}>Choose your fare</h1>
+          <h1 style={{ fontSize: 24 }}>{t.leg === 2 ? "Choose your return fare" : t.ret ? "Choose your outbound fare" : "Choose your fare"}</h1>
           <p style={{ margin: 0 }}>
             <strong className="sk-fn">{f.flight_number}</strong> · {f.airlineName} · <span className="sk-route">{f.origin} → {f.destination}</span> ·{" "}
             <time dateTime={`${f.departure_date}T${f.dep}`}>{longDate(f.departure_date)}</time>, {f.dep}–{f.arr} ({dur(f.durationMin)}, direct)
@@ -37,7 +46,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
                   <li>{fare.changeable ? "Changes allowed" : "No changes"}</li>
                   <li>{fare.refundable ? "Refundable" : "Non-refundable"}</li>
                 </ul>
-                {l.available ? <a className="sk-btn" href={`/booker/checkout?${base}&fare=${fare.id}`}>Select</a> : null}
+                {l.available ? <a className="sk-btn" href={next(fare.id)}>Select</a> : null}
               </div>
             );
           })}

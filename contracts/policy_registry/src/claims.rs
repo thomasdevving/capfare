@@ -45,8 +45,11 @@ impl PolicyRegistry {
 
 #[near]
 impl PolicyRegistry {
-    /// Price Cap claim with a booking attestation (DKIM .eml or status check).
-    pub fn claim_cap(&mut self, policy_id: u64, attestation: SignedBookingAttestation) -> Promise {
+    /// Price Cap claim with a booking attestation (DKIM .eml or live check). For route
+    /// coverage, `booked_flight` names the flight that was booked (the attestation only carries
+    /// its hash); it must be on the covered route and day. Each leg of a return booking is
+    /// claimed separately, against its own policy.
+    pub fn claim_cap(&mut self, policy_id: u64, attestation: SignedBookingAttestation, booked_flight: Option<FlightKey>) -> Promise {
         let mut p = self.get_policy_mut_checked(policy_id);
         require!(env::predecessor_account_id() == p.owner, "only the policy owner can claim");
         require!(p.product == Product::Cap, "not a Price Cap");
@@ -54,25 +57,43 @@ impl PolicyRegistry {
         let now = now_secs();
         require!(now <= p.expires_at + self.params.global.claim_grace_secs, "claim period is over");
         let a = &attestation.attestation;
-        require!(a.flight_key_hash == p.flight_key_hash, "booking is for another flight");
-        require!(a.fare_class == p.flight_key.fare_class, "booking is for another fare class");
+        let booked = match &p.coverage {
+            Coverage::Flight(k) => {
+                require!(a.flight_key_hash == p.flight_key_hash, "booking is for another flight");
+                k.clone()
+            }
+            Coverage::Route(r) => {
+                let k = booked_flight.unwrap_or_else(|| env::panic_str("say which flight you booked"));
+                if let Err(e) = k.validate() {
+                    env::panic_str(e);
+                }
+                require!(flight_key_hash(&k) == a.flight_key_hash, "booking is for another flight");
+                require!(r.matches(&k), "the booked flight is not on the covered route, day and fare class");
+                k
+            }
+        };
+        require!(a.fare_class == p.coverage.fare_class(), "booking is for another fare class");
         require!(a.status == BookingStatus::Active, "booking is not active");
         require!(a.passenger_commitment == p.passenger_commitment, "booking is for another passenger");
         require!(
             a.booked_at >= p.active_from && a.booked_at <= p.expires_at,
             "booking was made outside the coverage window (activation delay or expiry)"
         );
+        let index_key = match p.coverage {
+            Coverage::Route(_) => Some(p.flight_key_hash),
+            Coverage::Flight(_) => None,
+        };
         p.busy = true;
         self.save(p);
         let g = &self.params.global;
         ext_att::ext(self.attestation.clone())
             .with_static_gas(GAS_ATT_CONSUME)
-            .consume_booking(attestation, Product::Cap, g.max_attestation_age_secs, g.max_index_snapshot_age_secs)
-            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CLAIM_CB).on_cap_claim(policy_id))
+            .consume_booking(attestation, Product::Cap, g.max_attestation_age_secs, g.max_index_snapshot_age_secs, index_key)
+            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CLAIM_CB).on_cap_claim(policy_id, booked))
     }
 
     #[private]
-    pub fn on_cap_claim(&mut self, policy_id: u64) -> PromiseOrValue<bool> {
+    pub fn on_cap_claim(&mut self, policy_id: u64, booked: FlightKey) -> PromiseOrValue<bool> {
         let mut p = self.policies.get(&policy_id).cloned().expect("policy");
         p.busy = false;
         let check: BookingCheckView = match promise_json(0) {
@@ -85,15 +106,21 @@ impl PolicyRegistry {
         };
         let a = check.attestation;
         let index = check.index_price.unwrap_or(0);
-        let payout = cap_payout(index, a.paid_price_minor, p.strike_minor, p.deductible_minor, p.max_payout_minor);
+        let seats = p.seats.min(a.seats);
+        let per_seat = cap_payout(index, a.paid_price_minor, p.strike_minor, p.deductible_minor, p.max_payout_minor);
+        let payout = per_seat * u64::from(seats);
         p.booking_nullifier = Some(a.booking_ref_nullifier);
+        p.booked_flight_key_hash = Some(a.flight_key_hash);
+        p.booked_flight = Some(booked);
+        p.seats_covered = Some(seats);
         p.paid_price_minor = Some(a.paid_price_minor);
         p.index_at_booking_minor = Some(index);
         p.refundable = Some(a.refundable);
         p.payout_minor = Some(payout);
         event(
             "claim_verified",
-            json!({"policy_id": policy_id, "index_minor": index, "paid_minor": a.paid_price_minor, "payout_minor": payout, "refundable": a.refundable}),
+            json!({"policy_id": policy_id, "index_minor": index, "paid_minor": a.paid_price_minor, "seats": seats,
+                   "payout_per_seat_minor": per_seat, "payout_minor": payout, "refundable": a.refundable}),
         );
         self.after_claim_verified(p, a.verified_at)
     }
@@ -105,7 +132,7 @@ impl PolicyRegistry {
         let at = p.final_check_at.unwrap_or_else(|| env::panic_str("no final check pending"));
         let nullifier = p.booking_nullifier.expect("nullifier");
         p.busy = true;
-        let (fkh, pc) = (p.flight_key_hash, p.passenger_commitment);
+        let (fkh, pc) = (p.status_key(), p.passenger_commitment);
         self.save(p);
         // A final check exists only for refundable/unknown fares: it must be live.
         ext_att::ext(self.attestation.clone())
@@ -164,7 +191,7 @@ impl PolicyRegistry {
         require!(now <= p.expires_at + self.params.global.claim_grace_secs, "settlement period is over");
         let nullifier = p.booking_nullifier.expect("nullifier");
         p.busy = true;
-        let (fkh, from, to, pc) = (p.flight_key_hash, p.purchased_at, p.expires_at, p.passenger_commitment);
+        let (fkh, from, to, pc) = (p.status_key(), p.purchased_at, p.expires_at, p.passenger_commitment);
         let live = p.refundable != Some(Refundability::NonRefundable);
         self.save(p);
         ext_att::ext(self.attestation.clone())
@@ -198,7 +225,8 @@ impl PolicyRegistry {
             BookingStatus::Active => {
                 let paid = p.paid_price_minor.unwrap_or(p.strike_minor);
                 let lowest = r.lowest_price.unwrap_or(paid);
-                let payout = drop_payout(paid, lowest, p.deductible_minor, p.max_payout_minor);
+                let seats = p.seats_covered.unwrap_or(p.seats);
+                let payout = drop_payout(paid, lowest, p.deductible_minor, p.max_payout_minor) * u64::from(seats);
                 p.lowest_price_seen_minor = Some(lowest);
                 p.payout_minor = Some(payout);
                 if r.refundable == Refundability::NonRefundable {
@@ -208,6 +236,23 @@ impl PolicyRegistry {
                 self.after_claim_verified(p, r.verified_at)
             }
         }
+    }
+
+    /// Closes a held claim (refundable or unknown fare) whose final booking check was never
+    /// submitted: after departure + grace, coverage goes back to the vault and nothing is paid.
+    /// Without this, the locked coverage would stay out of LPs' reach forever. Anyone may call.
+    pub fn void_unconfirmed_claim(&mut self, policy_id: u64) -> Promise {
+        let mut p = self.get_policy_mut_checked(policy_id);
+        require!(p.state == PolicyState::Claimed && p.final_check_at.is_some(), "no claim is waiting for a final check");
+        require!(
+            now_secs() > p.departure_ts + self.params.global.claim_grace_secs,
+            "the final booking check can still be done"
+        );
+        p.note = Some("final booking check not done in time; claim closed without payout".into());
+        p.final_check_at = None;
+        p.payout_minor = Some(0);
+        event("claim_unconfirmed", json!({"policy_id": policy_id}));
+        self.resolve_via_vault(p, 0, PolicyState::Voided)
     }
 
     /// Releases coverage of an unclaimed policy after expiry + grace. Anyone may call.

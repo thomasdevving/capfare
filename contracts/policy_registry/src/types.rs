@@ -23,12 +23,20 @@ pub struct Policy {
     pub id: u64,
     pub owner: AccountId,
     pub product: Product,
+    /// Hash of the coverage: the flight key hash, or the route key hash for route coverage.
+    /// Oracle snapshots, exposure and per-user limits are keyed by it.
     pub flight_key_hash: Hash32,
-    pub flight_key: FlightKey,
-    /// Cap level (cap) or paid price (drop), cents.
+    pub coverage: Coverage,
+    /// Travellers covered (same booking, same flight). Amounts below marked "per traveller"
+    /// are multiplied by the covered seats for payouts, locks and exposure.
+    pub seats: u8,
+    /// Cap level (cap) or paid price (drop), cents per traveller.
     pub strike_minor: u64,
+    /// Per traveller.
     pub deductible_minor: u64,
+    /// Per traveller.
     pub max_payout_minor: u64,
+    /// Total premium for all seats.
     pub premium_minor: u64,
     pub purchased_at: u64,
     pub active_from: u64,
@@ -42,8 +50,20 @@ pub struct Policy {
     pub index_at_booking_minor: Option<u64>,
     pub paid_price_minor: Option<u64>,
     pub refundable: Option<Refundability>,
-    /// Payout in cents computed at claim/settlement time.
+    /// Total payout in cents (all covered seats) computed at claim/settlement time.
     pub payout_minor: Option<u64>,
+    /// The flight actually booked (set when a booking is attached: cap claim, drop purchase).
+    pub booked_flight: Option<FlightKey>,
+    pub booked_flight_key_hash: Option<Hash32>,
+    /// min(policy seats, travellers on the booking), set when a booking is attached.
+    pub seats_covered: Option<u8>,
+    /// Policies bought together as one trip (outbound + return) share the id of the first leg.
+    pub trip_id: Option<u64>,
+    /// Price Cap opt-in: when claimed, also add a Drop Guarantee for the booking, paying at
+    /// most this premium (total, cents). None = not wanted.
+    pub auto_drop_max_premium_minor: Option<u64>,
+    /// Cap -> the Drop Guarantee added with its booking, and back.
+    pub linked_policy: Option<u64>,
     /// Earliest verified_at for the final status check (refundable/unknown fares).
     pub final_check_at: Option<u64>,
     /// Settlement FX locked at purchase.
@@ -55,6 +75,40 @@ pub struct Policy {
     pub passenger_commitment: Hash32,
     pub busy: bool,
     pub note: Option<String>,
+}
+
+impl Policy {
+    /// Exposure this policy adds (cents): max payout per traveller times seats.
+    pub fn exposure_minor(&self) -> u64 {
+        self.max_payout_minor * u64::from(self.seats)
+    }
+    /// The flight whose booking status matters (booked flight once known).
+    pub fn status_key(&self) -> Hash32 {
+        self.booked_flight_key_hash.unwrap_or(self.flight_key_hash)
+    }
+}
+
+/// One leg of a Price Cap purchase.
+#[near(serializers = [json])]
+#[derive(Clone, Debug)]
+pub struct CapLeg {
+    pub coverage: Coverage,
+    /// Cap per traveller, cents.
+    pub strike_minor: u64,
+    /// Highest acceptable premium for this leg (all seats), cents.
+    pub max_premium_minor: u64,
+}
+
+/// Price Cap purchase: one leg, or two legs bought together (outbound and return).
+#[near(serializers = [json])]
+#[derive(Clone, Debug)]
+pub struct CapPurchase {
+    pub legs: Vec<CapLeg>,
+    /// Travellers to cover (1..=MAX_SEATS), all on one booking.
+    pub seats: u8,
+    pub passenger_commitment: Hash32,
+    /// Opt-in Drop Guarantee after the claim (see Policy).
+    pub auto_drop_max_premium_minor: Option<u64>,
 }
 
 #[near(serializers = [borsh, json])]
@@ -77,6 +131,7 @@ pub struct Stats {
 
 /// Subset of the vault's get_state used for pricing.
 #[near(serializers = [json])]
+#[derive(Clone, Debug)]
 pub struct VaultFigures {
     pub total_assets: U128,
     pub locked_coverage: U128,

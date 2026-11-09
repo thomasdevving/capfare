@@ -30,7 +30,18 @@ fn build() -> Value {
         refundable: Refundability::Unknown, booking_ref_nullifier: Hash32([0x11; 32]), status: BookingStatus::Active,
         method: VerificationMethod::TlsPage, booked_at: 1_810_000_100, verified_at: 1_810_000_200, enclave_measurement: Hash32([0xab; 32]),
         passenger_commitment: Hash32([0x22; 32]),
+        seats: 3,
     };
+    let route = RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), fare_class: "economy_light".into() };
+    let coverages: Vec<Value> = [Coverage::Flight(keys[0].clone()), Coverage::Route(route.clone())]
+        .iter()
+        .map(|c| json!({"coverage": c, "hash": coverage_hash(c)}))
+        .collect();
+    let leg = json!({
+        "booking_nullifier": Hash32([0x11; 32]),
+        "flight_key_hash": flight_key_hash(&keys[0]),
+        "leg_nullifier": leg_nullifier(&Hash32([0x11; 32]), &flight_key_hash(&keys[0])),
+    });
     let mut seed = 0x9e3779b97f4a7c15u64;
     let mut premiums = vec![];
     for i in 0..60 {
@@ -60,6 +71,9 @@ fn build() -> Value {
         "flight_keys": fk,
         "snapshot": {"value": snap, "borsh_hex": hex::encode(near_sdk::borsh::to_vec(&snap).unwrap()), "digest": hex::encode(snapshot_digest(&snap))},
         "attestation": {"value": att, "borsh_hex": hex::encode(near_sdk::borsh::to_vec(&att).unwrap()), "digest": hex::encode(attestation_digest(&att))},
+        "route_key": {"value": route, "hash": route_key_hash(&route)},
+        "coverages": coverages,
+        "leg_nullifier": leg,
         "route_week": {"origin": "AMS", "destination": "BCN", "departure_ts": 1_812_700_000u64, "key": route_week_key("AMS", "BCN", 1_812_700_000)},
         "premiums": premiums,
         "cap_payouts": payouts,

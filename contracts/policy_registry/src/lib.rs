@@ -29,6 +29,8 @@ pub(crate) const GAS_FT_TRANSFER_CALL: Gas = Gas::from_tgas(80);
 pub(crate) const GAS_VAULT_PAYOUT: Gas = Gas::from_tgas(50);
 pub(crate) const GAS_SMALL_CB: Gas = Gas::from_tgas(20);
 pub(crate) const GAS_PURCHASE_CB: Gas = Gas::from_tgas(150);
+/// Two legs: two premium transfers (each ft_transfer_call + callback) from one callback.
+pub(crate) const GAS_PURCHASE_CB_TRIP: Gas = Gas::from_tgas(240);
 pub(crate) const GAS_CLAIM_CB: Gas = Gas::from_tgas(100);
 pub(crate) const ONE_YOCTO: NearToken = NearToken::from_yoctonear(1);
 const MAX_RESULT_LEN: usize = 16 * 1024;
@@ -187,9 +189,9 @@ impl PolicyRegistry {
 
     pub(crate) fn add_exposure(&mut self, p: &Policy) {
         let k = (p.product, p.flight_key_hash);
-        *self.flight_exposure.entry(k).or_insert(0) += p.max_payout_minor;
+        *self.flight_exposure.entry(k).or_insert(0) += p.exposure_minor();
         let rk = (p.product, p.route_week_key);
-        *self.route_week_exposure.entry(rk).or_insert(0) += p.max_payout_minor;
+        *self.route_week_exposure.entry(rk).or_insert(0) += p.exposure_minor();
         let uk = (p.owner.clone(), p.product, p.flight_key_hash);
         *self.user_flight_count.entry(uk).or_insert(0) += 1;
         self.active.insert(p.id);
@@ -202,11 +204,11 @@ impl PolicyRegistry {
     pub(crate) fn remove_exposure(&mut self, p: &Policy) {
         let k = (p.product, p.flight_key_hash);
         if let Some(v) = self.flight_exposure.get_mut(&k) {
-            *v = v.saturating_sub(p.max_payout_minor);
+            *v = v.saturating_sub(p.exposure_minor());
         }
         let rk = (p.product, p.route_week_key);
         if let Some(v) = self.route_week_exposure.get_mut(&rk) {
-            *v = v.saturating_sub(p.max_payout_minor);
+            *v = v.saturating_sub(p.exposure_minor());
         }
         let uk = (p.owner.clone(), p.product, p.flight_key_hash);
         if let Some(v) = self.user_flight_count.get_mut(&uk) {

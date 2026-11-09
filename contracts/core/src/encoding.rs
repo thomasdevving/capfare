@@ -11,6 +11,8 @@ pub const FLIGHT_KEY_DOMAIN: &[u8] = b"capfare/flight-key/v1";
 pub const SNAPSHOT_DOMAIN: &[u8] = b"capfare/price-snapshot/v1";
 pub const ATTESTATION_DOMAIN: &[u8] = b"capfare/booking-attestation/v1";
 pub const ROUTE_WEEK_DOMAIN: &[u8] = b"capfare/route-week/v1";
+pub const ROUTE_KEY_DOMAIN: &[u8] = b"capfare/route-key/v1";
+pub const LEG_NULLIFIER_DOMAIN: &[u8] = b"capfare/leg-nullifier/v1";
 
 fn digest(domain: &[u8], body: &[u8]) -> [u8; 32] {
     let mut buf = Vec::with_capacity(domain.len() + body.len());
@@ -21,6 +23,28 @@ fn digest(domain: &[u8], body: &[u8]) -> [u8; 32] {
 
 pub fn flight_key_hash(k: &FlightKey) -> Hash32 {
     Hash32(digest(FLIGHT_KEY_DOMAIN, &borsh::to_vec(k).unwrap()))
+}
+
+/// Key of a route index (the oracle publishes route snapshots under this hash).
+pub fn route_key_hash(k: &RouteKey) -> Hash32 {
+    Hash32(digest(ROUTE_KEY_DOMAIN, &borsh::to_vec(k).unwrap()))
+}
+
+/// Hash that policies, snapshots and exposure use for a coverage.
+pub fn coverage_hash(c: &Coverage) -> Hash32 {
+    match c {
+        Coverage::Flight(k) => flight_key_hash(k),
+        Coverage::Route(r) => route_key_hash(r),
+    }
+}
+
+/// One booking can hold several flights (a return trip). Nullifiers are spent per flight,
+/// so each leg can be claimed once: H(booking nullifier || flight key hash).
+pub fn leg_nullifier(booking_nullifier: &Hash32, flight_key_hash: &Hash32) -> Hash32 {
+    let mut body = [0u8; 64];
+    body[..32].copy_from_slice(&booking_nullifier.0);
+    body[32..].copy_from_slice(&flight_key_hash.0);
+    Hash32(digest(LEG_NULLIFIER_DOMAIN, &body))
 }
 
 /// The 32-byte message the oracle enclave signs with ed25519.
@@ -72,6 +96,42 @@ mod tests {
         let a = flight_key_hash(&k);
         k.fare_class = "economy_standard".into();
         assert_ne!(a, flight_key_hash(&k));
+    }
+
+    #[test]
+    fn route_coverage_matches_flights_on_the_route_and_day() {
+        let r = RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), fare_class: "economy_light".into() };
+        assert!(r.validate().is_ok());
+        let c = Coverage::Route(r.clone());
+        assert!(c.covers(&demo_key()));
+        let mut other = demo_key();
+        other.flight_number = "VY1234".into();
+        other.airline = "VY".into();
+        assert!(c.covers(&other));
+        other.fare_class = "economy_flex".into();
+        assert!(!c.covers(&other));
+        let mut wrong_day = demo_key();
+        wrong_day.departure_date = "2027-06-15".into();
+        assert!(!c.covers(&wrong_day));
+        // Exact-flight coverage only covers that flight.
+        assert!(!Coverage::Flight(demo_key()).covers(&wrong_day));
+        // Route and flight keys never collide.
+        assert_ne!(coverage_hash(&c), coverage_hash(&Coverage::Flight(demo_key())));
+        let mut bad = r;
+        bad.destination = "AMS".into();
+        assert!(bad.validate().is_err());
+    }
+
+    #[test]
+    fn leg_nullifiers_differ_per_flight() {
+        let n = Hash32([9u8; 32]);
+        let a = flight_key_hash(&demo_key());
+        let mut back = demo_key();
+        back.origin = "BCN".into();
+        back.destination = "AMS".into();
+        let b = flight_key_hash(&back);
+        assert_ne!(leg_nullifier(&n, &a), leg_nullifier(&n, &b));
+        assert_eq!(leg_nullifier(&n, &a), leg_nullifier(&n, &a));
     }
 
     #[test]

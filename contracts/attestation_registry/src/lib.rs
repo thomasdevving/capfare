@@ -329,17 +329,24 @@ impl AttestationRegistry {
         if att.booked_at > att.verified_at + MAX_FUTURE_SKEW_SECS {
             return Err("booking time after verification time");
         }
+        if att.seats == 0 || att.seats > MAX_SEATS {
+            return Err("number of travellers out of range");
+        }
         Ok(())
     }
 
     /// Verifies a booking attestation and consumes its nullifier for `product`.
-    /// Called by the policy registry for cap claims and drop purchases.
+    /// Called by the policy registry for cap claims and drop purchases. Nullifiers are spent
+    /// per flight (`leg_nullifier`), so each leg of a return booking can be used once.
+    /// `index_key`: snapshot series for the cap index (a route key for route coverage;
+    /// defaults to the booked flight).
     pub fn consume_booking(
         &mut self,
         attestation: SignedBookingAttestation,
         product: Product,
         max_age_secs: u64,
         index_max_age_secs: u64,
+        index_key: Option<Hash32>,
     ) -> BookingCheck {
         self.assert_registry();
         if let Err(e) = self.validate_attestation(&attestation, max_age_secs) {
@@ -347,25 +354,27 @@ impl AttestationRegistry {
         }
         let att = attestation.attestation;
         let index_price = if product == Product::Cap {
-            let ix = self.index_price_at(att.flight_key_hash, att.booked_at, index_max_age_secs);
+            let key = index_key.unwrap_or(att.flight_key_hash);
+            let ix = self.index_price_at(key, att.booked_at, index_max_age_secs);
             require!(ix.is_some(), "no valid oracle price for this flight at booking time");
             ix
         } else {
             None
         };
-        let key = (product, att.booking_ref_nullifier);
+        let leg = leg_nullifier(&att.booking_ref_nullifier, &att.flight_key_hash);
+        let key = (product, leg);
         require!(!self.nullifiers.contains(&key), "booking already used for this product");
         self.nullifiers.insert(key);
-        event("nullifier_used", json!({"product": product, "nullifier": att.booking_ref_nullifier}));
+        event("nullifier_used", json!({"product": product, "nullifier": att.booking_ref_nullifier, "flight_key_hash": att.flight_key_hash}));
         let latest = self.latest.get(&att.flight_key_hash).cloned();
         BookingCheck { attestation: att, index_price, latest }
     }
 
     /// Undo of `consume_booking` when the registry's follow-up step fails.
-    pub fn release_nullifier(&mut self, product: Product, nullifier: Hash32) {
+    pub fn release_nullifier(&mut self, product: Product, nullifier: Hash32, flight_key_hash: Hash32) {
         self.assert_registry();
-        self.nullifiers.remove(&(product, nullifier));
-        event("nullifier_released", json!({"product": product, "nullifier": nullifier}));
+        self.nullifiers.remove(&(product, leg_nullifier(&nullifier, &flight_key_hash)));
+        event("nullifier_released", json!({"product": product, "nullifier": nullifier, "flight_key_hash": flight_key_hash}));
     }
 
     /// Verifies a status attestation for an already-registered booking. Optionally
@@ -438,8 +447,8 @@ impl AttestationRegistry {
         self.pending_keys.iter().map(|(k, v)| (*k, v.clone())).collect()
     }
 
-    pub fn is_nullifier_used(&self, product: Product, nullifier: Hash32) -> bool {
-        self.nullifiers.contains(&(product, nullifier))
+    pub fn is_nullifier_used(&self, product: Product, nullifier: Hash32, flight_key_hash: Hash32) -> bool {
+        self.nullifiers.contains(&(product, leg_nullifier(&nullifier, &flight_key_hash)))
     }
 
     pub fn get_config(&self) -> serde_json::Value {

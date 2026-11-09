@@ -208,10 +208,51 @@
       "booked_at": 1810000100,
       "verified_at": 1810000200,
       "enclave_measurement": "abababababababababababababababababababababababababababababababab",
-      "passenger_commitment": "2222222222222222222222222222222222222222222222222222222222222222"
+      "passenger_commitment": "2222222222222222222222222222222222222222222222222222222222222222",
+      "seats": 3
     },
-    "borsh_hex": "5639c4ddd610b58e121820e4774eebd96bb0acdba092325150a807c6f635ff5c9c63000000000000030000004555520d00000065636f6e6f6d795f6c696768740211111111111111111111111111111111111111111111111111111111111111110002e468e26b000000004869e26b00000000abababababababababababababababababababababababababababababababab2222222222222222222222222222222222222222222222222222222222222222",
-    "digest": "a33b21accfa798f8033f2bc00b74c61f7b4bfe7de941d4245196e0def49eabc4"
+    "borsh_hex": "5639c4ddd610b58e121820e4774eebd96bb0acdba092325150a807c6f635ff5c9c63000000000000030000004555520d00000065636f6e6f6d795f6c696768740211111111111111111111111111111111111111111111111111111111111111110002e468e26b000000004869e26b00000000abababababababababababababababababababababababababababababababab222222222222222222222222222222222222222222222222222222222222222203",
+    "digest": "da42ae44b325c49fffab38bce0e56e07c1873fca3bc4646894d543dbcf843720"
+  },
+  "route_key": {
+    "value": {
+      "origin": "AMS",
+      "destination": "BCN",
+      "departure_date": "2027-06-14",
+      "fare_class": "economy_light"
+    },
+    "hash": "297e2240df0a44eb866bbed47dae13d5f6d9c1f70bcaefa2eb7a4f187e38386e"
+  },
+  "coverages": [
+    {
+      "coverage": {
+        "flight": {
+          "airline": "KL",
+          "flight_number": "KL1695",
+          "departure_date": "2027-06-14",
+          "origin": "AMS",
+          "destination": "BCN",
+          "fare_class": "economy_light"
+        }
+      },
+      "hash": "5639c4ddd610b58e121820e4774eebd96bb0acdba092325150a807c6f635ff5c"
+    },
+    {
+      "coverage": {
+        "route": {
+          "origin": "AMS",
+          "destination": "BCN",
+          "departure_date": "2027-06-14",
+          "fare_class": "economy_light"
+        }
+      },
+      "hash": "297e2240df0a44eb866bbed47dae13d5f6d9c1f70bcaefa2eb7a4f187e38386e"
+    }
+  ],
+  "leg_nullifier": {
+    "booking_nullifier": "1111111111111111111111111111111111111111111111111111111111111111",
+    "flight_key_hash": "5639c4ddd610b58e121820e4774eebd96bb0acdba092325150a807c6f635ff5c",
+    "leg_nullifier": "be7fa5004bd11a70e572ddb3b383a69319d31f8184215390d2fff0412bc96099"
   },
   "route_week": {
     "origin": "AMS",

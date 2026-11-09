@@ -66,6 +66,9 @@ pub struct FlightKey {
     pub fare_class: String,
 }
 
+/// Most travellers one policy can cover (one booking, same flight, same fare).
+pub const MAX_SEATS: u8 = 9;
+
 pub const FARE_CLASSES: &[&str] = &[
     "economy_light",
     "economy_standard",
@@ -90,28 +93,111 @@ impl FlightKey {
         {
             return Err("flight_number must be the airline code followed by 1-5 digits");
         }
-        let d = self.departure_date.as_bytes();
-        let date_ok = d.len() == 10
-            && d[4] == b'-'
-            && d[7] == b'-'
-            && d.iter()
-                .enumerate()
-                .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit());
-        if !date_ok {
-            return Err("departure_date must be YYYY-MM-DD");
-        }
-        for a in [&self.origin, &self.destination] {
-            if a.len() != 3 || !a.chars().all(|c| c.is_ascii_uppercase()) {
-                return Err("airports must be 3-letter uppercase IATA codes");
-            }
-        }
-        if self.origin == self.destination {
-            return Err("origin and destination must differ");
-        }
+        validate_date(&self.departure_date)?;
+        validate_airports(&self.origin, &self.destination)?;
         if !FARE_CLASSES.contains(&self.fare_class.as_str()) {
             return Err("unknown fare_class");
         }
         Ok(())
+    }
+}
+
+fn validate_date(d: &str) -> Result<(), &'static str> {
+    let d = d.as_bytes();
+    let ok = d.len() == 10
+        && d[4] == b'-'
+        && d[7] == b'-'
+        && d.iter().enumerate().all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit());
+    if ok {
+        Ok(())
+    } else {
+        Err("departure_date must be YYYY-MM-DD")
+    }
+}
+
+fn validate_airports(origin: &str, destination: &str) -> Result<(), &'static str> {
+    for a in [origin, destination] {
+        if a.len() != 3 || !a.chars().all(|c| c.is_ascii_uppercase()) {
+            return Err("airports must be 3-letter uppercase IATA codes");
+        }
+    }
+    if origin == destination {
+        return Err("origin and destination must differ");
+    }
+    Ok(())
+}
+
+/// Flexible coverage: every non-stop flight CapFare's price oracle tracks on one route and
+/// departure day, in one fare class. The index is the cheapest available fare among them.
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RouteKey {
+    pub origin: String,
+    pub destination: String,
+    /// Local date at origin, "YYYY-MM-DD".
+    pub departure_date: String,
+    pub fare_class: String,
+}
+
+impl RouteKey {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        validate_date(&self.departure_date)?;
+        validate_airports(&self.origin, &self.destination)?;
+        if !FARE_CLASSES.contains(&self.fare_class.as_str()) {
+            return Err("unknown fare_class");
+        }
+        Ok(())
+    }
+
+    /// True if `k` is a flight this route coverage pays for.
+    pub fn matches(&self, k: &FlightKey) -> bool {
+        k.origin == self.origin
+            && k.destination == self.destination
+            && k.departure_date == self.departure_date
+            && k.fare_class == self.fare_class
+    }
+}
+
+/// What a policy covers: one exact flight, or any tracked flight on a route and day.
+#[near(serializers = [borsh, json])]
+#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Coverage {
+    Flight(FlightKey),
+    Route(RouteKey),
+}
+
+impl Coverage {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        match self {
+            Coverage::Flight(k) => k.validate(),
+            Coverage::Route(r) => r.validate(),
+        }
+    }
+    pub fn origin(&self) -> &str {
+        match self {
+            Coverage::Flight(k) => &k.origin,
+            Coverage::Route(r) => &r.origin,
+        }
+    }
+    pub fn destination(&self) -> &str {
+        match self {
+            Coverage::Flight(k) => &k.destination,
+            Coverage::Route(r) => &r.destination,
+        }
+    }
+    pub fn fare_class(&self) -> &str {
+        match self {
+            Coverage::Flight(k) => &k.fare_class,
+            Coverage::Route(r) => &r.fare_class,
+        }
+    }
+    /// True if a booking for flight `k` can be used with this coverage.
+    pub fn covers(&self, k: &FlightKey) -> bool {
+        match self {
+            Coverage::Flight(f) => f == k,
+            Coverage::Route(r) => r.matches(k),
+        }
     }
 }
 
@@ -237,6 +323,8 @@ pub struct BookingAttestation {
     /// the enclave from the booking's lead passenger and a salt only the user knows. Binds
     /// a booking to the policy holder without putting the name on-chain.
     pub passenger_commitment: Hash32,
+    /// Travellers on the booking (1..=MAX_SEATS). `paid_price_minor` is per traveller.
+    pub seats: u8,
 }
 
 #[near(serializers = [borsh, json])]

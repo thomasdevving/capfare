@@ -24,8 +24,9 @@ pub trait AttestationExt {
         product: Product,
         max_age_secs: u64,
         index_max_age_secs: u64,
+        index_key: Option<Hash32>,
     );
-    fn release_nullifier(&mut self, product: Product, nullifier: Hash32);
+    fn release_nullifier(&mut self, product: Product, nullifier: Hash32, flight_key_hash: Hash32);
     #[allow(clippy::too_many_arguments)]
     fn check_status(
         &self,

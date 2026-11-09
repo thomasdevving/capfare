@@ -19,6 +19,8 @@ function delay(s: number) {
   return `${Math.round(s / 3600)} hours`;
 }
 
+const MARK = `<svg width="26" height="20" viewBox="0 0 104 80" aria-hidden="true"><g fill="#FFD100" stroke="#FFD100" stroke-width="9" stroke-linejoin="round"><path d="M9 74 L41 16 L60 16 L28 74 Z"/><path d="M45 74 L67 34 L86 34 L64 74 Z"/></g><g transform="translate(70 -2) rotate(45 15 15) scale(1.25)" fill="#FFD100"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg>`;
+
 const CSS = `
 :host { all: initial; }
 .box { position: fixed; right: 20px; bottom: 20px; z-index: 2147483647; width: 352px; max-width: calc(100vw - 40px);
@@ -50,7 +52,7 @@ export function renderOverlay(kind: "cap" | "drop", q: QuoteView, appUrl: string
       : `Booked at ${eur(q.price_minor)}. Add a Drop Guarantee for ${eur(q.premium_minor)}.`;
   root.innerHTML = `<style>${CSS}</style>
   <section class="box" role="dialog" aria-label="CapFare price protection">
-    <div class="head"><span class="brand"><svg width="26" height="20" viewBox="0 0 104 80" aria-hidden="true"><g fill="#FFD100" stroke="#FFD100" stroke-width="9" stroke-linejoin="round"><path d="M9 74 L41 16 L60 16 L28 74 Z"/><path d="M45 74 L67 34 L86 34 L64 74 Z"/></g><g transform="translate(70 -2) rotate(45 15 15) scale(1.25)" fill="#FFD100"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg>CapFare</span><button class="close" aria-label="Close">×</button></div>
+    <div class="head"><span class="brand">${MARK}CapFare</span><button class="close" aria-label="Close">×</button></div>
     <div class="body">
       <p class="lead"></p>
       <dl>
@@ -76,5 +78,24 @@ export function renderOverlay(kind: "cap" | "drop", q: QuoteView, appUrl: string
   cta.href = href;
   ($(".t") as HTMLAnchorElement).href = `${appUrl}/transparency`;
   $(".close").addEventListener("click", () => host.remove());
+  return host;
+}
+
+/** Manage-booking page: hand the booking link to CapFare for a live check (no data is read here). */
+export function renderVerifyOverlay(appUrl: string, pageUrl: string): HTMLElement {
+  const host = document.createElement("capfare-overlay");
+  const root = host.attachShadow({ mode: "closed" });
+  root.innerHTML = `<style>${CSS}</style>
+  <section class="box" role="dialog" aria-label="CapFare booking check">
+    <div class="head"><span class="brand">${MARK}CapFare</span><button class="close" aria-label="Close">×</button></div>
+    <div class="body">
+      <p class="lead">Protected this flight with CapFare? Verify the booking straight from this page.</p>
+      <p class="small" style="margin:0 0 12px">CapFare's checker loads this booking page from the booking site and reads only the flight, fare, price and status. Works for claims and for the final check of refundable tickets.</p>
+      <a class="cta" target="_blank" rel="noopener">Verify with CapFare</a>
+    </div>
+  </section>`;
+  const cta = root.querySelector(".cta") as HTMLAnchorElement;
+  cta.href = `${appUrl}/verify#u=${encodeURIComponent(pageUrl)}`;
+  (root.querySelector(".close") as HTMLElement).addEventListener("click", () => host.remove());
   return host;
 }

@@ -4,3 +4,4 @@ export * from "./scheduler.ts";
 export * from "./adapters/types.ts";
 export * from "./adapters/scripted.ts";
 export * from "./adapters/airline-page.ts";
+export * from "./adapters/demo-model.ts";

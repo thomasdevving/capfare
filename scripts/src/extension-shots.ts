@@ -31,13 +31,22 @@ for (const fare of ["economy_light", "economy_standard"]) {
 }
 // Crop around the overlay and the page content next to it (4:3).
 const CLIP = { x: 360, y: 280, width: 630, height: 472 };
-async function shot(path: string, file: string, clip = CLIP) {
+async function shot(path: string, file: string, clip?: { x: number; y: number; width: number; height: number }) {
   await page.goto(`${APP}${path}`, { waitUntil: "load" });
   await page.waitForSelector("capfare-overlay", { timeout: 30_000, state: "attached" });
   await page.waitForTimeout(800);
   await page.screenshot({ path: join(OUT, file), clip });
   console.log("saved", file);
 }
-await shot("/demo-airline", "1-lock.png");
-await shot("/demo-airline/confirmation?fare=economy_standard", "2-book.png", { x: 56, y: 40, width: 936, height: 702 });
+const CLIP1 = process.env.CLIP1 ? JSON.parse(process.env.CLIP1) : undefined;
+const CLIP2 = process.env.CLIP2 ? JSON.parse(process.env.CLIP2) : undefined;
+await shot("/booker/results?from=AMS&to=BCN&date=2027-06-14&pax=1", "1-lock.png", CLIP1);
+// A demo booking on Skyline Travel (demo) to show the confirmation-page offer.
+const booking = (await (await fetch(`${APP}/api/booker/bookings`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ fn: "KL1695", from: "AMS", to: "BCN", date: "2027-06-14", fare: "economy_standard", passengers: [{ title: "Ms", first: "Anna", last: "de Vries" }], email: "anna@example.org", card: "4242424242424242" }),
+})).json()) as { ref: string; token: string };
+await shot(`/booker/confirmation?ref=${booking.ref}&t=${booking.token}`, "2-book.png", CLIP2);
+await shot(`/booker/manage?ref=${booking.ref}&t=${booking.token}`, "4-verify.png", CLIP2);
 await ctx.close();

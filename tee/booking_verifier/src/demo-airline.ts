@@ -40,7 +40,7 @@ export function fixtureText(f: FixtureInput, ref: string, last: string): string 
     "Your booking is confirmed",
     "",
     `Booking code: ${ref}`,
-    `Passenger: MR TEST ${last.toUpperCase()}`,
+    `Passenger: ${last.toUpperCase()}/TEST MR`,
     "",
     "Flight",
     `${f.flight_number} · ${d} ${MON[m - 1]} ${y} · Amsterdam (${f.origin}) → Barcelona (${f.destination}) · ${f.fare_label}`,

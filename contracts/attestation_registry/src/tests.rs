@@ -13,6 +13,8 @@ fn ctx(pred: AccountId, now: u64) {
     testing_env!(b.build());
 }
 
+const PC: Hash32 = Hash32([6u8; 32]);
+
 fn registry() -> AccountId {
     "registry.test".parse().unwrap()
 }
@@ -76,6 +78,7 @@ fn att(h: &H, booked_at: u64, verified_at: u64, n: u8) -> SignedBookingAttestati
         booked_at,
         verified_at,
         enclave_measurement: h.m,
+        passenger_commitment: PC,
     };
     let sig = h.verifier.sign(&attestation_digest(&a));
     SignedBookingAttestation { attestation: a, signer: Hash32(h.verifier.verifying_key().to_bytes()), signature: Sig64(sig.to_bytes()) }
@@ -228,10 +231,37 @@ fn status_check_binds_to_booking() {
     let now = T0 + 4000;
     ctx(accounts(4), now);
     let a = att(&h, now - 100, now - 10, 4);
-    let r = h.c.check_status(a.clone(), Hash32([4; 32]), fkh(), now - 60, 3600, None, None);
+    let r = h.c.check_status(a.clone(), Hash32([4; 32]), fkh(), PC, false, now - 60, 3600, None, None);
     assert_eq!(r.status, BookingStatus::Active);
     let bad = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        h.c.check_status(a.clone(), Hash32([8; 32]), fkh(), 0, 3600, None, None);
+        h.c.check_status(a.clone(), Hash32([8; 32]), fkh(), PC, false, 0, 3600, None, None);
     }));
     assert!(bad.is_err());
+    // Another passenger's booking is rejected.
+    let other = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        h.c.check_status(a.clone(), Hash32([4; 32]), fkh(), Hash32([7; 32]), false, 0, 3600, None, None);
+    }));
+    assert!(other.is_err());
+}
+
+#[test]
+#[should_panic(expected = "refundable tickets need a live check")]
+fn email_is_not_a_live_check() {
+    let h = setup(true);
+    let now = T0 + 4000;
+    ctx(accounts(4), now);
+    let a = att(&h, now - 100, now - 10, 4); // method DkimEml
+    h.c.check_status(a, Hash32([4; 32]), fkh(), PC, true, 0, 3600, None, None);
+}
+
+#[test]
+fn tls_page_is_a_live_check() {
+    let h = setup(true);
+    let now = T0 + 4000;
+    ctx(accounts(4), now);
+    let mut a = att(&h, now - 100, now - 10, 4);
+    a.attestation.method = VerificationMethod::TlsPage;
+    a.signature = Sig64(h.verifier.sign(&attestation_digest(&a.attestation)).to_bytes());
+    let r = h.c.check_status(a, Hash32([4; 32]), fkh(), PC, true, 0, 3600, None, None);
+    assert_eq!(r.status, BookingStatus::Active);
 }

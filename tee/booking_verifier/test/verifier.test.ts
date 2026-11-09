@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { flightKeyHash, verifyAttestation, type FlightKey } from "@capfare/shared";
+import { flightKeyHash, passengerCommitment, verifyAttestation, type FlightKey } from "@capfare/shared";
 import { devKeys } from "@capfare/tee-common";
 import { DemoAirline, DemoKeys, demoResolver, klm, makeFixtureEml, nullifier, parseKlmText, verifyOriginalEml, Verifier } from "../src/index.ts";
 
@@ -17,6 +17,7 @@ const base = {
   booked_at: new Date("2026-11-20T10:00:00Z"),
 };
 
+const SALT = "5a".repeat(32);
 let keys: DemoKeys;
 let verifier: Verifier;
 let airline: DemoAirline;
@@ -31,7 +32,7 @@ beforeAll(() => {
 describe("DKIM path", () => {
   it("accepts a valid original email and emits a PII-free attestation", async () => {
     const { eml } = await makeFixtureEml(base, keys);
-    const { attestation, flight_key } = await verifier.verifyEml(eml, fk);
+    const { attestation, flight_key } = await verifier.verifyEml(eml, SALT, fk);
     expect(verifyAttestation(attestation)).toBe(true);
     expect(flight_key).toEqual(fk);
     const a = attestation.attestation;
@@ -40,6 +41,7 @@ describe("DKIM path", () => {
     expect(a.refundable).toBe("non_refundable");
     expect(a.method).toBe("dkim_eml");
     expect(a.booked_at).toBe(Math.floor(base.booked_at.getTime() / 1000));
+    expect(a.passenger_commitment).toBe(passengerCommitment("Jansen", SALT));
     const json = JSON.stringify(attestation);
     expect(json).not.toMatch(/QX7K2P|Jansen|JANSEN|traveller@example/);
   });
@@ -47,37 +49,37 @@ describe("DKIM path", () => {
   it("rejects a modified email (body hash)", async () => {
     const { eml } = await makeFixtureEml(base, keys);
     const tampered = eml.replace("Total price: EUR 255.00", "Total price: EUR 955.00");
-    await expect(verifier.verifyEml(tampered, fk)).rejects.toThrow(/DKIM check failed/);
+    await expect(verifier.verifyEml(tampered, SALT, fk)).rejects.toThrow(/DKIM check failed/);
   });
 
   it("rejects a forwarded email", async () => {
     const { eml } = await makeFixtureEml({ ...base, subject_prefix: "Fwd: " }, keys);
-    await expect(verifier.verifyEml(eml, fk)).rejects.toThrow(/forwarded/);
+    await expect(verifier.verifyEml(eml, SALT, fk)).rejects.toThrow(/forwarded/);
     const { eml: e2 } = await makeFixtureEml(base, keys);
     const resent = e2.replace("To: traveller@example.org", "To: traveller@example.org\r\nX-Forwarded-To: other@example.org");
-    await expect(verifier.verifyEml(resent, fk)).rejects.toThrow(/forwarded/);
+    await expect(verifier.verifyEml(resent, SALT, fk)).rejects.toThrow(/forwarded/);
   });
 
   it("rejects mail re-signed by the user's mail provider (forward from gmail.com)", async () => {
     const { eml } = await makeFixtureEml({ ...base, from_domain: "gmail.com" }, keys, "gmail.com");
-    await expect(verifier.verifyEml(eml, fk)).rejects.toThrow(/not a supported airline/);
+    await expect(verifier.verifyEml(eml, SALT, fk)).rejects.toThrow(/not a supported airline/);
   });
 
   it("rejects a wrong signing domain even with an airline From address", async () => {
     const { eml } = await makeFixtureEml({ ...base, from_domain: "klm.com" }, keys, "klm-deals.example");
-    await expect(verifier.verifyEml(eml, fk)).rejects.toThrow(/DKIM check failed|not DKIM-signed/);
+    await expect(verifier.verifyEml(eml, SALT, fk)).rejects.toThrow(/DKIM check failed|not DKIM-signed/);
   });
 
   it("rejects unsigned mail", async () => {
     const { eml } = await makeFixtureEml(base, keys);
     const unsigned = eml.replace(/^DKIM-Signature:[\s\S]*?\r\n(?=From:)/, "");
     expect(unsigned.startsWith("From:")).toBe(true);
-    await expect(verifier.verifyEml(unsigned, fk)).rejects.toThrow(/not DKIM-signed/);
+    await expect(verifier.verifyEml(unsigned, SALT, fk)).rejects.toThrow(/not DKIM-signed/);
   });
 
   it("rejects a booking for another flight or fare class", async () => {
     const { eml } = await makeFixtureEml(base, keys);
-    await expect(verifier.verifyEml(eml, { ...fk, fare_class: "economy_standard" })).rejects.toThrow(/does not contain the covered flight/);
+    await expect(verifier.verifyEml(eml, SALT, { ...fk, fare_class: "economy_standard" })).rejects.toThrow(/does not contain the covered flight/);
   });
 
   it("verifyOriginalEml exposes the reason", async () => {
@@ -91,16 +93,16 @@ describe("status path", () => {
   it("reads the manage-booking page and reports cancellation", async () => {
     const f = await makeFixtureEml(base, keys);
     airline.register(f.booking_ref, f.last_name, f.eml.split("\r\n\r\n").slice(1).join("\r\n\r\n"));
-    const r1 = await verifier.verifyStatus("KL", f.booking_ref, f.last_name, fk);
+    const r1 = await verifier.verifyStatus("KL", f.booking_ref, f.last_name, SALT, fk);
     expect(r1.attestation.attestation.status).toBe("active");
     expect(r1.attestation.attestation.method).toBe("status_check");
     airline.setStatus(f.booking_ref, "cancelled");
-    const r2 = await verifier.verifyStatus("KL", f.booking_ref, f.last_name, fk);
+    const r2 = await verifier.verifyStatus("KL", f.booking_ref, f.last_name, SALT, fk);
     expect(r2.attestation.attestation.status).toBe("cancelled");
     // Same booking => same nullifier on both paths.
-    const viaEml = await verifier.verifyEml(f.eml, fk);
+    const viaEml = await verifier.verifyEml(f.eml, SALT, fk);
     expect(viaEml.attestation.attestation.booking_ref_nullifier).toBe(r2.attestation.attestation.booking_ref_nullifier);
-    await expect(verifier.verifyStatus("KL", f.booking_ref, "Wrong", fk)).rejects.toThrow(/not found/);
+    await expect(verifier.verifyStatus("KL", f.booking_ref, "Wrong", SALT, fk)).rejects.toThrow(/not found/);
   });
 
   it("nullifier depends on the enclave salt", () => {

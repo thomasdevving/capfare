@@ -33,7 +33,7 @@ const manifest = {
   permissions: [],
   host_permissions: [`${origin}/*`],
   background: { service_worker: "background.js" },
-  content_scripts: [{ matches: [`${origin}/demo-airline*`], js: ["content.js"], run_at: "document_idle" }],
+  content_scripts: [{ matches: [`${origin}/booker*`], js: ["content.js"], run_at: "document_idle" }],
   action: { default_title: "CapFare", default_popup: "popup.html" },
 };
 writeFileSync(join(out, "manifest.json"), JSON.stringify(manifest, null, 2));

@@ -44,6 +44,7 @@ test("quote → buy → claim → payout", async ({ page, request }) => {
   await page.getByRole("button", { name: "Get a quote" }).click();
   await expect(page.getByText("Verified airline price")).toBeVisible({ timeout: 30_000 });
   await page.locator("#cap").fill("18000");
+  await page.getByLabel(/Lead passenger.s last name/).fill("de Vries");
   await page.getByRole("button", { name: /^Lock €180 for/ }).click();
   await expect(page.getByText(/Protection #\d+ is active/)).toBeVisible({ timeout: 60_000 });
   const id = Number((await page.getByText(/Protection #\d+ is active/).innerText()).match(/#(\d+)/)![1]);
@@ -59,6 +60,7 @@ test("quote → buy → claim → payout", async ({ page, request }) => {
   await page.goto(`/claim/${id}`);
   await page.getByRole("tab", { name: "Demo confirmation" }).click();
   await page.getByLabel("Price you paid (€)").fill("255");
+  await page.getByLabel("Lead passenger last name").fill("de Vries");
   await page.getByRole("button", { name: "Check my booking" }).click();
   await expect(page.getByText(/Payout: €70/)).toBeVisible({ timeout: 90_000 });
   await expect(page.getByText("Paid to your account.")).toBeVisible();
@@ -68,4 +70,69 @@ test("quote → buy → claim → payout", async ({ page, request }) => {
     const w = box.width, h = Math.max(box.height + 32, (w * 3) / 4);
     await page.screenshot({ path: "public/how/3-paid.png", clip: { x: box.x - 16, y: box.y - 16, width: w + 32, height: h }, scale: "device" });
   }
+});
+
+test("someone else's booking cannot be used (passenger binding)", async ({ page, request }) => {
+  await page.goto("/account");
+  await page.getByLabel("Choose an account name").fill(`e2eb${Date.now() % 1_000_000}`);
+  await page.getByLabel(/Device key in this browser/).check();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30_000 });
+  await page.goto("/credit");
+  await page.getByRole("button", { name: /Top up €20/ }).click();
+  await expect(page.getByText(/to your credit/)).toBeVisible({ timeout: 60_000 });
+  await request.post("/api/demo/advance", { data: { flight_key: FLIGHT, to: 0 } });
+  await page.goto("/quote");
+  await page.getByRole("button", { name: "Get a quote" }).click();
+  await expect(page.getByText("Verified airline price")).toBeVisible({ timeout: 30_000 });
+  await page.locator("#cap").fill("18000");
+  await page.getByLabel(/Lead passenger.s last name/).fill("Peters");
+  await page.getByRole("button", { name: /^Lock €180 for/ }).click();
+  await expect(page.getByText(/Protection #\d+ is active/)).toBeVisible({ timeout: 60_000 });
+  const id = Number((await page.getByText(/Protection #\d+ is active/).innerText()).match(/#(\d+)/)![1]);
+  await page.waitForTimeout(22_000);
+  await request.post("/api/demo/advance", { data: { flight_key: FLIGHT, to: 3 } });
+  await page.waitForTimeout(1200);
+
+  // Book the flight on the demo booking site under a different lead passenger, then try a live check.
+  const b = await (await request.post("/api/booker/bookings", { data: { fn: "KL1695", from: "AMS", to: "BCN", date: "2027-06-14", fare: "economy_light", passengers: [{ title: "Ms", first: "Eva", last: "Smit" }], email: "eva@example.org", card: "4242424242424242" } })).json();
+  await page.goto(`/verify#u=${encodeURIComponent(b.manage)}`);
+  await page.getByRole("button", { name: "Verify booking" }).click();
+  await expect(page.getByText("Booking verified")).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: `Claim Price Cap #${id}` }).click();
+  await expect(page.getByText(/another passenger/)).toBeVisible({ timeout: 60_000 });
+});
+
+test("live check from the booking page claims a cap (extension handoff)", async ({ page, request }) => {
+  await page.goto("/account");
+  await page.getByLabel("Choose an account name").fill(`e2ec${Date.now() % 1_000_000}`);
+  await page.getByLabel(/Device key in this browser/).check();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30_000 });
+  await page.goto("/credit");
+  await page.getByRole("button", { name: /Top up €20/ }).click();
+  await expect(page.getByText(/to your credit/)).toBeVisible({ timeout: 60_000 });
+  await request.post("/api/demo/advance", { data: { flight_key: FLIGHT, to: 0 } });
+  await page.goto("/quote");
+  await page.getByRole("button", { name: "Get a quote" }).click();
+  await expect(page.getByText("Verified airline price")).toBeVisible({ timeout: 30_000 });
+  await page.locator("#cap").fill("18000");
+  await page.getByLabel(/Lead passenger.s last name/).fill("Smit");
+  await page.getByRole("button", { name: /^Lock €180 for/ }).click();
+  await expect(page.getByText(/Protection #\d+ is active/)).toBeVisible({ timeout: 60_000 });
+  const id = Number((await page.getByText(/Protection #\d+ is active/).innerText()).match(/#(\d+)/)![1]);
+  await page.waitForTimeout(22_000);
+  await request.post("/api/demo/advance", { data: { flight_key: FLIGHT, to: 3 } });
+  await page.waitForTimeout(1500);
+
+  // Book on Skyline Travel (demo) at the current €260 and verify from the manage page.
+  const b = await (await request.post("/api/booker/bookings", { data: { fn: "KL1695", from: "AMS", to: "BCN", date: "2027-06-14", fare: "economy_light", passengers: [{ title: "Ms", first: "Eva", last: "Smit" }], email: "eva@example.org", card: "4242424242424242" } })).json();
+  await page.goto(`/verify#u=${encodeURIComponent(b.manage)}`);
+  await page.getByRole("button", { name: "Verify booking" }).click();
+  await expect(page.getByText("Booking verified")).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: `Claim Price Cap #${id}` }).click();
+  await expect(page.getByText(/Claim #\d+: done/)).toBeVisible({ timeout: 60_000 });
+  await expect.poll(async () => (await (await request.get(`/api/policies?id=${id}`)).json()).state, { timeout: 30_000 }).toBe("paid_out");
+  const p = await (await request.get(`/api/policies?id=${id}`)).json();
+  expect(p.payout_minor).toBe(26000 - 18000 - 500); // min(260, 260) − 180 − 5
 });

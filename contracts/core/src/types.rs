@@ -199,8 +199,20 @@ pub enum Refundability {
 #[serde(rename_all = "snake_case")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VerificationMethod {
+    /// Original confirmation email, DKIM-verified in the enclave.
     DkimEml,
+    /// Enclave logged into the manage-booking page with booking code + last name.
     StatusCheck,
+    /// User-initiated: the enclave fetched the user's own manage-booking page over TLS
+    /// (link from the extension or pasted by the user). Shows the booking as it is now.
+    TlsPage,
+}
+
+impl VerificationMethod {
+    /// Live methods read the booking's current state from the booking site itself.
+    pub fn is_live(&self) -> bool {
+        !matches!(self, VerificationMethod::DkimEml)
+    }
 }
 
 /// Booking attestation as signed by the booking_verifier enclave. Contains no PII.
@@ -221,6 +233,10 @@ pub struct BookingAttestation {
     pub booked_at: Timestamp,
     pub verified_at: Timestamp,
     pub enclave_measurement: Hash32,
+    /// sha256("capfare/passenger/v1" || borsh(normalised last name) || salt), computed in
+    /// the enclave from the booking's lead passenger and a salt only the user knows. Binds
+    /// a booking to the policy holder without putting the name on-chain.
+    pub passenger_commitment: Hash32,
 }
 
 #[near(serializers = [borsh, json])]

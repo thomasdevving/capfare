@@ -56,10 +56,10 @@ export const en = {
         ],
       },
       {
-        body: "Upload your booking confirmation, the original email, or enter your booking code. It is checked inside a secure enclave and only the flight, fare class and price come back. For non-refundable tickets the payout leaves the vault straight away.",
+        body: "Upload your booking confirmation email, or open your booking page with the CapFare extension and press Verify with CapFare. The booking is checked inside a secure enclave and only the flight, fare class and price come back. For non-refundable tickets the payout leaves the vault straight away.",
         points: (d: number): string[] => [
           "Example: airline price €260, you paid €255, cap €180, deductible €" + (d / 100).toFixed(0) + ": you get €" + ((25500 - 18000 - d) / 100).toFixed(0) + ".",
-          "Refundable tickets are paid after a final check, one day before departure.",
+          "Refundable tickets need one more live check of the booking before departure, because an email can't show a cancellation.",
         ],
       },
     ],
@@ -69,9 +69,9 @@ export const en = {
       { n: "3", title: "Get the difference", body: "Upload your booking confirmation. If the airline's price was above your cap, the difference is paid to you." },
     ],
     shotAlt: [
-      "Screenshot: the CapFare extension on a flight search page, offering to lock a maximum price for this flight.",
-      "Screenshot: the booking confirmation page with the CapFare extension showing the booked price.",
-      "Screenshot: the CapFare claim page after uploading the booking confirmation, showing the payout.",
+      "Screenshot: search results on the demo booking site with the CapFare extension offering to lock a maximum price.",
+      "Screenshot: the booking confirmation on the demo booking site with the CapFare extension offering a Drop Guarantee.",
+      "Screenshot: the manage-booking page of the demo booking site with the CapFare extension offering Verify with CapFare.",
     ],
     stubLabels: ["Max price", "Booked", "Paid to you"],
   },
@@ -97,7 +97,7 @@ export const en = {
     title: "Book where you want",
     body: [
       "Coverage follows the flight, not the website. What counts is the flight number, date, airports and fare class on your booking confirmation, so you can book with the airline, a travel agency or a comparison site.",
-      "The Chrome extension shows a quote while you browse. Today it works on the CapFare demo booking site; support for airline websites is in progress. On your phone, use Check a flight on this website.",
+      "The Chrome extension shows a quote while you browse. Today it works on Skyline Travel, the demo booking site that ships with CapFare; support for airline and travel-agency websites is in progress. On your phone, use Check a flight on this website.",
     ],
   },
   payout: {
@@ -132,7 +132,8 @@ export const en = {
         refund
           ? "We don't promise that seats stay available. If your fare class sells out while your cap is active and unused, your premium is refunded."
           : "We don't promise that seats stay available. If your fare class sells out, the cap simply cannot be used.",
-      "Non-refundable tickets are paid out as soon as the claim is checked. Refundable tickets are paid after a final check, one day before departure, that you didn't cancel.",
+      "Non-refundable tickets are paid out as soon as the claim is checked. Refundable tickets are paid after one more live check of the booking, from a day before departure: open your booking page with the CapFare extension, or paste its link. An email alone can't show that you didn't cancel.",
+      "Only bookings for the lead passenger you named when buying can be used to claim.",
     ],
   },
   lp: {
@@ -150,6 +151,7 @@ export const en = {
       { q: "Which airlines work?", a: "Coverage works for any booking whose confirmation we can verify. In this prototype that is KLM-format confirmations (tested with synthetic examples). More airlines follow." },
       { q: "Why is there a deductible and an activation delay?", a: "They keep premiums low. Without them, people who already know a price is about to jump would buy protection seconds before booking, and everyone else would pay for that." },
       { q: "How do I get paid?", a: "To your CapFare balance in USDC by default. From there you can withdraw to a bank account (IBAN) through a licensed payment partner, or receive another digital asset. On testnet these are simulated." },
+      { q: "How do you check my booking?", a: "Two ways. Upload the original confirmation email: its digital signature shows it came from the airline or travel site and wasn't changed. Or open your booking page with the CapFare extension and press Verify with CapFare: our checker loads that page straight from the booking site and sees the booking as it is now, including a cancellation. Either way only the flight, fare, price and a scrambled fingerprint of the lead passenger's name come back, so only your own booking can be used." },
       { q: "Is this insurance?", a: "No. It is a testnet prototype of price protection. A commercial launch would require a licensed insurer or another appropriately licensed partner." },
       { q: "Do I need crypto?", a: "No. You sign in with a passkey, pay with prepaid credit and never pay network fees. On testnet everything uses test money." },
     ],

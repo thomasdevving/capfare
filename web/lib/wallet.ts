@@ -9,6 +9,7 @@
  */
 import { Account, actions, encodeSignedDelegate, JsonRpcProvider, KeyPair, KeyPairSigner, teraToGas, type KeyPairString } from "near-api-js";
 import { baseEncode } from "near-api-js";
+import { passengerCommitment, SALT_MESSAGE, saltFromSignature } from "@capfare/shared";
 
 const STORE = "capfare.wallet.v1";
 
@@ -167,4 +168,37 @@ export async function gasless(receiverId: string, method: string, args: Record<s
 function friendly(m: string): string {
   const x = /Smart contract panicked: ([^"\\]+)/.exec(m);
   return x ? x[1] : m;
+}
+
+/**
+ * Passenger salt: sha256 of a deterministic ed25519 signature over a fixed message, so the
+ * same key always gives the same salt (also after clearing the browser, for passkey users).
+ */
+export async function passengerSalt(): Promise<string> {
+  const s = load();
+  if (!s) throw new Error("Sign in first");
+  const key = await currentKey();
+  const sig = key.sign(new TextEncoder().encode(SALT_MESSAGE + s.accountId)).signature;
+  return saltFromSignature(sig);
+}
+
+export async function commitmentFor(lastName: string): Promise<string> {
+  return passengerCommitment(lastName, await passengerSalt());
+}
+
+const NAME_KEY = "capfare.passenger.last";
+/** Remembered on this device only, to prefill forms. Never sent anywhere in clear. */
+export function rememberedLastName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+export function rememberLastName(n: string) {
+  try {
+    localStorage.setItem(NAME_KEY, n);
+  } catch {
+    /* ignore */
+  }
 }

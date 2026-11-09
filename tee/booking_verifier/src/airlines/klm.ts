@@ -43,7 +43,8 @@ export function parseKlmText(text: string): ParsedBooking | null {
   return {
     airline: "KL",
     booking_ref: refM[1],
-    last_name: last ? last.split(/\s+/).pop()?.replace(/[^A-Za-zÀ-ÿ'-]/g, "") : undefined,
+    // "SURNAME/FIRSTNAME TITLE" (airline style); fall back to the last word.
+    last_name: last ? (last.includes("/") ? last.split("/")[0].trim() : last.split(/\s+/).pop()?.replace(/[^A-Za-zÀ-ÿ'-]/g, "")) : undefined,
     segments,
     paid_price_minor: paid,
     currency: "EUR",

@@ -90,7 +90,13 @@ export default function ClaimClient({ id, registry, demo }: { id: number; regist
                 ? "Show that your booking is still active at the end of the window. Use your booking code and last name, or upload the confirmation again."
                 : "Show that your booking is still active before departure."}
           </p>
-          <BookingProof flightKey={p.flight_key} demo={demo} onVerified={onVerified} defaultPaid={p.product === "cap" ? 25500 : p.strike_minor} />
+          <BookingProof
+            flightKey={p.flight_key}
+            demo={demo}
+            onVerified={onVerified}
+            defaultPaid={p.product === "cap" ? 25500 : p.strike_minor}
+            liveOnly={method === "finalize_claim" || (method === "settle_drop" && p.refundable !== "non_refundable")}
+          />
         </>
       ) : (
         <Msg kind="info">Nothing to do for this policy right now ({p.state.replace("_", " ")}).</Msg>

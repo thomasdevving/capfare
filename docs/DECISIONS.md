@@ -73,10 +73,10 @@ must be validated with real mails before use. Fixture emails are generated at ru
 signed with an ephemeral key under the selector `capfare-fixture`, visibly marked as
 synthetic, and only demo deployments resolve that selector.
 
-**D14. Manage-booking status checks: demo airline only.** Same terms-of-service reason as
-D12. The status-check path is fully implemented against a mocked manage-booking page.
-Final checks and drop settlements need the user (or their app) to submit a fresh status check;
-we do not keep booking references in sealed storage in v1.
+**D14. Server-side manage-booking logins: demo airline only.** Same terms-of-service reason
+as D12: the enclave logging into an airline with booking code + last name is only implemented
+against a mocked airline page. The user-initiated live check (D26) replaces it in practice.
+We do not keep booking references in sealed storage.
 
 **D15. Accounts: relayer-created named accounts with browser-held keys.** NEAR Auth
 (FastAuth) needs approved Auth0 credentials and documents mainnet setup; Privy needs an app
@@ -116,10 +116,44 @@ dusk-sky background with translucent glass panels on every page and in the exten
 the owner's logo. Outfit is used for headings and the wordmark. See LANDING_DESIGN.md,
 revisions 2–4, for what was taken from the reference and what was left out.
 
-**D23. Demo booking site.** `/demo-airline` on the web app is a clearly labelled stand-in
-booking site ("Skyline Travel (demo)"). It is the only site the extension has a working,
-fixture-tested adapter for, so it is the only one named on the landing page.
+**D23. Demo booking site: Skyline Travel (demo).** `/booker` on the web app is a full mock
+booking site, inspired by large OTAs: search with any of 12 airports and dates, results with
+airline/time/price filters and Best/Cheapest/Fastest sorting, three fares per flight
+(Light/Standard/Flex, Flex refundable), passenger details for 1–4 travellers, a test-card
+payment step, confirmation page, "My trips" lookup by booking code + last name, a manage page
+with cancellation, and a demo inbox with real DKIM-signed `.eml` confirmations
+(`skyline-travel.example`). Schedules and prices come from a deterministic demo fare model
+(`shared/src/demo-fares.ts`) that the oracle's demo price source uses too, so both always
+agree; where CapFare already has an on-chain price for a flight, the site shows that price.
+Every page carries a "demo booking site" banner. It is the only site with a working extension
+adapter, so it is the only one named on the landing page.
 
 **D24. Extension permissions.** The manifest requests no API permissions and a single host
 permission: the CapFare app origin (API and demo site). Content scripts run only on
-`/demo-airline*` there. Adding a real site means adding its origin, an adapter and fixtures.
+`/booker*` there. Adding a real site means adding its origin, an adapter and fixtures.
+
+**D25. Passenger binding.** A Price Cap stores a commitment
+`sha256("capfare/passenger/v1" ‖ borsh(normalised last name) ‖ salt)`; the salt is
+`sha256(ed25519 signature of a fixed message)` made with the user's own key, so it is
+deterministic and never stored. The enclave recomputes the commitment from the booking's lead
+passenger, using the salt the user seals to it, and signs it into the attestation; the
+contract requires equality for claims, settlements and final checks (a Drop Guarantee takes
+its commitment from the booking it was bought on). This stops someone using another
+traveller's confirmation. The name never reaches CapFare's servers or the chain.
+
+**D26. Live booking check ("Verify with CapFare") instead of a zkTLS integration.** The user
+hands CapFare the link to their own manage-booking page (the extension does it with one button
+on supported sites; on mobile they paste it). The booking checker, inside the enclave, loads
+that page directly from the booking site (allowlisted origins only, HTTPS required outside demo
+deployments) and attests the booking as it is now: method `tls_page`. This gives the same
+property we wanted from zkTLS — data that comes from the booking site's server, not from the
+user's browser — under the TEE trust assumption we already make, with no extra notary service.
+A real zkTLS provider (Reclaim, TLSNotary, Opacity) can replace it behind the same endpoint;
+the attestation format already has the method field. Reading the page inside the extension was
+rejected: the user controls that page, so on its own it proves nothing.
+
+**D27. Refundable tickets need a live check.** An email shows that a booking existed, not
+that it wasn't cancelled. For refundable or unknown fares, `finalize_claim` and
+`settle_drop` only accept live attestations (`status_check` or `tls_page`); the attestation
+registry enforces this (`require_live`). Non-refundable tickets can be settled with the email
+alone, because cancelling one returns nothing.

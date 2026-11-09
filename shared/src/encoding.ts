@@ -59,7 +59,7 @@ export function normalizeFlightKey(input: Partial<FlightKey> & { flight_number: 
 
 const STATUS = ["active", "cancelled", "unknown"] as const;
 const REFUND = ["non_refundable", "refundable", "unknown"] as const;
-const METHOD = ["dkim_eml", "status_check"] as const;
+const METHOD = ["dkim_eml", "status_check", "tls_page"] as const;
 
 export function encodeSnapshot(s: PriceSnapshot): Uint8Array {
   return new BorshWriter()
@@ -100,6 +100,7 @@ export function encodeAttestation(a: BookingAttestation): Uint8Array {
     .u64(a.booked_at)
     .u64(a.verified_at)
     .fixed(hexToBytes(a.enclave_measurement), 32)
+    .fixed(hexToBytes(a.passenger_commitment), 32)
     .bytes();
 }
 

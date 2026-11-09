@@ -58,10 +58,10 @@ export const nl: Dict = {
         ],
       },
       {
-        body: "Upload je boekingsbevestiging, de originele e-mail, of vul je boekingscode in. Die wordt gecontroleerd in een beveiligde enclave en alleen de vlucht, tariefklasse en prijs komen terug. Bij niet-restitueerbare tickets gaat de uitbetaling direct uit de kluis.",
+        body: "Upload je bevestigingsmail, of open je boekingspagina met de CapFare-extensie en druk op Controleer met CapFare. De boeking wordt gecontroleerd in een beveiligde enclave en alleen de vlucht, tariefklasse en prijs komen terug. Bij niet-restitueerbare tickets gaat de uitbetaling direct uit de kluis.",
         points: (d: number): string[] => [
           "Voorbeeld: prijs bij de airline € 260, jij betaalde € 255, plafond € 180, eigen risico € " + (d / 100).toFixed(0) + ": je krijgt € " + ((25500 - 18000 - d) / 100).toFixed(0) + ".",
-          "Restitueerbare tickets worden uitbetaald na een laatste controle, een dag voor vertrek.",
+          "Restitueerbare tickets hebben voor vertrek nog één live controle van de boeking nodig, omdat een e-mail geen annulering laat zien.",
         ],
       },
     ],
@@ -73,7 +73,7 @@ export const nl: Dict = {
     shotAlt: [
       "Schermafbeelding: de CapFare-extensie op een zoekpagina voor vluchten, met het aanbod om een maximumprijs vast te zetten.",
       "Schermafbeelding: de boekingsbevestiging met de CapFare-extensie die de geboekte prijs toont.",
-      "Schermafbeelding: de claimpagina van CapFare na het uploaden van de boekingsbevestiging, met de uitbetaling.",
+      "Schermafbeelding: de boekingspagina van de demo-boekingssite met de CapFare-extensie die Controleer met CapFare aanbiedt.",
     ],
     stubLabels: ["Maximumprijs", "Geboekt", "Uitbetaald"],
   },
@@ -99,7 +99,7 @@ export const nl: Dict = {
     title: "Boek waar je wilt",
     body: [
       "De dekking hoort bij de vlucht, niet bij de website. Wat telt zijn het vluchtnummer, de datum, de luchthavens en de tariefklasse op je boekingsbevestiging. Je kunt dus boeken bij de airline, een reisbureau of een vergelijkingssite.",
-      "De Chrome-extensie laat tijdens het zoeken een offerte zien. Nu werkt hij op de demo-boekingssite van CapFare; ondersteuning voor sites van airlines volgt. Op je telefoon gebruik je Check een vlucht op deze website.",
+      "De Chrome-extensie laat tijdens het zoeken een offerte zien. Nu werkt hij op Skyline Travel, de demo-boekingssite van CapFare; ondersteuning voor sites van airlines en reisbureaus volgt. Op je telefoon gebruik je Check een vlucht op deze website.",
     ],
   },
   payout: {
@@ -134,7 +134,8 @@ export const nl: Dict = {
         refund
           ? "We beloven niet dat er plaatsen beschikbaar blijven. Raakt je tariefklasse uitverkocht terwijl je plafond loopt en ongebruikt is, dan krijg je je premie terug."
           : "We beloven niet dat er plaatsen beschikbaar blijven. Raakt je tariefklasse uitverkocht, dan kun je het plafond niet gebruiken.",
-      "Niet-restitueerbare tickets worden uitbetaald zodra de claim is gecontroleerd. Restitueerbare tickets worden uitbetaald na een laatste controle, een dag voor vertrek, dat je niet hebt geannuleerd.",
+      "Niet-restitueerbare tickets worden uitbetaald zodra de claim is gecontroleerd. Restitueerbare tickets worden uitbetaald na nog één live controle van de boeking, vanaf een dag voor vertrek: open je boekingspagina met de CapFare-extensie, of plak de link. Een e-mail alleen kan niet laten zien dat je niet hebt geannuleerd.",
+      "Alleen boekingen voor de hoofdreiziger die je bij aankoop opgaf, tellen voor een claim.",
     ],
   },
   lp: {
@@ -152,6 +153,7 @@ export const nl: Dict = {
       { q: "Welke airlines werken?", a: "De dekking werkt voor elke boeking waarvan we de bevestiging kunnen controleren. In dit prototype zijn dat bevestigingen in KLM-formaat (getest met synthetische voorbeelden). Meer airlines volgen." },
       { q: "Waarom is er een eigen risico en een wachttijd?", a: "Die houden de premies laag. Zonder die regels zouden mensen die al weten dat een prijs gaat stijgen vlak voor het boeken bescherming kopen, en betaalt de rest daarvoor." },
       { q: "Hoe krijg ik mijn geld?", a: "Standaard op je CapFare-saldo in USDC. Daarvandaan kun je via een betaalpartner met vergunning opnemen naar je bankrekening (IBAN), of een andere digitale munt ontvangen. Op testnet is dat gesimuleerd." },
+      { q: "Hoe controleren jullie mijn boeking?", a: "Op twee manieren. Upload de originele bevestigingsmail: de digitale handtekening laat zien dat die van de airline of reissite komt en niet is aangepast. Of open je boekingspagina met de CapFare-extensie en druk op Controleer met CapFare: onze controle laadt die pagina rechtstreeks van de boekingssite en ziet de boeking zoals hij nu is, ook een annulering. In beide gevallen komen alleen de vlucht, het tarief, de prijs en een onleesbare vingerafdruk van de naam van de hoofdreiziger terug, zodat alleen jouw eigen boeking telt." },
       { q: "Is dit een verzekering?", a: "Nee. Het is een testnet-prototype van prijsbescherming. Voor een commerciële lancering is een verzekeraar of andere partner met de juiste vergunning nodig." },
       { q: "Heb ik crypto nodig?", a: "Nee. Je logt in met een passkey, betaalt met vooraf opgewaardeerd tegoed en betaalt nooit netwerkkosten. Op testnet werkt alles met testgeld." },
     ],

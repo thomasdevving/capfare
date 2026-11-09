@@ -6,7 +6,7 @@ import HeroChart from "./HeroChart";
 import LiveFigures from "./LiveFigures";
 import { Footer, Header } from "./SiteChrome";
 
-const HOW_SHOTS = ["/how/1-lock.png", "/how/2-book.png", "/how/3-paid.png"];
+const HOW_SHOTS = ["/how/1-lock.png", "/how/2-book.png", "/how/4-verify.png"];
 
 export default function Landing({ locale, params, live, extensionUrl }: { locale: Locale; params: Params; live: boolean; extensionUrl: string }) {
   const t = dict(locale);

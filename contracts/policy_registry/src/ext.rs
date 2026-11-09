@@ -32,6 +32,8 @@ pub trait AttestationExt {
         attestation: SignedBookingAttestation,
         nullifier: Hash32,
         flight_key_hash: Hash32,
+        passenger_commitment: Hash32,
+        require_live: bool,
         min_verified_at: u64,
         max_age_secs: u64,
         low_from: Option<u64>,

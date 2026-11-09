@@ -33,13 +33,15 @@ async function pushPrice(flight: FlightKey, step: number) {
   await sleep(1200);
 }
 
-async function verifyEml(flight: FlightKey, paid: number, refundable: "non_refundable" | "refundable", bookedAt: number) {
+const LAST_NAME = "Jansen";
+
+async function verifyEml(flight: FlightKey, paid: number, refundable: "non_refundable" | "refundable", bookedAt: number, salt: string) {
   const enclave = await (await fetch(`${VERIFIER}/v1/enclave`)).json() as { box_public_key: string };
   const fx = await post<{ eml_base64: string; booking_ref: string; last_name: string }>(`${VERIFIER}/v1/demo/fixture`, {
     flight_key: flight, fare_label: flight.fare_class === "economy_light" ? "Economy Light" : "Economy Standard",
-    paid_price_minor: paid, refundable, booked_at: bookedAt,
+    paid_price_minor: paid, refundable, booked_at: bookedAt, last_name: LAST_NAME,
   });
-  const sealed = await sealJson({ eml_base64: fx.eml_base64, flight_key: flight }, enclave.box_public_key);
+  const sealed = await sealJson({ eml_base64: fx.eml_base64, salt, flight_key: flight }, enclave.box_public_key);
   const v = await post<{ attestation: any }>(`${VERIFIER}/v1/verify/eml`, { sealed });
   return { attestation: v.attestation, booking_ref: fx.booking_ref, last_name: fx.last_name, box: enclave.box_public_key };
 }
@@ -99,7 +101,8 @@ export async function demo(network = process.env.NETWORK ?? "sandbox") {
 
   say("4. Buy the Price Cap (premium debited from credit, max payout locked in cap_vault)");
   const stats0 = await chain.view<{ policies_total: number }>(d.registry, "get_stats");
-  await user.call(d.registry, "buy_cap", { flight_key: CAP_FLIGHT, strike_minor: 18000, max_premium_minor: quote.premium + 200 });
+  await user.call(d.registry, "buy_cap", { flight_key: CAP_FLIGHT, strike_minor: 18000, max_premium_minor: quote.premium + 200, passenger_commitment: user.commitment(LAST_NAME) });
+  kv("passenger binding", "commitment to the lead passenger stored; the name stays on the device");
   const capId = stats0.policies_total + 1;
   const pol = await waitPolicy(chain, d.registry, capId, ["active"]);
   kv("policy", `#${capId} ${pol.state}, premium ${formatEur(pol.premium_minor)}, lock ${formatUsdc(pol.lock_usdc)} tUSDC`);
@@ -113,7 +116,7 @@ export async function demo(network = process.env.NETWORK ?? "sandbox") {
 
   say("6. Traveller books at €255 and uploads the confirmation (fixture .eml, DKIM-verified in the enclave)");
   const booked = await chain.nowSecs();
-  const cap = await verifyEml(CAP_FLIGHT, 25500, "non_refundable", booked);
+  const cap = await verifyEml(CAP_FLIGHT, 25500, "non_refundable", booked, user.salt());
   kv("attestation", `paid ${formatEur(cap.attestation.attestation.paid_price_minor)}, ${cap.attestation.attestation.refundable}, no PII`);
   await user.call(d.registry, "claim_cap", { policy_id: capId, attestation: cap.attestation });
 
@@ -128,7 +131,7 @@ export async function demo(network = process.env.NETWORK ?? "sandbox") {
   say("8. Drop Guarantee: booked at €220, price falls to €195 within the window");
   await pushPrice(DROP_FLIGHT, 0);
   const b2 = await chain.nowSecs();
-  const drop = await verifyEml(DROP_FLIGHT, 22000, "non_refundable", b2);
+  const drop = await verifyEml(DROP_FLIGHT, 22000, "non_refundable", b2, user.salt());
   const stats1 = await chain.view<{ policies_total: number }>(d.registry, "get_stats");
   await user.call(d.registry, "buy_drop", { attestation: drop.attestation, flight_key: DROP_FLIGHT, max_premium_minor: params.drop.max_premium });
   const dropId = stats1.policies_total + 1;
@@ -137,7 +140,7 @@ export async function demo(network = process.env.NETWORK ?? "sandbox") {
   for (const s of [1, 2, 3]) await pushPrice(DROP_FLIGHT, s);
   while ((await chain.nowSecs()) < dp.expires_at + 1) await sleep(2000);
   const st = await post<{ attestation: any }>(`${VERIFIER}/v1/verify/status`, {
-    sealed: await sealJson({ airline: "KL", booking_ref: drop.booking_ref, last_name: drop.last_name, flight_key: DROP_FLIGHT, booked_at: b2 }, drop.box),
+    sealed: await sealJson({ airline: "KL", booking_ref: drop.booking_ref, last_name: drop.last_name, salt: user.salt(), flight_key: DROP_FLIGHT, booked_at: b2 }, drop.box),
   });
   await user.call(d.registry, "settle_drop", { policy_id: dropId, attestation: st.attestation });
   const dpaid = await waitPolicy(chain, d.registry, dropId, ["paid_out", "claimed", "voided"]);

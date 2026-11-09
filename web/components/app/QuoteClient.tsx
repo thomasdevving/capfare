@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { computePremium, FARE_CLASSES, validateFlightKey, type FlightKey, type Params, type SnapshotRecord, type VaultState } from "@capfare/shared";
-import { gasless } from "@/lib/wallet";
+import { commitmentFor, gasless, rememberedLastName, rememberLastName } from "@/lib/wallet";
 import { dateTime, duration, eur, usdc } from "@/lib/format";
 import { errText, getJson, Msg, postJson, SignInFirst, useSession } from "./ui";
 import BookingProof, { type ProofResult } from "./BookingProof";
@@ -72,6 +72,8 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
+  const [lastName, setLastName] = useState("");
+  useEffect(() => setLastName(rememberedLastName()), []);
 
   useEffect(() => {
     if (!s) return;
@@ -129,9 +131,11 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
     setBusy("buy");
     setErr(null);
     try {
+      if (product === "cap" && !lastName.trim()) throw new Error("Enter the lead passenger's last name");
+      if (product === "cap") rememberLastName(lastName.trim());
       const r =
         product === "cap"
-          ? await gasless(cfg.registry, "buy_cap", { flight_key: fk, strike_minor: cap, max_premium_minor: maxPay })
+          ? await gasless(cfg.registry, "buy_cap", { flight_key: fk, strike_minor: cap, max_premium_minor: maxPay, passenger_commitment: await commitmentFor(lastName) })
           : await gasless(cfg.registry, "buy_drop", { attestation: proof!.attestation, flight_key: proof!.flight_key, max_premium_minor: maxPay });
       const ev = (r.events ?? []).find((e) => e.event === "policy_purchased");
       const active = (r.events ?? []).find((e) => e.event === "policy_active");
@@ -256,6 +260,13 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
               <p className="small">
                 Your credit: <strong className="num">{credit ? usdc(credit) : "…"} tUSDC</strong>. You pay at most {eur(maxPay)} ({usdc(premiumUsdc.toString())} tUSDC) if the price moves slightly before confirmation.
               </p>
+              {product === "cap" ? (
+                <div style={{ maxWidth: 420, marginBottom: 12 }}>
+                  <label htmlFor="lastname">Lead passenger&apos;s last name (as it will be on the booking)</label>
+                  <input id="lastname" value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" />
+                  <p className="hint">Only a scrambled fingerprint of the name is stored, so only your booking can be used to claim. The name itself never leaves this device.</p>
+                </div>
+              ) : null}
               {!enoughCredit && credit !== null ? (
                 <Msg kind="info">Not enough credit. <a href="/credit">Top up your credit</a> first.</Msg>
               ) : (

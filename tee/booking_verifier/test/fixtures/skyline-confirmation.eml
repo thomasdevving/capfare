@@ -1,0 +1,33 @@
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=skyline-travel.example; h=Message-ID: Date: Subject: To: From;
+ q=dns/txt; s=skyline; t=1794255175;
+ bh=KcbObIhoyKtv8NaKnJim20+BuqfQDuQmK+jTHy7fIyw=;
+ b=GXs+pqTKcZOGS8nT1mfqtGYS7bh6JHnP9b907vwmCAqk+ZeG2SFHVdoD94Dqv03iCJwj7juql
+ 78dAUcL5AtTdZhwVtoumHO27l839L9X2UWWcc7amX2X/yaHnCPH1bQ+woT43lliqtIS3FFVeAll
+ K6cYjplytM1adYeY7d/hihAljdMX76aAC7/DMhfuBwrXwZ3aGB/ZwQ5FeGCbbK+AI/pXpD6Pghx
+ 9z7IA06DyocXZYTExKTqoarVZ/ICVJhlGhBYWnuum/LrlKhS29Pj/jAMajeIdaxlapwox4Zca3N
+ FO49T6uDuLAWNlvAZujpDwoNZoXmdLVkkXbAAlu/81tQ==
+From: Skyline Travel (demo) <bookings@skyline-travel.example>
+To: anna@example.org
+Subject: Booking confirmed: KL1695 on 2027-06-14 (YMXNSW)
+Date: Mon, 09 Nov 2026 20:12:55 +0000
+Message-ID: <cd9eadadafe1bc5a@skyline-travel.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+DEMO BOOKING - Skyline Travel is CapFare's mock booking site. This is not a real ticket.
+
+Your flight is booked
+
+Booking code: YMXNSW
+Lead passenger: DE VRIES/ANNA MS
+Passengers: 1
+Flight: KL1695 Amsterdam (AMS) to Barcelona (BCN)
+Date: 14 Jun 2027, departs 07:20, arrives 09:40
+Fare: Economy Light
+Ticket type: Non-refundable
+Price per passenger: EUR 170.00
+Total paid: EUR 170.00 (card ending 4242)
+
+Manage your booking: http://localhost:3000/booker/manage?ref=YMXNSW&t=853afd3198c252893f6a0385092d7913

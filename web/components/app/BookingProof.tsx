@@ -7,12 +7,14 @@
 import { useEffect, useState } from "react";
 import { sealJson, type FlightKey, type Refundability, type SignedBookingAttestation } from "@capfare/shared";
 import { errText, getJson, Msg, postJson } from "./ui";
+import { passengerSalt, rememberedLastName } from "@/lib/wallet";
 import { eur } from "@/lib/format";
 
 interface Enclave {
   box_public_key: string;
   report: { kind: string };
   airlines: { code: string; name: string; status_check: string }[];
+  live_check_origins?: string[];
 }
 
 export interface ProofResult {
@@ -27,9 +29,11 @@ const MAIL_HELP = [
   ["Thunderbird", "Open the email → … → Save As → File. Keep the .eml extension."],
 ];
 
-export default function BookingProof({ flightKey, onVerified, demo, defaultPaid }: { flightKey?: FlightKey; onVerified: (r: ProofResult) => void; demo: boolean; defaultPaid?: number }) {
+export default function BookingProof({ flightKey, onVerified, demo, defaultPaid, liveOnly = false }: { flightKey?: FlightKey; onVerified: (r: ProofResult) => void; demo: boolean; defaultPaid?: number; liveOnly?: boolean }) {
   const [enclave, setEnclave] = useState<Enclave | null>(null);
-  const [mode, setMode] = useState<"eml" | "status" | "demo">("eml");
+  const [mode, setMode] = useState<"eml" | "link" | "status" | "demo">(liveOnly ? "link" : "eml");
+  const [link, setLink] = useState("");
+  const [demoLast, setDemoLast] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [ref, setRef] = useState("");
   const [last, setLast] = useState("");
@@ -40,11 +44,12 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid 
 
   useEffect(() => {
     getJson<Enclave>("/api/verifier").then(setEnclave).catch((e) => setErr(`Booking checks are unavailable: ${errText(e)}`));
+    setDemoLast(rememberedLastName());
   }, []);
 
   async function verifyEml(b64: string) {
     if (!enclave) throw new Error("verifier not loaded");
-    const sealed = await sealJson({ eml_base64: b64, flight_key: flightKey }, enclave.box_public_key);
+    const sealed = await sealJson({ eml_base64: b64, salt: await passengerSalt(), flight_key: flightKey }, enclave.box_public_key);
     return postJson<ProofResult>("/api/verify-eml", { sealed });
   }
 
@@ -61,9 +66,13 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid 
         let bin = "";
         for (const b of buf) bin += String.fromCharCode(b);
         r = await verifyEml(btoa(bin));
+      } else if (mode === "link") {
+        if (!enclave) throw new Error("verifier not loaded");
+        const sealed = await sealJson({ url: link.trim(), salt: await passengerSalt(), flight_key: flightKey }, enclave.box_public_key);
+        r = await postJson<ProofResult>("/api/verify-page", { sealed });
       } else if (mode === "status") {
         if (!enclave) throw new Error("verifier not loaded");
-        const sealed = await sealJson({ airline: flightKey?.airline ?? "KL", booking_ref: ref.trim().toUpperCase(), last_name: last.trim(), flight_key: flightKey }, enclave.box_public_key);
+        const sealed = await sealJson({ airline: flightKey?.airline ?? "KL", booking_ref: ref.trim().toUpperCase(), last_name: last.trim(), salt: await passengerSalt(), flight_key: flightKey }, enclave.box_public_key);
         r = await postJson<ProofResult>("/api/verify-status", { sealed });
       } else {
         if (!flightKey) throw new Error("Enter the flight first");
@@ -73,6 +82,7 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid 
           fare_label: flightKey.fare_class === "economy_light" ? "Economy Light" : flightKey.fare_class === "economy_standard" ? "Economy Standard" : "Economy Flex",
           paid_price_minor: cents,
           refundable,
+          last_name: demoLast || "Tester",
         });
         r = await verifyEml(fx.eml_base64);
       }
@@ -88,9 +98,12 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid 
     <form onSubmit={submit} className="card" aria-labelledby="proof-title">
       <h3 id="proof-title">Your booking confirmation</h3>
       <div className="btn-row" role="tablist" aria-label="How to prove your booking">
-        <button type="button" role="tab" aria-selected={mode === "eml"} className={`btn ${mode === "eml" ? "btn-primary" : ""}`} onClick={() => setMode("eml")}>Upload the email</button>
+        {!liveOnly ? (
+          <button type="button" role="tab" aria-selected={mode === "eml"} className={`btn ${mode === "eml" ? "btn-primary" : ""}`} onClick={() => setMode("eml")}>Upload the email</button>
+        ) : null}
+        <button type="button" role="tab" aria-selected={mode === "link"} className={`btn ${mode === "link" ? "btn-primary" : ""}`} onClick={() => setMode("link")}>Booking page link</button>
         <button type="button" role="tab" aria-selected={mode === "status"} className={`btn ${mode === "status" ? "btn-primary" : ""}`} onClick={() => setMode("status")}>Booking code and last name</button>
-        {demo ? (
+        {demo && !liveOnly ? (
           <button type="button" role="tab" aria-selected={mode === "demo"} className={`btn ${mode === "demo" ? "btn-primary" : ""}`} onClick={() => setMode("demo")}>Demo confirmation</button>
         ) : null}
       </div>
@@ -108,6 +121,19 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid 
               </div>
             ))}
           </dl>
+        </>
+      ) : null}
+      {liveOnly ? (
+        <p className="small muted">This is a refundable ticket, so we check the booking as it is now on the booking site. An email can&apos;t show a later cancellation.</p>
+      ) : null}
+      {mode === "link" ? (
+        <>
+          <label htmlFor="link">Link to your booking (the &quot;manage booking&quot; page)</label>
+          <input id="link" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…/manage?…" autoComplete="off" />
+          <p className="hint">
+            With the CapFare extension, open your booking page and press <strong>Verify with CapFare</strong> instead. Our checker loads the page directly from the booking site and reads the booking as it is now.
+            {enclave?.live_check_origins?.length ? ` Supported: ${enclave.live_check_origins.map((o) => new URL(o).host).join(", ")}.` : " No booking site supports this yet on this deployment."}
+          </p>
         </>
       ) : null}
       {mode === "status" ? (
@@ -130,6 +156,10 @@ export default function BookingProof({ flightKey, onVerified, demo, defaultPaid 
           <div>
             <label htmlFor="paid">Price you paid (€)</label>
             <input id="paid" inputMode="decimal" value={paid} onChange={(e) => setPaid(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="dl">Lead passenger last name</label>
+            <input id="dl" value={demoLast} onChange={(e) => setDemoLast(e.target.value)} autoComplete="family-name" />
           </div>
           <div>
             <label htmlFor="rf">Ticket type</label>

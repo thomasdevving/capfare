@@ -188,3 +188,24 @@ existing dusk theme.
 Validation: production web build and the four existing hero tests passed. Browser checks at
 1440 px and 390 px, in English and Dutch, confirmed image loading, no horizontal overflow,
 white content surfaces, no JavaScript errors and keyboard interaction with the price cap.
+
+### Revision 7 — navy/yellow, concise comparison and branded aircraft
+
+The landing palette now uses navy and yellow, retaining the white page and rounded hero
+transition. The header begins at the top of the page: its duplicate prototype strip and
+network badge are removed, with the prototype notice retained in the footer. The language
+toggle is removed and an LP providers link opens `/lp`, including on phones.
+
+The hero now describes both Price Cap and Drop Guarantee. Protection options use equal-width
+navy comparison columns with timing, short descriptions, deductible, maximum payout and one
+worked example each. Lower sections have shorter copy; policy conditions and FAQ answers
+remain available through native disclosure controls. Live vault figures retain real data and
+error states while removing repeated network labels from the landing view.
+
+New content enters focus with a short bounded blur animation using IntersectionObserver and
+the Web Animations API. Content is visible without JavaScript, effects run once, and reduced
+motion bypasses them. No animation dependency was added.
+
+The hero photograph has an AI-assisted CapFare livery edit: yellow winglet/fairings and a
+perspective-matched wing logo positioned below the hero copy. Asset provenance is recorded
+in `web/public/images/README.md`.

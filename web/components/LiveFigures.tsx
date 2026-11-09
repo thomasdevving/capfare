@@ -16,7 +16,7 @@ interface Lite {
 
 const KEY = "capfare.overview.lite";
 
-export default function LiveFigures({ locale }: { locale: Locale }) {
+export default function LiveFigures({ locale, compact = false }: { locale: Locale; compact?: boolean }) {
   const t = dict(locale).payout;
   const [data, setData] = useState<Lite | null>(null);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
@@ -57,21 +57,21 @@ export default function LiveFigures({ locale }: { locale: Locale }) {
           <caption className="visually-hidden">{t.title}</caption>
           <tbody>
             <tr>
-              <th scope="row">{t.rows.assets}<span className="net">{data!.network} · tUSDC</span></th>
+              <th scope="row">{t.rows.assets}{!compact && <span className="net">{data!.network} · tUSDC</span>}</th>
               <td className="v">{usdc(data!.totalAssets, 0)}</td>
             </tr>
             <tr>
-              <th scope="row">{t.rows.locked}<span className="net">{data!.network}</span></th>
+              <th scope="row">{t.rows.locked}{!compact && <span className="net">{data!.network}</span>}</th>
               <td className="v">{usdc(data!.locked, 0)}</td>
             </tr>
             <tr>
-              <th scope="row">{t.rows.active}<span className="net">{data!.network}</span></th>
+              <th scope="row">{t.rows.active}{!compact && <span className="net">{data!.network}</span>}</th>
               <td className="v">{data!.activePolicies}</td>
             </tr>
             <tr>
               <th scope="row">
                 {t.rows.solvency}
-                <span className="net">{t.solvencyDetail} · {data!.network}</span>
+                {!compact && <span className="net">{t.solvencyDetail} · {data!.network}</span>}
               </th>
               <td className={`v ${data!.invariantOk ? "pass" : "fail"}`}>{data!.invariantOk ? t.passed : t.failed}</td>
             </tr>

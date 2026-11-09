@@ -2,10 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Params } from "@capfare/shared";
 import { dict, type Locale } from "@/lib/i18n";
-import { duration } from "@/lib/format";
+import { duration, eur } from "@/lib/format";
 import HeroChart from "./HeroChart";
 import LiveFigures from "./LiveFigures";
 import { Footer, Header } from "./SiteChrome";
+import ScrollFocus from "./ScrollFocus";
 
 const HOW_SHOTS = ["/how/1-lock.png", "/how/2-book.png", "/how/4-verify.png"];
 
@@ -15,11 +16,11 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
   const delayText = params.cap.activation_delay_secs >= 3600 ? hours : 0;
   return (
     <div className="landing">
+      <ScrollFocus />
       <main id="main">
       <div className="landing-masthead">
-        <Image className="landing-flight" src="/images/hero-flight.webp" alt="" fill priority sizes="100vw" />
+        <Image className="landing-flight" src="/images/hero-flight-capfare.webp" alt="" fill priority sizes="100vw" />
       <div className="top-overlay">
-        <p className="testnet-pill" role="note">{t.footer.testnet}</p>
         <Header locale={locale} />
       </div>
         <div className="hero-band">
@@ -74,19 +75,27 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
         <section id="protection" className="wrap section" aria-labelledby="prot-title">
           <div className="glass panel">
           <h2 id="prot-title">{t.products.title}</h2>
-          <div className="cols">
-            <div className="product">
-              <h3>{t.products.cap.name}</h3>
+          <div className="protection-comparison">
+            <article className="product">
               <p className="when">{t.products.cap.when}</p>
+              <h3>{t.products.cap.name}</h3>
               <p>{t.products.cap.body}</p>
+              <dl className="product-terms">
+                <div><dt>{t.chart.deductible}</dt><dd>{eur(params.cap.deductible, locale)}</dd></div>
+                <div><dt>{t.chart.maxPayout}</dt><dd>{eur(params.cap.max_payout, locale)}</dd></div>
+              </dl>
               <p className="example num">{t.products.cap.example(params.cap.deductible, params.cap.max_payout)}</p>
-            </div>
-            <div className="product">
-              <h3>{t.products.drop.name}</h3>
+            </article>
+            <article className="product">
               <p className="when">{t.products.drop.when}</p>
+              <h3>{t.products.drop.name}</h3>
               <p>{t.products.drop.body}</p>
+              <dl className="product-terms">
+                <div><dt>{t.chart.deductible}</dt><dd>{eur(params.drop.deductible, locale)}</dd></div>
+                <div><dt>{t.chart.maxPayout}</dt><dd>{eur(params.drop.max_payout, locale)}</dd></div>
+              </dl>
               <p className="example num">{t.products.drop.example(params.drop.deductible, params.drop.max_payout)}</p>
-            </div>
+            </article>
           </div>
           <p className="small muted">{t.products.paramsNote(live)}</p>
           </div>
@@ -95,7 +104,7 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
           <div className="glass panel">
           <h2 id="payout-title">{t.payout.title}</h2>
           <p>{t.payout.body}</p>
-          <LiveFigures locale={locale} />
+          <LiveFigures locale={locale} compact />
           </div>
         </section>
         <div className="wrap pair">
@@ -110,7 +119,7 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
         <section className="section" aria-labelledby="privacy-title">
           <div className="glass panel">
           <h2 id="privacy-title">{t.privacy.title}</h2>
-          {t.privacy.body.map((p) => (
+          {t.privacy.body.filter(Boolean).map((p) => (
             <p key={p}>{p}</p>
           ))}
           <p className="small muted">{t.privacy.note}</p>
@@ -120,7 +129,8 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
         <div className="wrap pair">
         <section className="section" aria-labelledby="fine-title">
           <div className="glass panel">
-          <h2 id="fine-title">{t.fine.title}</h2>
+          <details className="policy-details">
+          <summary id="fine-title">{t.fine.title}</summary>
           <ul className="fine">
             {t.fine.items.map((it, i) => {
               const text =
@@ -132,6 +142,7 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
               return <li key={i}>{i === 1 && !delayText ? text.replace(/\d+ (hours?|uur)/, duration(params.cap.activation_delay_secs, locale)) : text}</li>;
             })}
           </ul>
+          </details>
           </div>
         </section>
         <section className="section" aria-labelledby="lp-title">
@@ -150,14 +161,14 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
         <section id="faq" className="wrap section" aria-labelledby="faq-title">
           <div className="glass panel">
           <h2 id="faq-title">{t.faq.title}</h2>
-          <dl className="faq">
+          <div className="faq">
             {t.faq.items.map((f) => (
-              <div key={f.q}>
-                <dt>{f.q}</dt>
-                <dd>{f.a}</dd>
-              </div>
+              <details key={f.q}>
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
+              </details>
             ))}
-          </dl>
+          </div>
           </div>
         </section>
       </div>

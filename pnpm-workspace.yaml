@@ -1,0 +1,9 @@
+packages:
+  - shared
+  - tee/common
+  - tee/price_oracle
+  - tee/booking_verifier
+  - relayer
+  - web
+  - extension
+  - scripts

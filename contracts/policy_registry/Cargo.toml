@@ -1,0 +1,16 @@
+[package]
+name = "capfare-policy-registry"
+description = "CapFare policy registry: premium engine, policies, claims, payouts, user credit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = { workspace = true }
+capfare-core = { workspace = true }
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }

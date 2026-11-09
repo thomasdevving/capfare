@@ -163,6 +163,8 @@ fn index_and_lowest_price() {
 fn nullifier_is_single_use_per_product() {
     let mut h = setup(true);
     let now = T0 + 4000;
+    ctx(accounts(3), now - 200);
+    assert_eq!(h.c.submit_snapshots(vec![snap(&h, 26_000, now - 200, "demo")]), vec!["ok"]);
     ctx(registry(), now);
     let a = att(&h, now - 100, now - 10, 4);
     h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600);
@@ -174,6 +176,19 @@ fn nullifier_is_single_use_per_product() {
         h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600);
     }));
     assert!(r.is_err(), "double claim must be rejected");
+}
+
+#[test]
+fn cap_claim_needs_an_index_price() {
+    let mut h = setup(true);
+    let now = T0 + 4000;
+    ctx(registry(), now);
+    let a = att(&h, now - 100, now - 10, 4);
+    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        h.c.consume_booking(a.clone(), Product::Cap, 3600, 6 * 3600);
+    }));
+    assert!(r.is_err());
+    assert!(!h.c.is_nullifier_used(Product::Cap, Hash32([4; 32])));
 }
 
 #[test]

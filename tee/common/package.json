@@ -1,0 +1,16 @@
+{
+  "name": "@capfare/tee-common",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "vitest run", "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "@capfare/shared": "workspace:*",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@phala/dstack-sdk": "0.5.8"
+  },
+  "devDependencies": { "typescript": "5.9.3", "vitest": "5.1.0", "@types/node": "^22" }
+}

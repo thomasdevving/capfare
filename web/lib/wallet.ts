@@ -9,7 +9,7 @@
  */
 import { Account, actions, encodeSignedDelegate, JsonRpcProvider, KeyPair, KeyPairSigner, teraToGas, type KeyPairString } from "near-api-js";
 import { baseEncode } from "near-api-js";
-import { passengerCommitment, SALT_MESSAGE, saltFromSignature } from "@capfare/shared";
+import { accountRequestMessage, bytesToHex, passengerCommitment, SALT_MESSAGE, saltFromSignature, type SignedAccountRequest } from "@capfare/shared";
 
 const STORE = "capfare.wallet.v1";
 
@@ -201,4 +201,14 @@ export function rememberLastName(n: string) {
   } catch {
     /* ignore */
   }
+}
+
+/** Signs a request with the account's own key (no transaction): used for alert settings. */
+export async function signAccountRequest<T>(scope: string, payload: T): Promise<SignedAccountRequest<T>> {
+  const s = load();
+  if (!s) throw new Error("Sign in first");
+  const key = await currentKey();
+  const ts = Math.floor(Date.now() / 1000);
+  const sig = key.sign(accountRequestMessage(scope, s.accountId, ts, payload)).signature;
+  return { account_id: s.accountId, public_key: key.getPublicKey().toString(), ts, payload, signature: bytesToHex(sig) };
 }

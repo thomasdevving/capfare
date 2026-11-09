@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import type { Policy } from "@capfare/shared";
+import { coverageLabel } from "@capfare/shared";
 import { gasless } from "@/lib/wallet";
 import { eur, usdc } from "@/lib/format";
 import { errText, getJson, Msg, postJson, SignInFirst, useSession } from "./ui";
@@ -146,7 +147,7 @@ export default function CreditClient({ registry, token, tokenIsMock }: { registr
             <thead><tr><th>Policy</th><th>Flight</th><th className="r">Payout</th></tr></thead>
             <tbody>
               {payouts.map((p) => (
-                <tr key={p.id}><td>#{p.id} {p.product === "cap" ? "Price Cap" : "Drop Guarantee"}</td><td>{p.flight_key.flight_number} {p.flight_key.departure_date}</td><td className="r num">{eur(p.payout_minor ?? 0)}</td></tr>
+                <tr key={p.id}><td>#{p.id} {p.product === "cap" ? "Price Cap" : "Drop Guarantee"}</td><td>{coverageLabel(p.coverage)}</td><td className="r num">{eur(p.payout_minor ?? 0)}</td></tr>
               ))}
             </tbody>
           </table>

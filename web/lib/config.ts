@@ -10,6 +10,7 @@ export interface ServerConfig {
   oracleUrl?: string;
   verifierUrl?: string;
   relayerUrl?: string;
+  notifierUrl?: string;
   rampAccountId?: string;
   rampPrivateKey?: string;
   demo: boolean;
@@ -35,6 +36,7 @@ export function serverConfig(): ServerConfig {
     oracleUrl: e.ORACLE_URL,
     verifierUrl: e.VERIFIER_URL,
     relayerUrl: e.RELAYER_URL,
+    notifierUrl: e.NOTIFIER_URL,
     rampAccountId: e.RAMP_ACCOUNT_ID,
     rampPrivateKey: e.RAMP_PRIVATE_KEY,
     demo: e.CAPFARE_DEMO === "true",

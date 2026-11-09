@@ -61,6 +61,9 @@ jobs:
       - run: pnpm --filter web exec playwright install --with-deps chromium
       - run: pnpm --filter web build
       - name: Start the local stack (sandbox + services + web) and run the scripted demo
+        env:
+          # Every e2e test signs up a fresh account from the same IP.
+          RELAYER_ACCOUNTS_PER_IP_DAY: "50"
         run: |
           (pnpm --filter @capfare/scripts stack -- --web > stack.log 2>&1 &)
           for i in $(seq 1 240); do grep -q "web: http" stack.log && break; sleep 2; done

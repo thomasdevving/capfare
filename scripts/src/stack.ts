@@ -1,7 +1,7 @@
 /**
  * Runs the complete CapFare stack locally on a NEAR sandbox:
  *   sandbox node -> price_oracle + booking_verifier (demo mode) -> deploy contracts and
- *   register enclave keys -> relayer -> (optionally) the web app.
+ *   register enclave keys -> relayer -> notifier (alerts) -> (optionally) the web app.
  * Writes deployments/sandbox.json and web/.env.local. Ctrl-C stops everything.
  *
  *   pnpm --filter @capfare/scripts stack            # services only
@@ -74,8 +74,18 @@ export async function stack(opts: { web: boolean; webPort: number }) {
     TOKEN_ID: d.token,
     ATTESTATION_ID: d.attestation,
     TOKEN_IS_MOCK: "true",
+    RELAYER_ACCOUNTS_PER_IP_DAY: process.env.RELAYER_ACCOUNTS_PER_IP_DAY ?? "5",
   });
   await waitFor("http://localhost:8083/health");
+  run("notifier", [tsx, "notifier/src/server.ts"], {
+    ...common,
+    PORT: "8084",
+    NEAR_RPC_URL: info.rpcUrl,
+    REGISTRY_ID: d.registry,
+    ATTESTATION_ID: d.attestation,
+    SITE_URL: site,
+  });
+  await waitFor("http://localhost:8084/health");
   // Scheduler for the oracle needs registry info: restart-free, the demo pushes snapshots on demand.
   const webEnv = {
     CAPFARE_NETWORK: "sandbox",
@@ -88,13 +98,14 @@ export async function stack(opts: { web: boolean; webPort: number }) {
     ORACLE_URL: "http://localhost:8081",
     VERIFIER_URL: "http://localhost:8082",
     RELAYER_URL: "http://localhost:8083",
+    NOTIFIER_URL: "http://localhost:8084",
     RAMP_ACCOUNT_ID: d.root,
     RAMP_PRIVATE_KEY: info.rootKey,
     CAPFARE_DEMO: "true",
     SITE_URL: site,
   };
   writeFileSync(join(ROOT_DIR, "web", ".env.local"), Object.entries(webEnv).map(([k, v]) => `${k}=${v}`).join("\n") + "\n");
-  console.log("stack ready: oracle :8081, verifier :8082, relayer :8083; web env written to web/.env.local");
+  console.log("stack ready: oracle :8081, verifier :8082, relayer :8083, notifier :8084; web env written to web/.env.local");
   if (opts.web) {
     run("web", ["pnpm", "--filter", "web", "exec", "next", "start", "-p", String(opts.webPort)], { ...webEnv, PORT: String(opts.webPort) });
     await waitFor(`http://localhost:${opts.webPort}/api/health`, 120);

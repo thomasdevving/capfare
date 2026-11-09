@@ -1,0 +1,28 @@
+{
+  "name": "@capfare/notifier",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@capfare/shared": "workspace:*",
+    "@capfare/tee-common": "workspace:*",
+    "nodemailer": "8.0.11",
+    "tsx": "4.23.15",
+    "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "@noble/curves": "2.4.0",
+    "@types/node": "^22",
+    "@types/nodemailer": "8.0.2",
+    "@types/web-push": "3.6.4",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

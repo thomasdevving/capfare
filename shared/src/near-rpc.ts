@@ -40,6 +40,16 @@ export class NearViewClient {
     return JSON.parse(new TextDecoder().decode(Uint8Array.from(r.result))) as T;
   }
 
+  /** True if `publicKey` ("ed25519:<base58>") is an access key of `accountId`. */
+  async hasAccessKey(accountId: string, publicKey: string): Promise<boolean> {
+    try {
+      await this.rpc("query", { request_type: "view_access_key", finality: "final", account_id: accountId, public_key: publicKey });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async blockTimeSecs(): Promise<number> {
     const r = await this.rpc<{ header: { timestamp_nanosec: string } }>("block", { finality: "final" });
     return Math.floor(Number(BigInt(r.header.timestamp_nanosec) / 1_000_000_000n));

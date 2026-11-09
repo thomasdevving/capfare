@@ -15,7 +15,12 @@
 .sk-hero h1 { color: #fff; font-size: clamp(26px, 4vw, 40px); }
 .sk-hero p { color: #d6e2f3; }
 .sk-wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
-.sk-search { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr 0.8fr auto; gap: 4px; background: #f5a623; padding: 4px; border-radius: 10px; margin-top: -36px; box-shadow: 0 8px 24px rgba(16, 33, 61, 0.15); }
+.sk-search { display: flex; flex-wrap: wrap; gap: 4px; background: #f5a623; padding: 4px; border-radius: 10px; margin-top: -36px; box-shadow: 0 8px 24px rgba(16, 33, 61, 0.15); }
+.sk-search > label { flex: 1 1 150px; }
+.sk-search > .sk-btn { flex: 0 0 auto; }
+.sk-trip { flex: 1 1 100%; display: flex; gap: 16px; border: 0; margin: 0; padding: 4px 8px 2px; }
+.sk-trip input { width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0; accent-color: #10213d; }
+.sk-trip label { white-space: nowrap; flex-direction: row !important; align-items: center; gap: 6px; background: transparent !important; color: #10213d !important; font-size: 14px !important; padding: 0 !important; }
 .sk-search label { display: flex; flex-direction: column; background: #fff; border-radius: 6px; padding: 6px 12px; margin: 0; font-size: 12px; font-weight: 600; color: #4a5568; }
 .sk-search select, .sk-search input { border: 0; padding: 2px 0; min-height: 30px; font: 600 16px system-ui, sans-serif; color: #10213d; background: transparent; }
 .sk-search select option { color: #111; }
@@ -24,7 +29,7 @@
 .sk-btn.ghost { background: #fff; color: #0f5fc2 !important; border: 1px solid #0f5fc2; }
 .sk-btn.danger { background: #c62828; }
 .sk-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
-@media (max-width: 860px) { .sk-search { grid-template-columns: 1fr 1fr; } .sk-search .sk-btn { grid-column: 1 / -1; } }
+@media (max-width: 860px) { .sk-search > label { flex-basis: 40%; } .sk-search > .sk-btn { flex-basis: 100%; } }
 .sk-section { padding: 28px 0; }
 .sk-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 @media (max-width: 860px) { .sk-cards { grid-template-columns: repeat(2, 1fr); } }

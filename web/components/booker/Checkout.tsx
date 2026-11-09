@@ -2,11 +2,14 @@
 import { useState } from "react";
 import { eur } from "./Shell";
 
-interface Props {
-  fn: string; from: string; to: string; date: string; pax: number; fare: string; fareName: string; price: number; refundable: boolean; label: string;
+export interface CheckoutLeg {
+  fn: string; from: string; to: string; date: string; fare: string; fareName: string; price: number; refundable: boolean; label: string;
 }
 
-export default function Checkout(p: Props) {
+export default function Checkout({ pax, legs }: { pax: number; legs: CheckoutLeg[] }) {
+  const p = { pax };
+  const perPerson = legs.reduce((a, l) => a + l.price, 0);
+  const [out, ret] = legs;
   const [pass, setPass] = useState(Array.from({ length: p.pax }, () => ({ title: "Mr", first: "", last: "" })));
   const [email, setEmail] = useState("");
   const [card, setCard] = useState("");
@@ -21,7 +24,11 @@ export default function Checkout(p: Props) {
       const r = await fetch("/api/booker/bookings", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fn: p.fn, from: p.from, to: p.to, date: p.date, fare: p.fare, passengers: pass, email, card }),
+        body: JSON.stringify({
+          fn: out.fn, from: out.from, to: out.to, date: out.date, fare: out.fare,
+          ...(ret ? { ret: { fn: ret.fn, origin: ret.from, destination: ret.to, date: ret.date, fare: ret.fare } } : {}),
+          passengers: pass, email, card,
+        }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
@@ -81,13 +88,18 @@ export default function Checkout(p: Props) {
       </div>
       <aside className="sk-card sk-summary">
         <h2 style={{ fontSize: 17 }}>Your trip</h2>
-        <p style={{ margin: "0 0 8px" }}>{p.label}</p>
-        <dl className="sk-facts" style={{ gridTemplateColumns: "1fr auto" }}>
-          <dt>Fare</dt><dd>{p.fareName}</dd>
-          <dt>Ticket</dt><dd>{p.refundable ? "Refundable" : "Non-refundable"}</dd>
-          <dt>{p.pax} × {eur(p.price)}</dt><dd>{eur(p.price * p.pax)}</dd>
-        </dl>
-        <button className="sk-btn" style={{ width: "100%" }} disabled={busy}>{busy ? "Booking…" : `Pay ${eur(p.price * p.pax)}`}</button>
+        {legs.map((l, i) => (
+          <div key={l.fn}>
+            {legs.length > 1 ? <h3 style={{ fontSize: 14, margin: "8px 0 2px" }}>{i === 0 ? "Outbound" : "Return"}</h3> : null}
+            <p style={{ margin: "0 0 8px" }}>{l.label}</p>
+            <dl className="sk-facts" style={{ gridTemplateColumns: "1fr auto" }}>
+              <dt>Fare</dt><dd>{l.fareName}</dd>
+              <dt>Ticket</dt><dd>{l.refundable ? "Refundable" : "Non-refundable"}</dd>
+              <dt>{p.pax} × {eur(l.price)}</dt><dd>{eur(l.price * p.pax)}</dd>
+            </dl>
+          </div>
+        ))}
+        <button className="sk-btn" style={{ width: "100%" }} disabled={busy}>{busy ? "Booking…" : `Pay ${eur(perPerson * p.pax)}`}</button>
       </aside>
     </form>
   );

@@ -1,0 +1,36 @@
+{
+  "_note": "DEMO DATA. Scripted price paths for the CapFare demo. Flights and prices are examples, not real fares. Snapshots are tagged source_id=demo.",
+  "paths": [
+    {
+      "label": "Price Cap demo: €170 now, rises to €260",
+      "flight_key": { "airline": "KL", "flight_number": "KL1695", "departure_date": "2027-06-14", "origin": "AMS", "destination": "BCN", "fare_class": "economy_light" },
+      "departure_ts": 1812950400,
+      "steps": [
+        { "price_minor": 17000, "available": true, "lower_classes_closed": 1 },
+        { "price_minor": 19900, "available": true, "lower_classes_closed": 2 },
+        { "price_minor": 23900, "available": true, "lower_classes_closed": 2 },
+        { "price_minor": 26000, "available": true, "lower_classes_closed": 3 }
+      ]
+    },
+    {
+      "label": "Drop Guarantee demo: booked at €220, falls to €195",
+      "flight_key": { "airline": "KL", "flight_number": "KL1695", "departure_date": "2027-06-14", "origin": "AMS", "destination": "BCN", "fare_class": "economy_standard" },
+      "departure_ts": 1812950400,
+      "steps": [
+        { "price_minor": 22000, "available": true, "lower_classes_closed": 1 },
+        { "price_minor": 21000, "available": true, "lower_classes_closed": 1 },
+        { "price_minor": 19500, "available": true, "lower_classes_closed": 0 },
+        { "price_minor": 20500, "available": true, "lower_classes_closed": 0 }
+      ]
+    },
+    {
+      "label": "Sold-out example",
+      "flight_key": { "airline": "HV", "flight_number": "HV5131", "departure_date": "2027-07-03", "origin": "RTM", "destination": "AGP", "fare_class": "economy_light" },
+      "departure_ts": 1814609700,
+      "steps": [
+        { "price_minor": 13900, "available": true, "lower_classes_closed": 3 },
+        { "price_minor": 0, "available": false, "lower_classes_closed": 4 }
+      ]
+    }
+  ]
+}

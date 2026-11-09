@@ -34,6 +34,7 @@ impl PolicyRegistry {
         snap: &SnapshotView,
         vault: &VaultFigures,
         max_premium: u64,
+        passenger_commitment: Hash32,
     ) -> Result<Policy, String> {
         let now = now_secs();
         let g = &self.params.global;
@@ -112,6 +113,7 @@ impl PolicyRegistry {
             premium_usdc: U128(premium_usdc),
             lock_usdc: U128(lock_usdc),
             route_week_key: rwk,
+            passenger_commitment,
             busy: true,
             note: None,
         })
@@ -151,7 +153,9 @@ impl PolicyRegistry {
     /// Buys a Price Cap on `flight_key` at `strike_minor` (EUR cents). The premium is
     /// computed on-chain from the latest oracle snapshot; `max_premium_minor`
     /// protects against the quote moving between display and purchase.
-    pub fn buy_cap(&mut self, flight_key: FlightKey, strike_minor: u64, max_premium_minor: u64) -> Promise {
+    /// `passenger_commitment` binds the policy to the lead passenger (computed in the app from
+    /// the last name and a salt derived from the user's key; the name never leaves the device).
+    pub fn buy_cap(&mut self, flight_key: FlightKey, strike_minor: u64, max_premium_minor: u64, passenger_commitment: Hash32) -> Promise {
         require!(!self.paused, "sales are paused");
         if let Err(e) = flight_key.validate() {
             env::panic_str(e);
@@ -168,18 +172,18 @@ impl PolicyRegistry {
             .then(
                 Self::ext(env::current_account_id())
                     .with_static_gas(GAS_PURCHASE_CB)
-                    .on_cap_inputs(owner, flight_key, strike_minor, max_premium_minor),
+                    .on_cap_inputs(owner, flight_key, strike_minor, max_premium_minor, passenger_commitment),
             )
     }
 
     #[private]
-    pub fn on_cap_inputs(&mut self, owner: AccountId, flight_key: FlightKey, strike_minor: u64, max_premium_minor: u64) -> Promise {
+    pub fn on_cap_inputs(&mut self, owner: AccountId, flight_key: FlightKey, strike_minor: u64, max_premium_minor: u64, passenger_commitment: Hash32) -> Promise {
         // Nothing has changed yet, so failing here simply aborts the purchase.
         let snap: Option<SnapshotView> = promise_json(0).unwrap_or_else(|e| env::panic_str(&e));
         let snap = snap.unwrap_or_else(|| env::panic_str("no oracle price for this flight yet"));
         let vault: VaultFigures = promise_json(1).unwrap_or_else(|e| env::panic_str(&e));
         let policy = self
-            .build_policy(owner, Product::Cap, flight_key, strike_minor, &snap, &vault, max_premium_minor)
+            .build_policy(owner, Product::Cap, flight_key, strike_minor, &snap, &vault, max_premium_minor, passenger_commitment)
             .unwrap_or_else(|e| env::panic_str(&e));
         self.fund(policy)
     }
@@ -233,7 +237,16 @@ impl PolicyRegistry {
             if snap.price_minor < paid {
                 return Err("the price has already dropped below what you paid; a Drop Guarantee is not available".into());
             }
-            let mut p = self.build_policy(owner.clone(), Product::Drop, flight_key, paid, &snap, &vault, max_premium_minor)?;
+            let mut p = self.build_policy(
+                owner.clone(),
+                Product::Drop,
+                flight_key,
+                paid,
+                &snap,
+                &vault,
+                max_premium_minor,
+                check.attestation.passenger_commitment,
+            )?;
             p.booking_nullifier = Some(nullifier);
             p.paid_price_minor = Some(paid);
             p.refundable = Some(check.attestation.refundable);

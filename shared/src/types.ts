@@ -2,7 +2,7 @@
 export type Product = "cap" | "drop";
 export type BookingStatus = "active" | "cancelled" | "unknown";
 export type Refundability = "non_refundable" | "refundable" | "unknown";
-export type VerificationMethod = "dkim_eml" | "status_check";
+export type VerificationMethod = "dkim_eml" | "status_check" | "tls_page";
 export type ServiceKind = "price_oracle" | "booking_verifier";
 
 export const FARE_CLASSES = ["economy_light", "economy_standard", "economy_flex", "premium_economy", "business"] as const;
@@ -53,6 +53,7 @@ export interface BookingAttestation {
   booked_at: number;
   verified_at: number;
   enclave_measurement: string;
+  passenger_commitment: string; // hex
 }
 
 export interface SignedBookingAttestation {
@@ -165,6 +166,7 @@ export interface Policy {
   premium_usdc: string;
   lock_usdc: string;
   route_week_key: string;
+  passenger_commitment: string;
   busy: boolean;
   note: string | null;
 }

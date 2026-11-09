@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { NearViewClient, type FlightKey } from "@capfare/shared";
 import { HttpError, loadKeys, logger, RateLimiter, serve } from "@capfare/tee-common";
 import { ScriptedPriceAdapter } from "./adapters/scripted.ts";
+import { DemoModelAdapter } from "./adapters/demo-model.ts";
 import { AIRLINE_SITES, AirlineSiteAdapter } from "./adapters/airline-page.ts";
 import type { PriceAdapter } from "./adapters/types.ts";
 import { Oracle, submitViaRelayer } from "./oracle.ts";
@@ -24,7 +25,7 @@ export async function main() {
   let scripted: ScriptedPriceAdapter | undefined;
   if (mode === "demo" || mode === "test") {
     scripted = ScriptedPriceAdapter.fromFile(process.env.DEMO_PATHS ?? fileURLToPath(new URL("../demo/price_paths.json", import.meta.url)));
-    adapters.push(scripted);
+    adapters.push(scripted, new DemoModelAdapter());
   }
   for (const site of AIRLINE_SITES) {
     const a = new AirlineSiteAdapter(site);

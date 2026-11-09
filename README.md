@@ -19,9 +19,9 @@ accounts with a passkey and prepaid credit.
 | Rust contracts: vault ×2, policy registry (premium engine, claims, credit), attestation registry; full collateralisation; epochs; nullifiers; timelocked params and keys; rollback of every failed transfer | Prices in demos come from a **scripted demo price source** (`source_id = "demo"`) | A live airline price adapter: airline terms forbid automated access (D12) |
 | Sandbox integration tests incl. forced failures; property tests on payouts, premiums and vault invariants | Booking confirmations in demos are **synthetic DKIM-signed emails** (selector `capfare-fixture`) | Live manage-booking status checks for real airlines (D14) |
 | Public premium formula identical in Rust, TS and Python (conformance vectors) | Services run with **development keys**, not inside a TDX enclave (dstack key provider is implemented, untested on hardware) | On-chain TDX quote verification (D11) |
-| Booking verifier: DKIM/ARC checks, forwarded/modified mail rejection, template parsing, nullifiers, PII-free signed attestations | Fiat top-ups and IBAN payouts: `MockRampProvider` (no money moves) | Licensed ramp provider integration (skeleton only) |
+| Booking verifier: DKIM/ARC checks, forwarded/modified mail rejection, template parsing, nullifiers, passenger binding, live booking-page checks, PII-free signed attestations | Fiat top-ups and IBAN payouts: `MockRampProvider` (no money moves) | Licensed ramp provider integration (skeleton only) |
 | NEP-366 relayer (gasless), named accounts, passkey (WebAuthn PRF) or device keys | Test USDC (mock NEP-141 token) on demo deployments | Optional lending-market yield on idle vault funds (D20) |
-| Web app (landing, quote, policies, claim, credit, LP dashboard, transparency), Chrome extension with a fixture-tested adapter | NEAR Intents: **dry-run quotes only** (Intents has no testnet) | Chrome Web Store listing |
+| Web app (landing, quote, policies, claim, verify, credit, LP dashboard, transparency), Chrome extension with a fixture-tested adapter, Skyline Travel (demo) mock booking site | NEAR Intents: **dry-run quotes only** (Intents has no testnet) | Chrome Web Store listing |
 | Backtest: synthetic fare paths, buyer models, calibration, parameter export | **All backtest results are synthetic** (docs/PRICING.md) | Backtest on real historical fares |
 
 Deployment: from the build environment the testnet faucet was not reachable, so the
@@ -75,7 +75,9 @@ a Rust toolchain.
 | `cd backtest && .venv/bin/python -m pytest -q` | Formula conformance and simulation tests. |
 | `./scripts/demo.sh` | The section-13 scenario end to end on a local sandbox; ends with `DEMO OK` and both vault invariants OK. |
 | `pnpm --filter @capfare/scripts stack -- --web` | Full stack: sandbox, contracts, oracle :8081, verifier :8082, relayer :8083, web on http://localhost:3000. |
-| `CAPFARE_APP_URL=http://localhost:3000 pnpm --filter @capfare/extension build`, then Chrome → Extensions → Developer mode → Load unpacked → `extension/build` | Open http://localhost:3000/demo-airline: the CapFare overlay offers a cap; the confirmation page offers a Drop Guarantee. |
+| Open http://localhost:3000/booker | **Skyline Travel (demo)**, a full mock booking site: search, filters, fares, passengers, test-card payment, confirmation, My trips (manage/cancel) and a demo inbox with DKIM-signed `.eml` files. |
+| `CAPFARE_APP_URL=http://localhost:3000 pnpm --filter @capfare/extension build`, then Chrome → Extensions → Developer mode → Load unpacked → `extension/build` | On Skyline search results the overlay offers a cap; on the confirmation page a Drop Guarantee; on the manage-booking page **Verify with CapFare**. |
+| Book a flight on Skyline, then press **Verify with CapFare** on its manage page (or paste the link at /verify) | CapFare's checker loads the page from the booking site and shows "Booking verified", then offers to claim your cap. A booking for a different lead passenger is refused. |
 | Web: **Account** → create with passkey (or device key) | A named account `name.sandbox` is created by the relayer; no gas needed. |
 | Web: **Credit** → "Top up €20 (simulated iDEAL)" | 21.60 tUSDC credit (rate 1.08 USDC/EUR). |
 | Web: **Check a flight** → KL1695, 2027-06-14, AMS→BCN, Economy Light → Get a quote → Lock | Premium from the public formula; policy active; max payout locked in cap_vault. |
@@ -93,7 +95,11 @@ a Rust toolchain.
 * **Drop Guarantee payout** = what you paid minus the lowest airline price seen during the
   7-day window, minus the deductible — never below zero, never above the maximum payout.
 * **Timing** — non-refundable tickets are paid when the claim is verified; refundable or
-  unknown tickets after a status check one day before departure (cancelled ⇒ no payout).
+  unknown tickets after a **live** check of the booking one day before departure (cancelled ⇒
+  no payout). The email alone is not enough for refundable tickets.
+* **How bookings are checked** — the original confirmation email (DKIM-signed) or a live
+  check: the user's own manage-booking link, which the checker loads straight from the
+  booking site. Either way the booking must belong to the lead passenger named when buying.
 * **Premium** = base price (table by ticket price and days to departure) × price-momentum
   multiplier × seat-availability multiplier × season multiplier × vault-utilisation multiplier
   × cap-distance adjustment, rounded up and kept within a min/max. Computed on-chain at

@@ -51,6 +51,8 @@ pub struct Policy {
     pub premium_usdc: U128,
     pub lock_usdc: U128,
     pub route_week_key: Hash32,
+    /// Commitment to the lead passenger (see BookingAttestation.passenger_commitment).
+    pub passenger_commitment: Hash32,
     pub busy: bool,
     pub note: Option<String>,
 }

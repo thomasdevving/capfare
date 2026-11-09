@@ -370,11 +370,16 @@ impl AttestationRegistry {
 
     /// Verifies a status attestation for an already-registered booking. Optionally
     /// returns the lowest price seen in [low_from, low_to] (drop settlement).
+    /// `require_live`: refundable/unknown fares must be re-checked on the booking site
+    /// (status check or TLS page), because an email cannot show a later cancellation.
+    #[allow(clippy::too_many_arguments)]
     pub fn check_status(
         &self,
         attestation: SignedBookingAttestation,
         nullifier: Hash32,
         flight_key_hash: Hash32,
+        passenger_commitment: Hash32,
+        require_live: bool,
         min_verified_at: u64,
         max_age_secs: u64,
         low_from: Option<u64>,
@@ -387,6 +392,11 @@ impl AttestationRegistry {
         require!(att.booking_ref_nullifier == nullifier, "attestation is for another booking");
         require!(att.flight_key_hash == flight_key_hash, "attestation is for another flight");
         require!(att.verified_at >= min_verified_at, "status check is too early");
+        require!(att.passenger_commitment == passenger_commitment, "booking is for another passenger");
+        require!(
+            !require_live || att.method.is_live(),
+            "refundable tickets need a live check of the booking (CapFare extension or booking code), not the email"
+        );
         let lowest_price = match (low_from, low_to) {
             (Some(f), Some(t)) => self.lowest_price_between(flight_key_hash, f, t),
             _ => None,

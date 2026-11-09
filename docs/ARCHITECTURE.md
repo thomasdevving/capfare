@@ -72,7 +72,8 @@ step of the sandbox lifecycle test.
 |---|---|
 | `tee/common` | Key providers (dstack/TDX in production, dev seed for demos), report binding `sha256(signing_pk ‖ box_pk)`, HTTP helper, rate limiting, PII-redacting logger. |
 | `tee/price_oracle` | Price adapters (scripted demo adapter; airline-site adapters exist but are disabled where terms forbid automation), signal computation, signing, scheduler for flights with active policies, submission via the relayer. |
-| `tee/booking_verifier` | Opens client-sealed inputs; DKIM/ARC checks on original `.eml`; airline template parsers; manage-booking status checks (demo airline backend); nullifier `H(salt ‖ airline ‖ ref)`; emits signed, PII-free attestations. |
+| `tee/booking_verifier` | Opens client-sealed inputs; DKIM/ARC checks on original `.eml`; airline/OTA template parsers; **live checks**: fetches the user's own manage-booking page from an allowlisted booking site and reads it (`tls_page`); manage-booking logins (demo airline); nullifier `H(salt ‖ airline ‖ ref)`; passenger commitment from the lead passenger and the user's salt; emits signed, PII-free attestations. |
+| `web/app/booker` | Skyline Travel (demo): mock booking site used by the demo, the extension and the tests. |
 | `relayer` | Wraps users' NEP-366 delegate actions (allowlisted contracts/methods, bounded deposits/gas, per-account and per-IP limits), creates named accounts, submits pre-verified snapshots. |
 | `web` | Next.js app: landing, quote/buy, policies, claim, credit (mock ramp, Intents dry quotes), LP dashboard, transparency, legal/FAQ. Cached read-only API routes. |
 | `extension` | Chrome MV3: site adapters extract flight + price hints and show an overlay; purchases hand off to the web app. |

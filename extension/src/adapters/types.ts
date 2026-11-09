@@ -10,7 +10,7 @@ export interface ExtractedFlight {
 }
 
 export interface PageExtraction {
-  kind: "search" | "details" | "confirmation";
+  kind: "search" | "details" | "confirmation" | "manage";
   flights: ExtractedFlight[];
 }
 

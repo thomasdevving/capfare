@@ -28,7 +28,8 @@ fn build() -> Value {
     let att = BookingAttestation {
         flight_key_hash: flight_key_hash(&keys[0]), paid_price_minor: 25_500, currency: "EUR".into(), fare_class: "economy_light".into(),
         refundable: Refundability::Unknown, booking_ref_nullifier: Hash32([0x11; 32]), status: BookingStatus::Active,
-        method: VerificationMethod::StatusCheck, booked_at: 1_810_000_100, verified_at: 1_810_000_200, enclave_measurement: Hash32([0xab; 32]),
+        method: VerificationMethod::TlsPage, booked_at: 1_810_000_100, verified_at: 1_810_000_200, enclave_measurement: Hash32([0xab; 32]),
+        passenger_commitment: Hash32([0x22; 32]),
     };
     let mut seed = 0x9e3779b97f4a7c15u64;
     let mut premiums = vec![];

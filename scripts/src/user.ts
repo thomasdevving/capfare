@@ -1,10 +1,22 @@
 /** A CapFare end user: named account created by the relayer, gasless via NEP-366. */
 import { Account, actions, encodeSignedDelegate, JsonRpcProvider, KeyPair, KeyPairSigner, teraToGas, type KeyPairString } from "near-api-js";
+import { passengerCommitment, SALT_MESSAGE, saltFromSignature } from "@capfare/shared";
 
 export class GaslessUser {
   readonly account: Account;
+  private kp: KeyPair;
   constructor(readonly accountId: string, key: KeyPairString, rpcUrl: string, private relayerUrl: string) {
     this.account = new Account(accountId, new JsonRpcProvider({ url: rpcUrl }), KeyPairSigner.fromSecretKey(key));
+    this.kp = KeyPair.fromString(key);
+  }
+
+  /** Same derivation as the web wallet: sha256(ed25519 signature over a fixed message). */
+  salt(): string {
+    return saltFromSignature(this.kp.sign(new TextEncoder().encode(SALT_MESSAGE + this.accountId)).signature);
+  }
+
+  commitment(lastName: string): string {
+    return passengerCommitment(lastName, this.salt());
   }
 
   static async create(name: string, rpcUrl: string, relayerUrl: string): Promise<GaslessUser> {

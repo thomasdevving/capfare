@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { flightKeyHash, verifySnapshot } from "@capfare/shared";
 import { devKeys } from "@capfare/tee-common";
-import { AirlineSiteAdapter, AIRLINE_SITES, availabilityBucket, dueFlights, momentumBucket, Oracle, parseFarePage, ScriptedPriceAdapter } from "../src/index.ts";
+import { AirlineSiteAdapter, AIRLINE_SITES, DemoModelAdapter, availabilityBucket, dueFlights, momentumBucket, Oracle, parseFarePage, ScriptedPriceAdapter } from "../src/index.ts";
 
 const paths = JSON.parse(readFileSync(new URL("../demo/price_paths.json", import.meta.url), "utf8")).paths;
 const cap = paths[0].flight_key;
@@ -78,5 +78,22 @@ describe("airline page parser (fixture HTML)", () => {
     expect(parseFarePage(html, "economy_light")).toEqual({ price_minor: 17000, available: true });
     expect(parseFarePage(html, "economy_flex")).toEqual({ price_minor: 0, available: false });
     expect(parseFarePage(html, "business")).toBeNull();
+  });
+});
+
+describe("demo model adapter", () => {
+  it("prices any flight in the demo schedule, scripted paths take precedence", async () => {
+    const scripted = new ScriptedPriceAdapter(paths);
+    const model = new DemoModelAdapter();
+    const oracle = new Oracle({ keys: devKeys("price_oracle"), adapters: [scripted, model], now: () => 1_800_000_000, fetchRatePerSec: 1000 });
+    const { listFlights } = await import("@capfare/shared");
+    const f = listFlights("AMS", "LIS", "2027-05-02")[0];
+    const k = { airline: f.airline, flight_number: f.flight_number, departure_date: f.departure_date, origin: "AMS", destination: "LIS", fare_class: "economy_standard" };
+    const s = await oracle.snapshot(k);
+    expect(s.snapshot.price_minor).toBe(f.fares[1].price_minor);
+    expect(s.snapshot.departure_ts).toBe(f.departure_ts);
+    expect(oracle.adapterFor(cap).id).toBe("demo");
+    expect(oracle.adapterFor(cap)).toBe(scripted);
+    expect(model.supports({ ...k, flight_number: "KL9999" })).toBe(false);
   });
 });

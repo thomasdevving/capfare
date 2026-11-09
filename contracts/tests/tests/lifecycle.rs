@@ -20,6 +20,7 @@ fn wasm(name: &str) -> Vec<u8> {
 }
 
 const M: [u8; 32] = [1u8; 32];
+const PC: [u8; 32] = [6u8; 32];
 const USDC: u128 = 1_000_000;
 
 struct Env {
@@ -218,6 +219,7 @@ impl Env {
             booked_at,
             verified_at,
             enclave_measurement: Hash32(M),
+            passenger_commitment: Hash32(PC),
         };
         let sig = self.verifier.sign(&attestation_digest(&a));
         SignedBookingAttestation { attestation: a, signer: Hash32(self.verifier.verifying_key().to_bytes()), signature: Sig64(sig.to_bytes()) }
@@ -248,7 +250,7 @@ impl Env {
     async fn buy_cap(&self, who: &AccountId, strike: u64) -> R<u64> {
         let stats: Value = self.view(&self.reg, "get_stats", json!({})).await?;
         let id = stats["policies_total"].as_u64().unwrap() + 1;
-        let r = self.call(who, &self.reg, "buy_cap", json!({"flight_key": flight(), "strike_minor": strike, "max_premium_minor": 5_000}), 0).await?;
+        let r = self.call(who, &self.reg, "buy_cap", json!({"flight_key": flight(), "strike_minor": strike, "max_premium_minor": 5_000, "passenger_commitment": Hash32(PC)}), 0).await?;
         assert!(r.is_success(), "buy_cap: {r:?}");
         Ok(id)
     }

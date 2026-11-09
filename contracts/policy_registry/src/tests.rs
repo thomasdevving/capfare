@@ -3,6 +3,7 @@ use near_sdk::test_utils::{accounts, VMContextBuilder};
 use near_sdk::{test_vm_config, testing_env, PromiseResult, RuntimeFeesConfig};
 
 const T0: u64 = 1_800_000_000;
+const PC: Hash32 = Hash32([6u8; 32]);
 
 fn ctx(pred: AccountId, now: u64, results: Vec<PromiseResult>) {
     let mut b = VMContextBuilder::new();
@@ -57,7 +58,7 @@ fn buy(r: &mut PolicyRegistry, now: u64) -> u64 {
         PromiseResult::Successful(snap_json(17_000, now - 60, true)),
         PromiseResult::Successful(vault_json(10_000_000_000)),
     ]);
-    let _ = r.on_cap_inputs(accounts(1), fk(), 18_000, 5_000);
+    let _ = r.on_cap_inputs(accounts(1), fk(), 18_000, 5_000, PC);
     r.next_policy_id - 1
 }
 
@@ -105,7 +106,7 @@ fn stale_quote_snapshot_rejected() {
         PromiseResult::Successful(snap_json(17_000, now - 4_000, true)),
         PromiseResult::Successful(vault_json(10_000_000_000)),
     ]);
-    let _ = r.on_cap_inputs(accounts(1), fk(), 18_000, 5_000);
+    let _ = r.on_cap_inputs(accounts(1), fk(), 18_000, 5_000, PC);
 }
 
 #[test]
@@ -117,7 +118,7 @@ fn strike_below_price_rejected() {
         PromiseResult::Successful(snap_json(17_000, now - 60, true)),
         PromiseResult::Successful(vault_json(10_000_000_000)),
     ]);
-    let _ = r.on_cap_inputs(accounts(1), fk(), 16_000, 5_000);
+    let _ = r.on_cap_inputs(accounts(1), fk(), 16_000, 5_000, PC);
 }
 
 #[test]
@@ -129,7 +130,7 @@ fn needs_full_collateral() {
         PromiseResult::Successful(snap_json(17_000, now - 60, true)),
         PromiseResult::Successful(vault_json(1_000_000)),
     ]);
-    let _ = r.on_cap_inputs(accounts(1), fk(), 18_000, 5_000);
+    let _ = r.on_cap_inputs(accounts(1), fk(), 18_000, 5_000, PC);
 }
 
 #[test]
@@ -191,7 +192,7 @@ fn check_json(paid: u64, index: u64, refundable: &str, verified_at: u64) -> Vec<
             "flight_key_hash": flight_key_hash(&fk()), "paid_price_minor": paid, "currency": "EUR",
             "fare_class": "economy_light", "refundable": refundable, "booking_ref_nullifier": Hash32([3; 32]),
             "status": "active", "method": "dkim_eml", "booked_at": verified_at - 100, "verified_at": verified_at,
-            "enclave_measurement": Hash32([1; 32])
+            "enclave_measurement": Hash32([1; 32]), "passenger_commitment": PC
         },
         "index_price": index, "latest": null
     })).unwrap()
@@ -334,4 +335,32 @@ fn drop_settlement_payout() {
     assert_eq!(p.payout_minor, Some(2_000));
     assert_eq!(p.lowest_price_seen_minor, Some(19_500));
     assert!(p.busy);
+}
+
+#[test]
+#[should_panic(expected = "booking is for another passenger")]
+fn claim_with_someone_elses_booking_rejected() {
+    let mut r = setup();
+    let id = buy(&mut r, T0 + 100);
+    activate(&mut r, id, T0 + 101);
+    let now = T0 + 100 + 2 * 86_400;
+    ctx(accounts(1), now, vec![]);
+    let mut a: BookingCheckView = serde_json::from_slice(&check_json(25_500, 26_000, "non_refundable", now - 10)).unwrap();
+    a.attestation.passenger_commitment = Hash32([9; 32]);
+    let _ = r.claim_cap(id, SignedBookingAttestation { attestation: a.attestation, signer: Hash32([0; 32]), signature: Sig64([0; 64]) });
+}
+
+#[test]
+fn drop_policy_takes_commitment_from_booking() {
+    let mut r = setup();
+    let now = T0 + 100;
+    let mut check: serde_json::Value = serde_json::from_slice(&check_json(22_000, 0, "non_refundable", now - 10)).unwrap();
+    check["latest"] = serde_json::from_slice(&snap_json(22_000, now - 60, true)).unwrap();
+    ctx("registry.test".parse().unwrap(), now, vec![
+        PromiseResult::Successful(serde_json::to_vec(&check).unwrap()),
+        PromiseResult::Successful(vault_json(10_000_000_000)),
+    ]);
+    let _ = r.on_drop_inputs(accounts(1), fk(), 5_000);
+    let p = r.get_policy(r.next_policy_id - 1).unwrap();
+    assert_eq!(p.passenger_commitment, PC);
 }

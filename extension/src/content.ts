@@ -1,5 +1,5 @@
 import { adapterFor, type ExtractedFlight } from "./adapters/index.ts";
-import { renderOverlay, type QuoteView } from "./overlay.ts";
+import { renderOverlay, renderVerifyOverlay, type QuoteView } from "./overlay.ts";
 
 function ask<T>(msg: unknown): Promise<T> {
   return new Promise((res) => chrome.runtime.sendMessage(msg, res));
@@ -11,6 +11,11 @@ async function run() {
   if (!adapter) return;
   const page = adapter.extract(document, url);
   if (!page || !page.flights.length) return;
+  if (page.kind === "manage") {
+    const { url: app } = await ask<{ url: string }>({ type: "app-url" });
+    document.documentElement.appendChild(renderVerifyOverlay(app, location.href));
+    return;
+  }
   // Search pages: the cheapest fare; details/confirmation: the selected one.
   const f: ExtractedFlight = page.flights.slice().sort((a, b) => (a.displayed_price_minor ?? 1e12) - (b.displayed_price_minor ?? 1e12))[0];
   const product = page.kind === "confirmation" ? "drop" : "cap";

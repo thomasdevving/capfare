@@ -57,6 +57,7 @@ impl PolicyRegistry {
         require!(a.flight_key_hash == p.flight_key_hash, "booking is for another flight");
         require!(a.fare_class == p.flight_key.fare_class, "booking is for another fare class");
         require!(a.status == BookingStatus::Active, "booking is not active");
+        require!(a.passenger_commitment == p.passenger_commitment, "booking is for another passenger");
         require!(
             a.booked_at >= p.active_from && a.booked_at <= p.expires_at,
             "booking was made outside the coverage window (activation delay or expiry)"
@@ -104,11 +105,12 @@ impl PolicyRegistry {
         let at = p.final_check_at.unwrap_or_else(|| env::panic_str("no final check pending"));
         let nullifier = p.booking_nullifier.expect("nullifier");
         p.busy = true;
-        let fkh = p.flight_key_hash;
+        let (fkh, pc) = (p.flight_key_hash, p.passenger_commitment);
         self.save(p);
+        // A final check exists only for refundable/unknown fares: it must be live.
         ext_att::ext(self.attestation.clone())
             .with_static_gas(GAS_VIEW)
-            .check_status(attestation, nullifier, fkh, at, self.params.global.max_attestation_age_secs, None, None)
+            .check_status(attestation, nullifier, fkh, pc, true, at, self.params.global.max_attestation_age_secs, None, None)
             .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CLAIM_CB).on_final_check(policy_id))
     }
 
@@ -162,11 +164,12 @@ impl PolicyRegistry {
         require!(now <= p.expires_at + self.params.global.claim_grace_secs, "settlement period is over");
         let nullifier = p.booking_nullifier.expect("nullifier");
         p.busy = true;
-        let (fkh, from, to) = (p.flight_key_hash, p.purchased_at, p.expires_at);
+        let (fkh, from, to, pc) = (p.flight_key_hash, p.purchased_at, p.expires_at, p.passenger_commitment);
+        let live = p.refundable != Some(Refundability::NonRefundable);
         self.save(p);
         ext_att::ext(self.attestation.clone())
             .with_static_gas(GAS_ATT_CONSUME)
-            .check_status(attestation, nullifier, fkh, to, self.params.global.max_attestation_age_secs, Some(from), Some(to))
+            .check_status(attestation, nullifier, fkh, pc, live, to, self.params.global.max_attestation_age_secs, Some(from), Some(to))
             .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CLAIM_CB).on_drop_settled(policy_id))
     }
 

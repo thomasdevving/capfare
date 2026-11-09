@@ -5,3 +5,5 @@ export * from "./premium.ts";
 export * from "./sign.ts";
 export * from "./box.ts";
 export * from "./near-rpc.ts";
+export * from "./passenger.ts";
+export * from "./demo-fares.ts";

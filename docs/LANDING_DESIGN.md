@@ -157,6 +157,13 @@ extension running on the demo booking site (`scripts/src/extension-shots.ts`), s
 the web app at the end of the end-to-end test (`web/e2e/flow.spec.ts`). The hero chart was
 made shorter so the card has room beneath it.
 
+### Revision 5 — screenshots from the mock booking site
+
+With Skyline Travel (demo) in place, the "How it works" screenshots are retaken on it: the cap
+offer on search results, the Drop Guarantee offer on the confirmation page, and **Verify with
+CapFare** on the manage-booking page (step 3 now shows the live check rather than the payout
+card). All three are captured from the built extension by `scripts/src/extension-shots.ts`.
+
 ### Current screenshots
 
 | Desktop (1280 px) | Mobile (390 px) |

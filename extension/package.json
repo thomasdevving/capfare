@@ -1,0 +1,20 @@
+{
+  "name": "@capfare/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.300",
+    "@types/node": "^22",
+    "esbuild": "0.25.0",
+    "linkedom": "0.18.15",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

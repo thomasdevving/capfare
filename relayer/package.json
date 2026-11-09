@@ -1,0 +1,25 @@
+{
+  "name": "@capfare/relayer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@capfare/shared": "workspace:*",
+    "@capfare/tee-common": "workspace:*",
+    "borsh": "2.0.0",
+    "near-api-js": "7.4.0",
+    "tsx": "4.23.15"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.1.0",
+    "@types/node": "^22",
+    "@noble/hashes": "2.4.0",
+    "@noble/curves": "2.4.0"
+  }
+}

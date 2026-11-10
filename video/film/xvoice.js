@@ -361,19 +361,7 @@ window.XVOICE = {
      "w": "price.",
      "t": 4.99
     }
-   ],
-   "cam": {
-    "kind": "pip",
-    "at": [
-     1660,
-     30,
-     210,
-     210
-    ],
-    "round": true,
-    "from": 0.5,
-    "to": 3.2
-   }
+   ]
   },
   {
    "id": "account",
@@ -843,19 +831,7 @@ window.XVOICE = {
      "w": "vault.",
      "t": 7.3
     }
-   ],
-   "cam": {
-    "kind": "pip",
-    "at": [
-     1660,
-     30,
-     210,
-     210
-    ],
-    "round": true,
-    "from": 0.5,
-    "to": 8.03
-   }
+   ]
   },
   {
    "id": "verify",
@@ -1429,16 +1405,16 @@ window.XVOICE = {
     }
    ],
    "cam": {
-    "kind": "pip",
+    "kind": "large",
     "at": [
-     1660,
-     30,
-     210,
-     210
+     1240,
+     300,
+     560,
+     560
     ],
-    "round": true,
-    "from": 0.5,
-    "to": 9.6
+    "round": false,
+    "from": 0,
+    "to": 2.66
    }
   },
   {

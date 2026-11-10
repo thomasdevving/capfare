@@ -85,6 +85,20 @@ body { font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif; -webkit
 #cam .lbl { left: 0; right: 0; text-align: center; font: 600 22px/1 "Outfit"; letter-spacing: 0.22em; }
 #cam .sub { left: 0; right: 0; text-align: center; font: 500 16px/1 "Atkinson Hyperlegible Next"; letter-spacing: 0.04em; color: rgba(217, 207, 255, 0.7); }
 #cam svg { left: 50%; transform: translateX(-50%); }
+#cam.live { border: 0; background: #000; box-shadow: 0 30px 70px rgba(3, 10, 30, 0.45), 0 0 0 3px rgba(255, 255, 255, 0.9); }
+#cam .camimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; visibility: hidden; }
+.nametag { left: 128px; top: 790px; z-index: 45; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55); opacity: 0; }
+.nametag b { display: block; font: 650 40px/1.05 "Outfit"; }
+.nametag span { display: block; font: 500 24px/1.3 "Atkinson Hyperlegible Next"; color: #ffe27a; }
+.panelhead { display: flex; align-items: center; gap: 14px; white-space: nowrap; }
+.panelhead .num { position: relative; flex: none; width: 42px; height: 42px; border-radius: 50%; background: var(--blue); color: #fff; font: 700 22px/42px "Outfit"; text-align: center; }
+.panelhead .lab { position: relative; }
+.vrow { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 0 9px; border-bottom: 1px solid var(--line); font: 500 27px/1.2 "Atkinson Hyperlegible Next"; }
+.vrow span { color: var(--muted); }
+.vrow b { font-weight: 700; color: var(--ink); }
+.browser .ext { right: 20px; top: 13px; width: 30px; height: 24px; }
+.browser .ext svg { position: absolute; left: 0; top: 1px; }
+.browser .ext .xb { position: absolute; right: -9px; bottom: -6px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: #FFD100; color: #0b2447; font: 800 10px/15px "Outfit"; text-align: center; opacity: 0; }
 
 /* Transitions */
 .band { top: -300px; height: 1680px; width: 2700px; z-index: 30; visibility: hidden; }
@@ -97,6 +111,7 @@ body { font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif; -webkit
 <script src="timeline.js"></script>
 <script src="evidence.js"></script>
 <script src="shots.js"></script>
+<script src="xvoice.js"></script>
 <script src="film.js"></script>
 </body>
 </html>

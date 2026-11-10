@@ -87,18 +87,19 @@ TOP_RIGHT = [1660, 30, 210, 210]
 PLAN = [
     ("intro", 12.9, [(0, 0, None), (1, 0, None)], ("large", [96, 120, 860, 760], False, 0, "end")),
     ("logo", 5.6, [(2, 0, None)], None),
-    ("find", 8.6, [(3, 0, None)], ("pip", TOP_RIGHT, True, "speech", 3.2)),
+    ("find", 8.6, [(3, 0, None)], None),
     ("account", 7.6, [(4, 0, None)], None),
     ("lock", 8.6, [(5, 0, None)], None),
     ("choices", 6.4, [(6, 0, None)], None),
     ("alerts", 7.8, [(7, 0, None)], None),
-    ("claim", 12.6, [(8, 0, None)], ("pip", TOP_RIGHT, True, "speech", "speech")),
+    ("claim", 12.6, [(8, 0, None)], None),
     ("verify", 10.2, [(9, 0, None)], None),
     ("drop", 7.2, [(10, 0, None)], None),
     ("flex", 7.9, [(11, 0, None)], None),
     ("travellers", 6.4, [(12, 0, None)], None),
     ("lp", 7.0, [(13, 0, None)], None),
-    ("near", 19.6, [(14, 0, None), (15, 0, None), (16, 0, None), (17, 0, 4)], ("pip", TOP_RIGHT, True, "speech", 9.6)),
+    # Webcam only while the screen has little on it yet: "So why NEAR?" before the first diagram.
+    ("near", 19.6, [(14, 0, None), (15, 0, None), (16, 0, None), (17, 0, 4)], ("large", [1240, 300, 560, 560], False, 0, "@Gasless")),
     ("status", 5.6, [(17, 5, 12)], ("large", [1240, 300, 560, 560], False, 0, "end")),
     ("end", 5.0, [(18, 0, None)], ("pip", [1560, 760, 260, 260], True, 0, "end")),
 ]
@@ -152,6 +153,8 @@ for sid, dur, parts, cam in PLAN:
     if cam:
         kind, rect, rnd, a, z = cam
         a = at if a == "speech" else a
+        if isinstance(z, str) and z.startswith("@"):
+            z = next(rel(s) for w, s, e in spoken if w.startswith(z[1:])) + 0.35
         z = dur if z == "end" else (end_voice if z == "speech" else z)
         b["cam"] = {"kind": kind, "at": rect, "round": rnd, "from": a, "to": z}
     beats.append(b)

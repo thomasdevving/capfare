@@ -26,7 +26,7 @@
       x: { dur: 5 },
     },
     {
-      id: "find", dur: 9, bg: "light", kicker: "01 · Find a flight", title: "It recognises the flight you're looking at",
+      id: "find", dur: 9, bg: "light", kicker: "01 · Chrome extension", title: "The CapFare Chrome extension recognises your flight",
       vo: [{ t: "The CapFare extension recognises the flight on any booking site. Here, on our demo site, it offers to lock a maximum price." }],
       x: { dur: 7, vo: [{ t: "The extension recognises the flight on any booking site and offers to lock a maximum price." }] },
     },

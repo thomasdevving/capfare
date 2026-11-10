@@ -14,9 +14,19 @@
 (() => {
   const QS = new URLSearchParams(location.search);
   const CUT = QS.get("cut") || "full";
-  const { beats, duration } = TIMELINE.cut(CUT);
+  let { beats, duration } = TIMELINE.cut(CUT);
+  // The X cut follows Thomas's recorded voice (video/voice/plan.py -> xvoice.js): scene lengths,
+  // caption lines with word timing, and where the webcam shows.
+  const XV = CUT === "x" && window.XVOICE ? window.XVOICE : null;
+  if (XV) {
+    const byId = Object.fromEntries(beats.map((b) => [b.id, b]));
+    beats = XV.beats.map((v) => ({ ...byId[v.id], start: v.start, dur: v.dur, voice: v.voice, xcaps: v.captions, xwords: v.words, cam: v.cam ? { ...v.cam, src: v.voice.src, voiceIn: v.voice.in, voiceOut: v.voice.out, voiceAt: v.voice.at } : null }));
+    duration = XV.duration;
+  }
+  const capsOf = (b) => b.xcaps ?? TIMELINE.captions(b);
   const W = 1920, H = 1080;
   const HOST = "capfare-production.up.railway.app";
+  const HOSTS = { app: HOST, skyline: "skyline-travel-demo.up.railway.app" };
   const C = { navy: "#0b2447", ink: "#0b1024", yellow: "#FFD100", onYellow: "#14132e", blue: "#0f5fc2", link: "#173f73", light: "#f2f6fb", light2: "#e3edfc", line: "#dfe7f0", lav: "#d9cfff", green: "#246c42", muted: "#50627a" };
   const TS = 1;      // pace factor for entrances (1 = as designed)
   const TR = 1.15;   // transition length (s)
@@ -100,6 +110,10 @@
   const cueB = (beat, lt, kind, gain = 1) => cue(beat.start + lt / (beat.k ?? 1), kind, gain);
   /** When a word of the voice-over is spoken (captions spread words evenly). */
   function wordTime(beat, re) {
+    if (beat.xwords) {
+      const w = beat.xwords.find((x) => re.test(x.w) || re.test(x.w.replace(/[.,?!:;]+$/, "")));
+      return w ? w.t : null;
+    }
     for (const c of TIMELINE.captions(beat)) {
       const ws = c.text.split(" ");
       const i = ws.findIndex((w) => re.test(w));
@@ -193,6 +207,9 @@
       const bar = el("div", "bar", this.root);
       [22, 42, 62].forEach((l) => (at(el("div", "dot", bar), l, 19).style.left = l + "px"));
       this.url = el("div", "url", bar);
+      // The CapFare extension, pinned in the toolbar; its badge shows a check when it has an offer.
+      this.ext = el("div", "ext", bar, `<svg width="27" height="21" viewBox="0 0 104 80"><g fill="#0b2447" stroke="#0b2447" stroke-width="9" stroke-linejoin="round"><path d="M9 74 L41 16 L60 16 L28 74 Z"/><path d="M45 74 L67 34 L86 34 L64 74 Z"/></g><g transform="translate(70 -2) rotate(45 15 15) scale(1.25)" fill="#0b2447"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg><span class="xb">✓</span>`);
+      this.xb = this.ext.querySelector(".xb");
       this.view = el("div", "view", this.root);
       this.vw = w;
       this.vh = h - 50;
@@ -201,8 +218,9 @@
       this.rings = [0, 1].map(() => el("div", "ring", this.view));
       this.x = x; this.y = y; this.w = w; this.h = h;
     }
-    setUrl(path) {
-      const html = `<b>${HOST}</b>${path}`;
+    setUrl(path, host = "app", badge = false) {
+      O(this.xb, badge ? 1 : 0);
+      const html = `<b>${HOSTS[host] ?? host}</b>${path}`;
       if (this.url.__h !== html) { this.url.innerHTML = html; this.url.__h = html; }
     }
     /** layers: [{src, a, crop:{x,y,w}}] bottom to top. */
@@ -335,7 +353,7 @@
           layers = [{ src: frameSrc(pv.f, realOf(pv.f, ps.c)), a: 1, crop: ps.crop }, ...layers.map((L) => ({ ...L, a: L.a * mix }))];
         }
         browser.draw(layers);
-        browser.setUrl(o.url ?? "");
+        browser.setUrl(o.url ?? "", o.host, !!o.badge && lt - o.at > (o.badgeAt ?? 0));
         browser.ringsAt(o.clicks.filter((k) => lt >= k.lt && lt - k.lt < 0.75).map((k) => ({ x: k.x, y: k.y, p: (lt - k.lt) / 0.75 })), st.crop);
       },
     };
@@ -494,7 +512,8 @@
   const COLW = 590;
 
   /** Footage plan per beat (filled from the recorded takes; see SHOTS below). */
-  const SHOTS = window.SHOTS ?? {};
+  const SHOTS = { ...(window.SHOTS ?? {}), ...(CUT === "x" ? window.SHOTS_X ?? {} : {}) };
+  const shotList = (id) => { const s = SHOTS[id]; return !s ? [] : Array.isArray(s) ? s : Object.values(s).flat().filter((x) => x && x.take); };
   // Numbers shown in graphics, as they appear in the recordings (shots.js).
   const F = { cap: 180, risen: 260, booked: 260, payout: 75, deductible: 5, maxPayout: 150, dropBooked: 0, dropNow: 0, dropPaid: 0, dropDeductible: 3, ...(window.FACTS ?? {}) };
 
@@ -519,20 +538,23 @@
     const booked = at(el("div", "lab txt", L, "You book at €260"), x0 + 430, 486);
     const next = at(el("div", "lab dim txt", L, "Next morning: €215"), x0 + 520, 680);
     const ln2t = 4.9;
-    cueB(beat, 1.0, "land");
-    cueB(beat, 2.6, "land");
+    cueB(beat, (wordTime(beat, /^170$/) ?? 1.6) - 0.6, "land");
+    cueB(beat, (wordTime(beat, /^260$/) ?? 3.1) - 0.5, "land");
     cueB(beat, ln2t + 0.2, "tick");
+    // With a recorded voice, each figure lands on its word.
+    const w170 = wordTime(beat, /^170$/), w260 = wordTime(beat, /^260$/), wBook = wordTime(beat, /^book,$/), wCheap = wordTime(beat, /^cheaper\.$/);
+    const T1 = w170 != null ? w170 - 0.6 : 0.7, T2 = w260 != null ? w260 - 0.5 : 2.3, TB = wBook != null ? wBook - 0.3 : 4.3, TN = wCheap != null ? wCheap - 0.9 : 6.1;
     return (lt) => {
-      rise(lab1, lt, 0.7); rise(p1, lt, 0.8, 0.8, 40);
-      rise(lab2, lt, 2.3); rise(p2, lt, 2.4, 0.8, 40);
-      const q = ease(seg(lt, 1.0, 3.2));
+      rise(lab1, lt, T1); rise(p1, lt, T1 + 0.1, 0.8, 40);
+      rise(lab2, lt, T2 - 0.1); rise(p2, lt, T2, 0.8, 40);
+      const q = ease(seg(lt, T1 + 0.3, T2 + 0.8));
       ln.render(q);
       const pt = ln.point(q);
       A(dot, "cx", r3(pt.x)); A(dot, "cy", r3(pt.y));
-      O(dot, seg(lt, 1.0, 1.2));
-      rise(booked, lt, ln2t - 0.6);
-      ln2.render(ease(seg(lt, ln2t, ln2t + 1.6)));
-      rise(next, lt, ln2t + 1.2);
+      O(dot, seg(lt, T1 + 0.3, T1 + 0.5));
+      rise(booked, lt, TB);
+      ln2.render(ease(seg(lt, TB + 0.4, TN + 0.6)));
+      rise(next, lt, TN);
       // gentle settle of the whole graphic
       T(s, `translateY(${r3(Math.sin(lt * 0.6) * 3)}px)`);
     };
@@ -558,7 +580,7 @@
       pl.setAttribute("transform", `translate(${r3((1 - pp) * -60)} ${r3((1 - pp) * 50)})`); O(pl, seg(lt, 0.55, 0.8));
       word.render(lt, 0.6, 0.0, 0.8);
       line.render(lt, 1.3, 0.035, 0.6);
-      rise(near, lt, 2.3);
+      rise(near, lt, (wordTime(beat, /^NEAR\.$/) ?? 2.6) - 0.3);
     };
   };
 
@@ -568,7 +590,7 @@
       const head = Headline(L, beat);
       const motif = Motif(L, side === "right" ? "left" : "right");
       const br = new Browser(L, ...BR[side]);
-      const shots = SHOTS[beat.id] ?? [];
+      const shots = Array.isArray(SHOTS[beat.id]) ? SHOTS[beat.id] : [];
       const track = shots.length ? Track(beat, br, 0.55, shots) : null;
       const gx = COL[side];
       const gfx = graphic ? graphic(L, beat, gx, 268, track) : () => {};
@@ -722,8 +744,7 @@
     };
   });
 
-  // 07 Book and claim: timeline of a claim with the 24-hour live check.
-  B.claim = feature("right", (L, beat, x, y) => {
+  function old07() { return feature("right", (L, beat, x, y) => {
     const steps = window.CLAIM_STEPS ?? [
       ["Booked anywhere", "Skyline Travel, our demo site", 1.2],
       ["Claim with the original email", "checked, then held", 3.6],
@@ -746,29 +767,85 @@
       prog.render(ease(seg(lt, items[0].a, last)));
       items.forEach((o) => { o.b.render(seg(lt, S(o.a), S(o.a) + 0.9)); rise(o.tx, lt, o.a + 0.1, 0.6, 14); });
     };
-  });
+  }); }
 
-  // 08 Verification: only flight, fare and price reach the chain; refusals.
-  B.verify = feature("left", (L, beat, x, y) => {
-    const ic = at(el("div", "", L, ICON.mail(C.lav, 64)), x, y + 6);
-    const il = at(el("div", "lab txt", L, "Booking email or page"), x + 84, y + 22);
-    const en = at(el("div", "card", L), x, y + 92, COLW - 20, 96);
-    at(el("div", "", en, ICON.chip(C.yellow, 52)), 24, 22);
-    at(el("div", "", en, `<div class="lab" style="font-weight:600">Booking verifier</div><div class="lab-sm dim">built for a hardware enclave</div>`), 96, 18);
-    const out = at(el("div", "card solid", L), x, y + 214, COLW - 20, 92);
-    at(el("div", "", out, `<div class="lab" style="font-weight:600">KL1695 · Economy Light · €${F.booked}</div><div class="lab-sm" style="color:${C.muted}">all that reaches the chain</div>`), 28, 16);
-    const rows = Rows(L, beat.bg, x, y + 344, [
-      { kind: "x", text: "Edited email", at: 5.6 },
-      { kind: "x", text: "Forwarded email", at: 6.3 },
-      { kind: "x", text: "Booking already used", at: 7.0 },
-      { kind: "x", text: "Someone else's booking", at: 7.7 },
-    ], { gap: 68, size: 40, font: 29 });
-    rows.cues(beat);
-    cueB(beat, 3.0, "land");
+  // 07 Book and claim. With a side-by-side plan (shots.js: { left, right }): the email claim
+  // (approved, payout held) next to the live check a day later (paid), under one timeline.
+  const claimTimeline = old07();
+  B.claim = (L, beat) => {
+    const plan = SHOTS.claim;
+    if (!plan || Array.isArray(plan)) return claimTimeline(L, beat);
+    const head = Headline(L, beat);
+    const motif = Motif(L, "left");
+    const tw = (re, d) => wordTime(beat, re) ?? d;
+    const PW = 852, PH = 470, PY = 318;
+    const panes = [
+      { x: 96, n: "1", t: "Claim with the original email", sub: `approved, €${F.payout}, payout held`, shots: plan.left, at: 0.55 },
+      { x: 972, n: "2", t: "A day later: live check of the booking", sub: "still booked, so it's paid from the vault", shots: plan.right, at: plan.rightAt ?? 6.2 },
+    ].map((o) => {
+      const lab = at(el("div", "", L, `<span class="num">${o.n}</span><span class="lab" style="font-weight:650">${o.t}</span>`), o.x, PY - 64);
+      lab.className = "panelhead";
+      const sub = at(el("div", "lab-sm dim txt", L, o.sub), o.x + 56, PY - 26);
+      const br = new Browser(L, o.x, PY, PW, PH);
+      const track = Track(beat, br, o.at, o.shots);
+      return { ...o, lab, sub, br, track };
+    });
+    // Timeline under the panels: booked -> claimed (held) -> free-cancellation day -> live check -> paid.
+    const TY = 852;
+    const tl = svgBox(L, 96, TY, 1728, 60);
+    sv("line", tl, { x1: 10, y1: 20, x2: 1718, y2: 20, stroke: C.line, "stroke-width": 4, "stroke-linecap": "round" });
+    const prog = DrawLine(tl, "M10 20 L1718 20", { stroke: C.blue, "stroke-width": 4 });
+    const stops = [
+      [10, "Booked", 0.6], [430, "Claimed: approved, held", tw(/^Claim$/, 0.7) + 0.6],
+      [870, "Free cancellation: 24 h", tw(/^waits$/, 3) + 0.3], [1290, "Live check", tw(/^live$/, 4) + 0.2], [1718, `Paid €${F.payout}`, tw(/^paid$/, 7) + 0.1],
+    ].map(([x, t, a], i) => {
+      const d = sv("circle", tl, { cx: x, cy: 20, r: 9, fill: i === 4 ? C.green : C.blue });
+      const lab = at(el("div", "lab-sm txt", L, t), 96 + x + (i === 4 ? -110 : i === 0 ? 0 : -60), TY + 34);
+      lab.style.fontWeight = "600";
+      return { d, lab, x, a, i };
+    });
+    stops.forEach((o) => cueB(beat, o.a, o.i === 4 ? "check" : "tick", 0.7));
     return (lt) => {
-      pop(ic, lt, 0.9); rise(il, lt, 1.0);
-      rise(en, lt, 1.8, 0.7, 20);
-      rise(out, lt, 2.9, 0.7, 20);
+      head(lt);
+      motif(lt);
+      panes.forEach((o, i) => {
+        const p = out3(seg(lt, 0.35 + i * 0.25, 1.25 + i * 0.25));
+        [o.lab, o.sub, o.br.root].forEach((e) => { O(e, p); T(e, `translateY(${r3((1 - p) * 24)}px)`); });
+        // The pane that is playing is at full strength; the other rests a little dimmer.
+        const active = i === 0 ? lt < o.at + 0.2 || lt < panes[1].at : lt >= o.at - 0.2;
+        O(o.br.root, p * (active ? 1 : 0.62));
+        o.track.render(Math.max(lt, o.at));
+      });
+      const last = stops[stops.length - 1].a;
+      prog.render(ease(seg(lt, 0.6, last)));
+      stops.forEach((o) => {
+        const q = seg(lt, o.a - 0.1, o.a + 0.5);
+        A(o.d, "r", r3(4 + 5 * back(q)));
+        O(o.d, q > 0 ? 1 : 0);
+        rise(o.lab, lt, o.a - 0.05, 0.5, 10);
+      });
+    };
+  };
+
+  // 08 Verification: the booking checked live from the booking site; only flight, fare and price
+  // go on-chain; edited, reused and other people's bookings are refused.
+  B.verify = feature("left", (L, beat, x, y) => {
+    const tw = (re, d) => wordTime(beat, re) ?? d;
+    const ic = at(el("div", "", L, ICON.chip(C.yellow, 56)), x, y + 4);
+    const il = at(el("div", "", L, `<div class="lab" style="font-weight:600">Booking checker</div><div class="lab-sm dim">reads the booking page itself</div>`), x + 78, y + 6);
+    const card = at(el("div", "card solid", L), x, y + 96, COLW - 20, 216);
+    card.innerHTML = `<div style="position:absolute;left:28px;top:20px;right:24px"><div class="lab-sm" style="color:${C.muted}">On-chain, nothing else</div>
+      <div class="vrow"><span>Flight</span><b>KL1695 AMS → BCN</b></div><div class="vrow"><span>Fare</span><b>Economy Light</b></div><div class="vrow"><span>Price</span><b>€${F.verified ?? 170}</b></div></div>`;
+    const rows = Rows(L, beat.bg, x, y + 350, [
+      { kind: "x", text: "Edited email", at: tw(/^Edited$/, 4.7) },
+      { kind: "x", text: "Booking already used", at: tw(/^reused$/, 5.6) },
+      { kind: "x", text: "Someone else's booking", at: tw(/^other$/, 6.6) },
+    ], { gap: 70, size: 40, font: 30 });
+    rows.cues(beat);
+    cueB(beat, tw(/^Only$/, 0.7) + 0.4, "land");
+    return (lt) => {
+      pop(ic, lt, 0.8); rise(il, lt, 0.9);
+      rise(card, lt, tw(/^Only$/, 0.7) + 0.3, 0.7, 20);
       rows.render(lt);
     };
   });
@@ -952,7 +1029,7 @@
         const vis = lt >= a - 0.1 && lt < b + 0.5;
         V(s.root, vis);
         if (!vis) return;
-        const fade = 1 - out3(seg(lt, b - 0.1, b + 0.45));
+        const fade = 1 - out3(seg(lt, b - 0.32, b + 0.06));
         O(s.root, fade);
         T(s.root, `translateY(${r3((1 - fade) * -24)}px)`);
         s.render(lt - a);
@@ -963,7 +1040,8 @@
   function nearSections(L, beat) {
     const E = window.EVIDENCE ?? {};
     const out = [];
-    const KEYS = [[/^Why$/], [/^Accounts$/, /^readable$/], [/^Premiums,$/], [/^Every$/, /^async$/], [/^Price$/, /^ed25519$/], [/^And$/, /^All$/]];
+    // In a recorded voice, NEP-141 is said right before the async calls: its receipts section covers both.
+    const KEYS = [[/^Gasless$/, /^why$/i], [/^Accounts$/, /^readable$/], [/^Premiums,$/], [/^Every$/, /^NEP-141$/, /^async$/], [/^Price$/, /^ed25519$/], [/^And$/, /^All$/]];
     const starts = KEYS.map((ks) => { for (const re of ks) { const t = wordTime(beat, re); if (t != null) return Math.max(0.2, t - 0.3); } return null; });
     let k = -1;
     const sec = (fn) => {
@@ -1119,7 +1197,6 @@
     const rows = Rows(L, beat.bg, 96, 530, [
       { kind: "check", text: "Live contracts on NEAR testnet", at: tw(/^live$/, tk + 1) },
       { kind: "info", text: "Demo prices, labelled as demo", at: tw(/^demo$/, tk + 2) },
-      { kind: "info", text: "Services not in an enclave yet", sub: "they sign with development keys", at: tw(/^services$/, tk + 3) },
     ], { gap: 96, size: 46, font: 34 });
     rows.cues(beat);
     return (lt) => { motif(lt); q.render(lt, 0.4, 0.06, 0.7); rise(k, lt, tk - 0.4); rows.render(lt); };
@@ -1151,6 +1228,9 @@
   camEl.id = "cam";
   camEl.innerHTML = `<svg class="ic" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="22" r="11" fill="none" stroke="#d9cfff" stroke-width="3.5"/><path d="M12 56c2-11 10-17 20-17s18 6 20 17" fill="none" stroke="#d9cfff" stroke-width="3.5" stroke-linecap="round"/></svg><div class="lbl">WEBCAM</div><div class="sub">placeholder</div>`;
   const camIc = camEl.querySelector("svg"), camLbl = camEl.querySelector(".lbl"), camSub = camEl.querySelector(".sub");
+  // The real webcam (X cut): frames extracted at 30 fps by video/voice/plan.py.
+  const camImg = el("img", "camimg", camEl);
+  const nameTag = el("div", "nametag", stage, `<b>Thomas</b><span>built CapFare</span>`);
   const capEl = el("div", "", stage);
   capEl.id = "cap";
   const band1 = el("div", "band", stage), band2 = el("div", "band", stage);
@@ -1165,13 +1245,13 @@
 
   async function build() {
     const takes = new Set();
-    for (const b of beats) for (const s of SHOTS[b.id] ?? []) takes.add(s.take);
+    for (const b of beats) for (const s of shotList(b.id)) takes.add(s.take);
     await Promise.all([...takes].map(loadTake));
     for (const b of beats) {
       const L = el("section", `beat ${b.bg}`, stage);
       L.dataset.id = b.id;
       const full = TIMELINE.BEATS.find((x) => x.id === b.id).dur;
-      b.k = ["near", "status"].includes(b.id) ? 1 : full / b.dur;
+      b.k = XV || ["near", "status"].includes(b.id) ? 1 : full / b.dur;
       const r0 = (B[b.id] ?? (() => () => {}))(L, b);
       const render = ["intro", "logo", "end"].includes(b.id) ? (lt) => r0(lt * b.k) : r0;
       const tr = b === beats[0] ? "fade" : TRANS[b.id] ?? "wipe";
@@ -1184,7 +1264,7 @@
   // Caption chunks with absolute times.
   const VO = [];
   for (const b of beats) {
-    for (const c of TIMELINE.captions(b)) VO.push({ beat: b.id, start: r3(b.start + c.start), end: r3(b.start + c.end), text: c.text, cam: c.cam });
+    for (const c of capsOf(b)) VO.push({ beat: b.id, start: r3(b.start + c.start), end: r3(b.start + c.end), text: c.text, cam: c.cam });
   }
 
   function camAt(t) {
@@ -1194,6 +1274,16 @@
     for (const bb of [beats[i - 1], b, beats[i + 1]]) {
       if (!bb?.cam) continue;
       const lt = t - bb.start;
+      if (bb.cam.src) {
+        // Real webcam: visible from..to (scene seconds), lip-synced to the voice clip of the scene.
+        const first = bb === beats[0];
+        const o = first ? Math.min(1, win(lt, 0, bb.cam.to, 0.01, 0.4)) : win(lt, bb.cam.from - 0.15, bb.cam.to + 0.25, 0.4, 0.4);
+        if (o <= 0) continue;
+        const srcT = clamp(bb.cam.voiceIn + (lt - bb.cam.voiceAt), 0, bb.cam.voiceOut + (bb.id === "end" ? 3 : 0.5));
+        const [x, y, w, h] = bb.cam.at;
+        res.push({ beat: bb.id, x, y, w, h, round: !!bb.cam.round, kind: bb.cam.kind, opacity: r3(o), src: bb.cam.src, srcT: r3(srcT), lt });
+        continue;
+      }
       // A PiP limited to part of a scene stays up while the on-camera lines are said.
       const camLines = TIMELINE.captions(bb).filter((c) => c.cam);
       const from = bb.cam.from ?? 0;
@@ -1209,13 +1299,22 @@
 
   function renderCam(t) {
     const c = camAt(t);
-    if (!c) { V(camEl, false); return; }
+    if (!c) { V(camEl, false); V(camImg, false); O(nameTag, 0); return; }
     V(camEl, true);
     at(camEl, c.x, c.y, c.w, c.h);
     camEl.style.borderRadius = c.round ? "50%" : "26px";
     const sc = 0.94 + 0.06 * out3(c.opacity);
     T(camEl, `scale(${r3(sc)})`);
     O(camEl, c.opacity);
+    V(camImg, !!c.src);
+    [camIc, camLbl, camSub].forEach((e) => O(e, c.src ? 0 : 1));
+    camEl.classList.toggle("live", !!c.src);
+    if (c.src) setSrc(camImg, `../out/cam/${c.src}/${String(Math.floor(c.srcT * 30) + 1).padStart(5, "0")}.jpg`);
+    // Name in the opening, under the camera.
+    const nt = c.src && c.beat === "intro" ? win(c.lt, 0.9, 4.6, 0.5, 0.5) : 0;
+    O(nameTag, nt);
+    T(nameTag, `translateY(${r3((1 - out3(Math.min(1, nt * 1.2))) * 14)}px)`);
+    if (c.src) return;
     const small = c.w < 300;
     camIc.style.top = (c.h / 2 - (small ? 52 : 70)) + "px";
     camLbl.style.top = (c.h / 2 + (small ? 14 : 12)) + "px";

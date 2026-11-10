@@ -79,3 +79,53 @@ window.SHOTS = {
     { take: "extras", from: 16.0, to: 22.5, len: 3.8, crop: { w: 1000, x0: 110 }, url: "/quote" },
   ],
 };
+
+/**
+ * X cut (voice-driven): fewer, slower shots so each step can be followed. Skyline Travel shots
+ * show its own address; badge: the extension's toolbar check appears when it shows an offer.
+ */
+window.FACTS.verified = 170;
+window.SHOTS_X = {
+  find: [
+    { take: "ext-search", from: 6.4, to: 10.6, len: 3.4, crop: { w: 1240, bias: 0.4 }, url: "/booker", host: "skyline" },
+    { take: "ext-search", from: 12.0, to: 16.6, len: 4.6, crop: [[0, 520, 300, 920], [0.35, 520, 300, 920], [0.75, 560, 380, 880], [1, 560, 380, 880]], url: "/booker/results", host: "skyline", badge: true, badgeAt: 0.9 },
+  ],
+  account: [{ take: "account", from: 2.4, to: 10.46, len: 7.0, crop: { w: 1000, x0: 110 }, url: "/account" }],
+  // The cap slider jumps when the recorder sets it (5.6-8.6 s of the take): left out.
+  lock: [
+    { take: "buy-cap", from: 2.2, to: 5.5, len: 2.6, crop: { w: 960, x0: 100 }, url: "/quote" },
+    { take: "buy-cap", from: 8.7, to: 15.76, len: 5.6, crop: { w: 960, x0: 100 }, url: "/quote" },
+  ],
+  choices: [
+    { take: "options", from: 37.4, to: 41.4, len: 2.9, crop: { w: 900, x0: 120, y: 470 }, url: "/quote" },
+    { take: "options", from: 45.4, to: 49.4, len: 2.9, crop: { w: 900, x0: 120, y: 560 }, url: "/quote" },
+  ],
+  alerts: [{ take: "price-rise", from: 36.2, to: 44.6, len: 7.2, crop: { w: 1100, x0: 110 }, url: "/policies" }],
+  claim: {
+    // Frame the upload, then the result at the top of the page once it is in.
+    left: [{ take: "claim", from: 38.0, to: 45.0, len: 5.4, crop: [[0, 110, 300, 900], [0.3, 110, 300, 900], [0.5, 110, 40, 900], [1, 110, 40, 900]], url: "/claim/11" }],
+    right: [{ take: "claim-release", from: 41.6, to: 48.0, len: 5.8, crop: [[0, 110, 260, 900], [0.5, 110, 260, 900], [0.64, 110, 40, 900], [1, 110, 40, 900]], url: "/claim/11" }],
+    rightAt: 6.3,
+  },
+  verify: [
+    { take: "binding", from: 1.6, to: 4.2, len: 2.6, crop: [[0, 160, 120, 1280], [1, 300, 300, 1100]], url: "/booker/manage", host: "skyline", badge: true, badgeAt: 1.2 },
+    { take: "binding", from: 31.6, to: 35.6, len: 3.8, crop: { w: 1000, x0: 110, y: 430 }, url: "/verify" },
+    { take: "binding", from: 36.2, to: 41.7, len: 3.6, crop: { w: 1000, x0: 110, y: 520 }, url: "/verify" },
+  ],
+  drop: [
+    { take: "drop-buy", from: 32.6, to: 37.4, len: 3.6, crop: [[0, 340, 300, 1100], [1, 440, 380, 1000]], url: "/booker/confirmation", host: "skyline", badge: true, badgeAt: 0.8 },
+    { take: "drop-settle", from: 13.4, to: 18.29, len: 3.2, crop: { w: 1000, x0: 110, y: 330 }, url: "/claim/18" },
+  ],
+  flex: [
+    { take: "route", from: 31.4, to: 37.6, len: 4.4, crop: { w: 960, x0: 100 }, url: "/quote" },
+    { take: "route", from: 40.1, to: 44.6, len: 3.3, crop: { w: 1000, x0: 100 }, url: "/quote" },
+  ],
+  travellers: [
+    { take: "return-buy", from: 5.6, to: 10.2, len: 3.0, crop: { w: 1000, x0: 110 }, url: "/quote" },
+    { take: "return-paid", from: 44.2, to: 47.8, len: 2.9, crop: { w: 1000, x0: 110, y: 300 }, url: "/policies" },
+  ],
+  lp: [
+    { take: "lp", from: 0.4, to: 3.4, len: 2.5, crop: { w: 1000, x0: 110, y: 380 }, url: "/lp" },
+    { take: "lp", from: 9.0, to: 13.45, len: 3.6, crop: { w: 1000, x0: 110, y: 380 }, url: "/lp" },
+  ],
+};

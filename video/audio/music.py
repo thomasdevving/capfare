@@ -373,6 +373,15 @@ music_out = music * m_scale
 music_ducked *= m_scale
 sfx_out = sfx * m_scale * 1.0
 mix = music_ducked * 0.85 + sfx_out
+# A recorded voice (video/voice/plan.py writes audio/<cut>/voice.wav) goes on top, a little
+# louder than the music bed's peaks, which already duck under each spoken line.
+VOICE = os.path.join(OUT, "voice.wav")
+if os.path.exists(VOICE):
+    vsr, v = wavfile.read(VOICE)
+    assert vsr == SR
+    v = v.astype(np.float64) / 32768.0
+    v = np.pad(v, (0, max(0, N - len(v))))[:N]
+    mix = mix * 0.62 + np.stack([v, v], axis=1) * 1.0
 
 
 def limit(x: np.ndarray, reduce_db: float = 5.0, release: float = 0.15) -> np.ndarray:

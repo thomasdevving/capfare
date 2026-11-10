@@ -146,7 +146,7 @@ test("alerts by email: double opt-in, then alerts arrive (demo outbox)", async (
 
   await page.goto("/policies");
   await page.getByText("Get alerts").click();
-  await page.getByLabel("Email address").fill("bakker@example.org");
+  await page.getByLabel("Email address").fill(`bakker${Date.now()}@example.org`);
   await page.getByRole("button", { name: "Send confirmation" }).click();
   await expect(page.getByText(/We sent a confirmation link/)).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(/waiting for you to confirm/)).toBeVisible();

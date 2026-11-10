@@ -32,7 +32,7 @@ function harness() {
       pushes.push({ endpoint: sub.endpoint, title: a.title });
       return "ok";
     },
-    async mail(to, subject, text) {
+    async mail(to, subject, text, _account) {
       mails.push({ to, subject, text });
       return true;
     },
@@ -112,5 +112,20 @@ describe("notifier", () => {
     const h = harness();
     await expect(h.n.settings(h.req({ action: "set_email", email: "nope" }))).rejects.toThrow(/valid email/);
     await expect(h.n.settings(h.req({ action: "subscribe_push", subscription: { endpoint: "http://x", keys: { p256dh: "", auth: "" } } }))).rejects.toThrow(/invalid push/);
+  });
+});
+
+describe("demo outbox", () => {
+  it("shows each account only its own mail, even for a shared address", async () => {
+    const { realChannels } = await import("../src/channels.ts");
+    process.env.VAPID_PUBLIC_KEY = "BKx3v3wbN1HcRYBgYdS0uQ3rH4Jj1yVq1cC8b5r7m3vQdC1yQf0n3m0xQ4zVd2bY7Zl5Z8y9u0w1x2y3z4a5b6c";
+    process.env.VAPID_PRIVATE_KEY = "dGVzdC1wcml2YXRlLWtleS0wMDAwMDAwMDAwMDAwMDA";
+    const store = new Store();
+    const ch = realChannels(store, { demo: true, subject: "mailto:t@example.org" });
+    await ch.mail("same@example.org", "for alice", "x", "alice.test");
+    await ch.mail("same@example.org", "for bob", "y", "bob.test");
+    const n = new Notifier({ store, channels: ch, rpc: {} as never, registryId: "r", attestationId: "a", appUrl: "https://app.example" });
+    expect(n.outbox("alice.test").map((m) => m.subject)).toEqual(["for alice"]);
+    expect(n.outbox("bob.test").map((m) => m.subject)).toEqual(["for bob"]);
   });
 });

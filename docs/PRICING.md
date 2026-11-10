@@ -125,3 +125,12 @@ they sit in separate vaults.
 - FX between EUR and USDC is fixed per policy at purchase and not simulated.
 - Group collusion beyond the informed-buyer model (many accounts on one flight) is limited
   by per-user and per-flight caps but not simulated explicitly.
+- **Travellers per policy** (D28) multiply premium, lock and payout by seats with unchanged
+  per-traveller parameters; the flight exposure cap fills faster. Correlation between seats on
+  one booking (they always claim together) is not simulated.
+- **Route cover** (D30) uses the cap parameters on a different index: the cheapest available
+  fare over the tracked flights on a route and day. A minimum over flights rises no faster than
+  any one of them, so we expect a lower loss ratio than exact-flight caps, but this has not been
+  simulated; route paths should be added to the generator before pricing route cover separately.
+- **Return trips** are two independent policies; the backtest does not model whether outbound
+  and return prices move together.

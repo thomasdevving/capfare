@@ -91,7 +91,13 @@ export async function stack(opts: StackOptions) {
     sandboxRoot = sb.info.root;
     console.log(`sandbox: ${rpcUrl}`);
   }
-  run("verifier", [tsx, "tee/booking_verifier/src/server.ts"], { ...common, ...seeds, PORT: "8082", DEMO_BOOKER_ORIGIN: `http://localhost:${opts.webPort}` });
+  run("verifier", [tsx, "tee/booking_verifier/src/server.ts"], {
+    ...common,
+    ...seeds,
+    PORT: "8082",
+    DEMO_BOOKER_ORIGIN: `http://localhost:${opts.webPort}`,
+    DEMO_BOOKER_PUBLIC_ORIGIN: site,
+  });
   await waitFor("http://localhost:8082/health");
   let d: Deployment;
   if (opts.network === "testnet") {

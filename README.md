@@ -170,11 +170,35 @@ provider. See [docs/LEGAL.md](docs/LEGAL.md).
   supplied by the project owner and redrawn as SVG.
 * No pre-existing project code; everything was written during the hackathon window.
 
+## Hosting (Railway)
+
+`railway.json` + `deploy/Dockerfile` run the whole demo in one container: the price oracle and
+booking checker (demo mode), the relayer, the alert service and the web app. Two modes:
+
+* **`CAPFARE_NETWORK=testnet`** (the public demo): uses the fixed contracts on NEAR testnet
+  (`deployments/testnet.json`, `capfare.testnet`). Nothing is deployed at start, so accounts,
+  policies and payouts survive redeploys and can be checked on NearBlocks ([docs/TESTNET.md](docs/TESTNET.md)).
+* **`CAPFARE_NETWORK=sandbox`** (default, no secrets): a fresh local NEAR sandbox with freshly
+  deployed contracts. State resets on every redeploy or restart.
+
+| Variable | Why |
+|---|---|
+| `CAPFARE_NETWORK` | `testnet` for the public demo; set it for the build too, so prebuilt pages show the right network. |
+| `CAPFARE_ACCOUNT_KEY` (secret, testnet) | A full-access key of `capfare.testnet` for the relayer and the test-USDC top-ups; a separate key that can be removed on its own. |
+| `ORACLE_DEV_SEED`, `VERIFIER_DEV_SEED` (secrets) | 32-byte hex each. On testnet they must be the seeds whose public keys are registered in `att.capfare.testnet` (the stack refuses to start otherwise). On a sandbox, without them the demo keys come from a public string in the source, so anyone could sign fake prices or bookings for your demo chain. |
+| `NOTIFIER_DATA_FILE` | `/data/notifier.json` with a volume at `/data`: alert settings, watches and the generated web-push keys survive redeploys. |
+| `SITE_URL` | Your public address (e.g. `https://capfare.up.railway.app`). Used in page metadata, in booking links inside Skyline's emails, and so the booking checker accepts live checks of those links. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (secret), `VAPID_SUBJECT` | Optional with the volume above. Without either, a new pair is generated on every redeploy and existing push subscriptions stop working. |
+| `EXTENSION_URL`, `X_URL`, `GITHUB_URL` | Optional links on the landing page. |
+| `ONECLICK_API_KEY` (secret) | Optional; NEAR Intents dry quotes work without it. |
+
+`SMTP_URL`/`MAIL_FROM` are not needed: demo deployments keep alert emails in the demo outbox.
+
 ## 10. Decisions and deviations
 
-[docs/DECISIONS.md](docs/DECISIONS.md) lists every deviation from the brief and later decisions (D1–D34).
+[docs/DECISIONS.md](docs/DECISIONS.md) lists every deviation from the brief and later decisions (D1–D40).
 Landing design plan, review and revisions with screenshots: [docs/LANDING_DESIGN.md](docs/LANDING_DESIGN.md).
-Hosting: `deploy/Dockerfile` + `railway.json` run the whole demo stack in one container.
+Hosting: `deploy/Dockerfile` + `railway.json` run the whole demo stack in one container, on NEAR testnet or a local sandbox.
 
 ## License
 

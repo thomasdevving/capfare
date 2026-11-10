@@ -57,13 +57,26 @@ test("quote → buy → claim → payout", async ({ page, request }) => {
     await page.waitForTimeout(1200);
   }
 
+  // Book on Skyline Travel (demo) at €260 and claim with the original confirmation email.
+  const b = await (await request.post("/api/booker/bookings", { data: { fn: "KL1695", from: "AMS", to: "BCN", date: "2027-06-14", fare: "economy_light", passengers: [{ title: "Ms", first: "Anna", last: "de Vries" }], email: "anna.flow@example.org", card: "4242424242424242" } })).json();
+  const inbox = (await (await request.get(`/api/booker/inbox?email=${encodeURIComponent("anna.flow@example.org")}`)).json()) as { id: string; date?: number }[];
+  const latest = [...inbox].sort((x, y) => (y.date ?? 0) - (x.date ?? 0))[0];
+  const eml = await (await request.get(`/api/booker/email/${latest.id}`)).body();
   await page.goto(`/claim/${id}`);
-  await page.getByRole("tab", { name: "Demo confirmation" }).click();
-  await page.getByLabel("Price you paid (€)").fill("255");
-  await page.getByLabel("Lead passenger last name").fill("de Vries");
+  await page.getByRole("tab", { name: "Upload the email" }).click();
+  await page.locator("#eml").setInputFiles({ name: "booking.eml", mimeType: "message/rfc822", buffer: eml });
   await page.getByRole("button", { name: "Check my booking" }).click();
-  await expect(page.getByText(/Payout: €70/)).toBeVisible({ timeout: 90_000 });
-  await expect(page.getByText("Paid to your account.")).toBeVisible();
+  // Payout = min(260, 260) − 180 − deductible; the email can't show a free 24-hour cancellation,
+  // so it waits for a live check of the booking after that window (D41).
+  await expect(page.getByText(/Payout: €75/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(/paid after a live check of your booking/)).toBeVisible();
+  await page.waitForTimeout(32_000); // demo free-cancellation window (24 h in production, D41)
+  await page.goto("/policies");
+  await page.locator(`#p${id}`).getByRole("link", { name: "Check my booking" }).click();
+  await page.getByRole("tab", { name: "Booking page link" }).click();
+  await page.getByLabel(/Link to your booking/).fill(b.manage);
+  await page.getByRole("button", { name: "Check my booking" }).click();
+  await expect(page.getByText("Paid to your account.").first()).toBeVisible({ timeout: 90_000 });
   if (process.env.SAVE_SHOTS) {
     await page.setViewportSize({ width: 1000, height: 750 });
     const box = (await page.locator(".claim-result").boundingBox())!;
@@ -127,6 +140,7 @@ test("live check from the booking page claims a cap (extension handoff)", async 
 
   // Book on Skyline Travel (demo) at the current €260 and verify from the manage page.
   const b = await (await request.post("/api/booker/bookings", { data: { fn: "KL1695", from: "AMS", to: "BCN", date: "2027-06-14", fare: "economy_light", passengers: [{ title: "Ms", first: "Eva", last: "Smit" }], email: "eva@example.org", card: "4242424242424242" } })).json();
+  await page.waitForTimeout(32_000); // demo free-cancellation window (24 h in production, D41)
   await page.goto(`/verify#u=${encodeURIComponent(b.manage)}`);
   await page.getByRole("button", { name: "Verify booking" }).click();
   await expect(page.getByText("Booking verified")).toBeVisible({ timeout: 30_000 });

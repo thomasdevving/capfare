@@ -9,6 +9,7 @@
  *      (git-ignored, mode 600) with the values the hosted demo needs as environment variables.
  *
  *   NODE_USE_ENV_PROXY=1 pnpm --filter @capfare/scripts exec tsx src/testnet-deploy.ts
+ *   DEPLOY_PREFIX=v2 ...   # a new version under v2.capfare.testnet, next to the old contracts
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -60,7 +61,14 @@ async function main() {
   await up("http://localhost:8091/health");
   await up("http://localhost:8092/health");
 
+  const prefix = process.env.DEPLOY_PREFIX || undefined;
   const d = await deploy({
+    prefix,
+    onContractsKey: (key, parent) => {
+      const k = loadKeys() as Record<string, unknown>;
+      k[`contracts:${parent}`] = key; // needed to upgrade or delete these contract accounts later
+      saveKeys(k);
+    },
     network: "testnet",
     rpcUrl: RPC,
     root: keys.root.account,

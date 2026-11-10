@@ -27,6 +27,10 @@ export interface DeployOptions {
   oracleUrl?: string;
   verifierUrl?: string;
   existingToken?: string; // e.g. Circle testnet USDC; default deploys the mock token
+  /** Deploy under `<prefix>.<root>` (e.g. v2.capfare.testnet) so a new version sits next to the old one. */
+  prefix?: string;
+  /** Called with the contract accounts' full-access key (keep it: it is needed to upgrade them). */
+  onContractsKey?: (key: KeyPairString, parent: string) => void;
   epochSecs?: number;
   keyTimelockSecs?: number;
   seedUsdc?: bigint;
@@ -39,7 +43,9 @@ export async function deploy(o: DeployOptions): Promise<Deployment> {
   chain.account(o.root, o.rootKey);
   const key = newKey();
   if (o.network === "sandbox") writeFileSync(join(DEPLOY_DIR, "sandbox.keys.json"), JSON.stringify({ contracts: key, root: o.rootKey }, null, 2));
-  const sub = (p: string, near: number) => chain.createSub(o.root, p, BigInt(near) * NEAR, key);
+  const parent = o.prefix ? await chain.createSub(o.root, o.prefix, 24n * NEAR, key) : o.root;
+  o.onContractsKey?.(key, parent);
+  const sub = (p: string, near: number) => chain.createSub(parent, p, BigInt(near) * NEAR, key);
   log("creating contract accounts");
   const token = o.existingToken ?? (await sub("usdc", 3));
   const attestation = await sub("att", 4);

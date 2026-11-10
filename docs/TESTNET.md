@@ -5,12 +5,16 @@ on [NearBlocks](https://testnet.nearblocks.io), the public NEAR explorer. No mai
 
 | Contract | Account | Explorer |
 |---|---|---|
-| Policy registry (premium engine, policies, claims, credit) | `registry.capfare.testnet` | [view](https://testnet.nearblocks.io/address/registry.capfare.testnet) |
-| Price Cap vault | `cap.capfare.testnet` | [view](https://testnet.nearblocks.io/address/cap.capfare.testnet) |
-| Drop Guarantee vault | `drop.capfare.testnet` | [view](https://testnet.nearblocks.io/address/drop.capfare.testnet) |
-| Attestation registry (service keys, price snapshots, booking attestations) | `att.capfare.testnet` | [view](https://testnet.nearblocks.io/address/att.capfare.testnet) |
-| Test USDC (mock NEP-141 with a faucet) | `usdc.capfare.testnet` | [view](https://testnet.nearblocks.io/address/usdc.capfare.testnet) |
+| Policy registry (premium engine, policies, claims, credit) | `registry.v2.capfare.testnet` | [view](https://testnet.nearblocks.io/address/registry.v2.capfare.testnet) |
+| Price Cap vault | `cap.v2.capfare.testnet` | [view](https://testnet.nearblocks.io/address/cap.v2.capfare.testnet) |
+| Drop Guarantee vault | `drop.v2.capfare.testnet` | [view](https://testnet.nearblocks.io/address/drop.v2.capfare.testnet) |
+| Attestation registry (service keys, price snapshots, booking attestations) | `att.v2.capfare.testnet` | [view](https://testnet.nearblocks.io/address/att.v2.capfare.testnet) |
+| Test USDC (mock NEP-141 with a faucet) | `usdc.v2.capfare.testnet` | [view](https://testnet.nearblocks.io/address/usdc.v2.capfare.testnet) |
 | Root, relayer and fee account | `capfare.testnet` | [view](https://testnet.nearblocks.io/address/capfare.testnet) |
+
+The current contracts (v2: deductible and duration choices, renewals, flexible cover, the
+24-hour live-check rule) live under `v2.capfare.testnet`. The first deployment
+(`registry.capfare.testnet` and its siblings) stays on-chain unchanged as history.
 
 The public record is [`deployments/testnet.json`](../deployments/testnet.json). Users get named
 accounts under the relayer (`alice.capfare.testnet`), so a traveller's purchases, claims and
@@ -50,7 +54,7 @@ The default RPC is FastNear's public testnet endpoint (`https://test.rpc.fastnea
 `rpc.testnet.near.org` is deprecated and rate-limits. Override with `NEAR_RPC_URL`.
 Behind an HTTPS proxy, add `NODE_USE_ENV_PROXY=1` (Node's built-in fetch ignores the proxy
 otherwise). On start the stack checks that the running services sign with the keys registered
-in `att.capfare.testnet` and stops if they don't.
+in `att.v2.capfare.testnet` and stops if they don't.
 
 ## Host the public demo on testnet (Railway or any Docker host)
 
@@ -75,8 +79,11 @@ NODE_USE_ENV_PROXY=1 ROOT_NAME=capfare.testnet TARGET_NEAR=38 pnpm --filter @cap
 ```
 
 ```bash
-NODE_USE_ENV_PROXY=1 pnpm --filter @capfare/scripts exec tsx src/testnet-deploy.ts
+DEPLOY_PREFIX=v2 NODE_USE_ENV_PROXY=1 pnpm --filter @capfare/scripts exec tsx src/testnet-deploy.ts
 ```
+
+`DEPLOY_PREFIX` puts a new version under `<prefix>.capfare.testnet` next to the old one. The
+contract accounts' key is saved in `deployments/testnet.keys.json` (needed to upgrade them).
 
 `testnet-fund.ts` creates the root account through the public testnet faucet and merges further
 faucet accounts into it (10 NEAR each); the deployment needs about 25 NEAR, and the relayer

@@ -33,7 +33,7 @@ the price passes their cap or something needs doing.
 | Alerts: shared alert engine, in-app list, notifier service with web push (VAPID) and email (SMTP, double opt-in), account-key-signed settings (D33); free price watches without a policy (D36) with optional one-tap lock (D38); "Paste a link from any booking site" and phone share target (D37) | Demo deployments keep alert emails in an outbox instead of sending them | Push delivery is not covered by automated tests (needs a browser push service) |
 | Backtest: synthetic fare paths, buyer models, calibration, parameter export | **All backtest results are synthetic** (docs/PRICING.md) | Backtest on real historical fares |
 
-Deployment: **NEAR testnet**, under `capfare.testnet` (registry, two vaults, attestation
+Deployment: **NEAR testnet**, under `v2.capfare.testnet` (registry, two vaults, attestation
 registry, test USDC; addresses in [`deployments/testnet.json`](deployments/testnet.json),
 explorer links in [docs/TESTNET.md](docs/TESTNET.md)). The hosted demo runs against it, so
 accounts and policies survive redeploys. A **local NEAR sandbox** mode remains for
@@ -190,7 +190,7 @@ booking checker (demo mode), the relayer, the alert service and the web app. Two
 |---|---|
 | `CAPFARE_NETWORK` | `testnet` for the public demo; set it for the build too, so prebuilt pages show the right network. |
 | `CAPFARE_ACCOUNT_KEY` (secret, testnet) | A full-access key of `capfare.testnet` for the relayer and the test-USDC top-ups; a separate key that can be removed on its own. |
-| `ORACLE_DEV_SEED`, `VERIFIER_DEV_SEED` (secrets) | 32-byte hex each. On testnet they must be the seeds whose public keys are registered in `att.capfare.testnet` (the stack refuses to start otherwise). On a sandbox, without them the demo keys come from a public string in the source, so anyone could sign fake prices or bookings for your demo chain. |
+| `ORACLE_DEV_SEED`, `VERIFIER_DEV_SEED` (secrets) | 32-byte hex each. On testnet they must be the seeds whose public keys are registered in `att.v2.capfare.testnet` (the stack refuses to start otherwise). On a sandbox, without them the demo keys come from a public string in the source, so anyone could sign fake prices or bookings for your demo chain. |
 | `NOTIFIER_DATA_FILE` | `/data/notifier.json` with a volume at `/data`: alert settings, watches and the generated web-push keys survive redeploys. |
 | `SITE_URL` | Your public address (e.g. `https://capfare.up.railway.app`). Used in page metadata, in booking links inside Skyline's emails, and so the booking checker accepts live checks of those links. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (secret), `VAPID_SUBJECT` | Optional with the volume above. Without either, a new pair is generated on every redeploy and existing push subscriptions stop working. |

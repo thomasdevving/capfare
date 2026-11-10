@@ -291,6 +291,8 @@ const TAKES = {
       await skylineSearch(tk, page);
       await sleep(1500);
       state.booking1 = await skylineBook(tk, page, { fn: "KL1695", fareName: "Economy Light", email: "anna@example.org" });
+      state.booking1At = Date.now();
+      state.manage1 = APP + (await page.getByRole("link", { name: "Manage booking" }).getAttribute("href"));
       save();
       await page.waitForSelector("capfare-overlay", { state: "attached", timeout: 60_000 }).catch(() => {});
       await sleep(3500);
@@ -326,10 +328,33 @@ const TAKES = {
       await tk.idle(() => page.getByText(/Payout: €/).first().waitFor({ timeout: 240_000 }), "claim");
       await sleep(1500);
       await tk.ensureVisible(page.locator(".claim-result").first());
-      await sleep(2500);
+      tk.mark("held");
+      await sleep(4500);
       await tk.idle(() => page.getByText(/Drop Guarantee #\d+ (added|active)/).first().waitFor({ timeout: 120_000 }).catch(() => {}), "drop option");
       await sleep(1000);
       await tk.scrollTo(await page.evaluate(() => document.body.scrollHeight), 1400);
+      await sleep(3000);
+    });
+  },
+
+  /** After the free-cancellation window (30 s on the demo, 24 h live): a live check releases the payout. */
+  async claimrelease(ctx) {
+    const wait = Math.max(0, (state.booking1At ?? 0) + 34_000 - Date.now());
+    if (wait) await sleep(wait);
+    await take(ctx, "claim-release", async (tk, page) => {
+      await go(page, `/policies#p${state.cap1}`, 1500);
+      const card = page.locator(`#p${state.cap1}`);
+      await tk.ensureVisible(card);
+      await sleep(1500);
+      await tk.click(card.getByRole("link", { name: "Check my booking" }), "check my booking (live)");
+      await page.waitForLoadState("networkidle").catch(() => {});
+      await sleep(1200);
+      await tk.click(page.getByRole("tab", { name: "Booking page link" }), "booking link tab");
+      await tk.type(page.getByLabel(/Link to your booking/), state.manage1, "manage link", 8);
+      await tk.click(page.getByRole("button", { name: "Check my booking" }), "check live");
+      await tk.idle(() => page.getByText(/Paid to your account/).first().waitFor({ timeout: 240_000 }), "release");
+      await sleep(1200);
+      await tk.ensureVisible(page.getByText(/Paid to your account/).first());
       await sleep(3500);
     });
   },
@@ -399,6 +424,11 @@ const TAKES = {
       await go(page, "/quote?fn=KL1695&date=2027-06-14&from=AMS&to=BCN&fare=economy_light");
       await tk.click(page.getByLabel("Any flight on this route and day"), "route option");
       await sleep(1200);
+      await tk.click(page.getByLabel("Dates"), "dates");
+      await page.getByLabel("Dates").selectOption("2");
+      await sleep(800);
+      await tk.click(page.getByText(/Include nearby airports/), "nearby airports");
+      await sleep(1200);
       await tk.click(page.getByRole("button", { name: "Get a quote" }), "get a quote");
       await tk.idle(() => page.getByText(/Cheapest verified fare/).first().waitFor({ timeout: 120_000 }), "quote");
       await sleep(1200);
@@ -445,6 +475,7 @@ const TAKES = {
       state.returnBooking = conf;
       save();
       await sleep(1500);
+      await tk.idle(() => sleep(33_000), "free-cancel window");
       await tk.click(page.getByRole("link", { name: "Manage booking" }), "manage booking");
       await page.waitForLoadState("networkidle").catch(() => {});
       await clickOverlay(tk, page, "verify with capfare");
@@ -470,6 +501,7 @@ const TAKES = {
       await skylineSearch(tk, page);
       await sleep(1000);
       state.booking2 = await skylineBook(tk, page, { fn: "KL1695", fareName: "Economy Standard", email: "anna.drop@example.org" });
+      state.manage2 = APP + (await page.getByRole("link", { name: "Manage booking" }).getAttribute("href"));
       save();
       await clickOverlay(tk, page, "add drop guarantee");
       await sleep(1000);
@@ -510,11 +542,8 @@ const TAKES = {
     if (wait) await sleep(wait);
     await take(ctx, "drop-settle", async (tk, page) => {
       await go(page, `/claim/${state.drop1}`, 1500);
-      await tk.click(page.getByRole("tab", { name: "Upload the email" }), "upload tab");
-      const input = page.locator("#eml");
-      await tk.click(input, "choose file", { after: 200 });
-      await input.setInputFiles(state.eml2);
-      await sleep(700);
+      await tk.click(page.getByRole("tab", { name: "Booking page link" }), "booking link tab");
+      await tk.type(page.getByLabel(/Link to your booking/), state.manage2, "manage link", 8);
       await tk.click(page.getByRole("button", { name: "Check my booking" }), "settle");
       await tk.idle(() => page.getByText(/Payout: €|paid|Paid/).first().waitFor({ timeout: 240_000 }), "settle");
       await sleep(1500);
@@ -631,6 +660,40 @@ const TAKES = {
     });
   },
 
+  /** Buyer choices: deductible (higher = cheaper) and how long the lock lasts. */
+  async options(ctx) {
+    await advance(fare("economy_flex"), 0);
+    await take(ctx, "options", async (tk, page) => {
+      await go(page, "/quote?fn=KL1695&date=2027-06-14&from=AMS&to=BCN&fare=economy_flex", 1200);
+      await tk.click(page.getByRole("button", { name: "Get a quote" }), "get a quote");
+      await tk.idle(() => page.getByText(/Verified airline price/).first().waitFor({ timeout: 120_000 }), "quote");
+      await sleep(900);
+      await tk.ensureVisible(page.getByText("Deductible per traveller").first());
+      await sleep(1200);
+      for (const d of ["€10", "€25", "€50", "€5"]) await tk.click(page.getByRole("radio", { name: new RegExp("^" + d.replace("€", "€")) }).first(), `deductible ${d}`, { after: 900 });
+      for (const v of ["14 days", "30 days", "3 days", "7 days"]) await tk.click(page.getByRole("radio", { name: new RegExp("^" + v) }).first(), `duration ${v}`, { after: 900 });
+      await sleep(1500);
+    });
+  },
+
+  /** Renew an active Price Cap: the new cover starts the moment the old one ends. */
+  async renew(ctx) {
+    await take(ctx, "renew", async (tk, page) => {
+      await go(page, `/policies#p${state.cap2}`, 1500);
+      const card = page.locator(`#p${state.cap2}`);
+      await tk.ensureVisible(card);
+      await sleep(1500);
+      await tk.click(card.getByRole("button", { name: "Renew without a gap" }), "renew");
+      await tk.idle(() => page.getByText("Done.").waitFor({ timeout: 180_000 }), "renew");
+      await page.reload();
+      await page.waitForLoadState("networkidle").catch(() => {});
+      await sleep(1500);
+      const renewed = page.getByText(/Renewal of/).first();
+      await tk.ensureVisible(renewed);
+      await sleep(4000);
+    });
+  },
+
   /** Newer extras: paste a link from any booking site, watch a price for free, extension popup. */
   async extras(ctx) {
     await take(ctx, "extras", async (tk, page) => {
@@ -652,7 +715,7 @@ const TAKES = {
   },
 };
 
-const ORDER = ["landing", "account", "setup", "cap", "alerts", "book", "claim", "reject", "binding", "route", "returntrip", "drop", "dropsettle", "held", "returnclaim", "creditout", "lp", "transparency", "extras"];
+const ORDER = ["landing", "account", "setup", "cap", "alerts", "book", "claim", "claimrelease", "reject", "binding", "renew", "options", "route", "returntrip", "drop", "dropsettle", "held", "returnclaim", "creditout", "lp", "transparency", "extras"];
 
 (async () => {
   const want = process.argv.slice(2);

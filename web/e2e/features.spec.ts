@@ -70,6 +70,7 @@ test("return trip for two travellers: one booking claims both flights, Drop opti
     })
   ).json();
 
+  await page.waitForTimeout(32_000); // demo free-cancellation window (24 h in production, D41)
   await page.goto(`/claim/${outId}`);
   await expect(page.getByText(/This is a return trip/)).toBeVisible({ timeout: 20_000 });
   await page.getByRole("tab", { name: "Booking page link" }).click();
@@ -121,6 +122,7 @@ test("route cover: any flight on the route and day, paid against the cheapest fa
       data: { fn: pick.flight_number, from: "AMS", to: "BCN", date: "2027-06-14", fare: "economy_light", passengers: [{ title: "Mr", first: "Tom", last: "Visser" }], email: "tom@example.org", card: "4242424242424242" },
     })
   ).json();
+  await page.waitForTimeout(32_000); // demo free-cancellation window (24 h in production, D41)
   await page.goto(`/verify#u=${encodeURIComponent(b.manage)}`);
   await page.getByRole("button", { name: "Verify booking" }).click();
   await expect(page.getByText("Booking verified")).toBeVisible({ timeout: 30_000 });

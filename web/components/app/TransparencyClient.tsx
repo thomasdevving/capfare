@@ -134,10 +134,13 @@ export default function TransparencyClient() {
 
 function ParamsTable({ title, p, pending }: { title: string; p: ProductParams; pending?: ProductParams }) {
   const rows: [string, string, string?][] = [
-    ["Deductible", eur(p.deductible), pending && eur(pending.deductible)],
+    ["Deductible (default)", eur(p.deductible), pending && eur(pending.deductible)],
+    ["Deductibles to choose from (premium ×)", (p.deductible_options ?? []).map((d, i) => `${eur(d)} ×${((p.deductible_mult_bps?.[i] ?? 10_000) / 1e4).toFixed(2)}`).join(" · ")],
+    ["Cover durations (premium ×)", (p.validity_options_secs ?? []).map((v, i) => `${duration(v)} ×${((p.validity_mult_bps?.[i] ?? 10_000) / 1e4).toFixed(2)}`).join(" · ")],
+    ["Flexible cover: ±0–3 days ×, airport group ×", `${(p.flex_window_mult_bps ?? []).map((x) => (x / 1e4).toFixed(2)).join(" · ")}; ×${((p.airport_group_mult_bps ?? 10_000) / 1e4).toFixed(2)}`],
     ["Maximum payout", eur(p.max_payout), pending && eur(pending.max_payout)],
     ["Premium range", `${eur(p.min_premium)} – ${eur(p.max_premium)}`],
-    ["Validity", duration(p.validity_secs)],
+    ["Validity (default)", duration(p.validity_secs)],
     ["Activation delay", duration(p.activation_delay_secs)],
     ["Per-flight exposure cap", eur(p.flight_exposure_cap)],
     ["Per-route-week exposure cap", eur(p.route_week_exposure_cap)],
@@ -192,6 +195,7 @@ function GlobalTable({ g }: { g: Params["global"] }) {
           <tr><th>Price snapshot for a quote at most</th><td>{duration(g.max_quote_snapshot_age_secs)} old</td></tr>
           <tr><th>Price snapshot used for a cap payout at most</th><td>{duration(g.max_index_snapshot_age_secs)} before booking</td></tr>
           <tr><th>Booking check at most</th><td>{duration(g.max_attestation_age_secs)} old</td></tr>
+          <tr><th>Payouts need a live booking check after</th><td>{duration(g.free_cancel_window_secs ?? 0)} from booking (free-cancellation window)</td></tr>
           <tr><th>Final check for refundable tickets</th><td>{duration(g.final_check_lead_secs)} before departure</td></tr>
           <tr><th>Claims accepted until</th><td>{duration(g.claim_grace_secs)} after expiry</td></tr>
           <tr><th>Sold-out premium refund</th><td>{g.sold_out_premium_refund ? "on" : "off"}</td></tr>

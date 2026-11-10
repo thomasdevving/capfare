@@ -20,11 +20,17 @@ export interface FlightKey {
 /** Mirrors capfare_core::MAX_SEATS. */
 export const MAX_SEATS = 9;
 
-/** Any flight CapFare's oracle tracks on one route and day, in one fare class. */
+/**
+ * Any flight CapFare's oracle tracks between the origin and destination (an airport or an
+ * airport group such as "@LON") on the day, or within `date_window_days` either side of it,
+ * in one fare class.
+ */
 export interface RouteKey {
   origin: string;
   destination: string;
   departure_date: string;
+  /** 0..=3 days either side; 0 (or missing) = that day only. */
+  date_window_days?: number;
   fare_class: string;
 }
 
@@ -92,9 +98,17 @@ export interface ProductParams {
   moneyness_floor_bps: number;
   min_premium: number;
   max_premium: number;
+  /** Default deductible per traveller; one of deductible_options. */
   deductible: number;
   max_payout: number;
+  /** Default cover duration; one of validity_options_secs. */
   validity_secs: number;
+  deductible_options: number[];
+  deductible_mult_bps: number[];
+  validity_options_secs: number[];
+  validity_mult_bps: number[];
+  flex_window_mult_bps: number[];
+  airport_group_mult_bps: number;
   activation_delay_secs: number;
   flight_exposure_cap: number;
   route_week_exposure_cap: number;
@@ -110,6 +124,8 @@ export interface GlobalParams {
   max_attestation_age_secs: number;
   final_check_lead_secs: number;
   claim_grace_secs: number;
+  /** A payout needs a live booking check at least this long after booking (free cancellations). */
+  free_cancel_window_secs: number;
   sold_out_premium_refund: boolean;
   protocol_fee_bps: number;
   usdc_micro_per_cent: number;
@@ -134,6 +150,13 @@ export interface PremiumInputs {
   vault_reserved: string;
   new_lock: string;
   flight_exposure: number;
+  /** Chosen deductible per traveller; undefined = default. */
+  deductible?: number | null;
+  /** Chosen cover duration (seconds); undefined = default. */
+  validity_secs?: number | null;
+  /** Route cover only: days either side (0..=3). */
+  route_window_days?: number | null;
+  airport_group?: boolean;
 }
 
 export interface PremiumBreakdown {
@@ -150,7 +173,12 @@ export interface PremiumBreakdown {
   moneyness_mult_bps: number;
   utilization_bps: number;
   flight_exposure_ratio_bps: number;
+  deductible_mult_bps: number;
+  validity_mult_bps: number;
+  flex_mult_bps: number;
+  options_mult_bps: number;
   deductible: number;
+  validity_secs: number;
   max_payout: number;
 }
 
@@ -188,6 +216,10 @@ export interface Policy {
   auto_drop_max_premium_minor: number | null;
   linked_policy: number | null;
   final_check_at: number | null;
+  booked_at?: number | null;
+  /** Renewal chain (Price Caps). */
+  renewal_of?: number | null;
+  renewed_by?: number | null;
   usdc_micro_per_cent: number;
   premium_usdc: string;
   lock_usdc: string;
@@ -201,6 +233,8 @@ export interface CapLeg {
   coverage: Coverage;
   strike_minor: number;
   max_premium_minor: number;
+  deductible_minor?: number | null;
+  validity_secs?: number | null;
 }
 
 export interface CapPurchase {

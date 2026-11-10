@@ -30,6 +30,26 @@ export function moneynessMultBps(p: ProductParams, product: string, price: numbe
   return max(adj, BigInt(p.moneyness_floor_bps));
 }
 
+/** Multiplier for the buyer's choices: deductible, cover duration, flexible route cover. */
+export function optionsMultBps(p: ProductParams, i: PremiumInputs) {
+  const deductible = i.deductible ?? p.deductible;
+  const validity = i.validity_secs ?? p.validity_secs;
+  const di = p.deductible_options.indexOf(deductible);
+  if (di < 0) throw new PremiumError("choose one of the offered deductibles");
+  const vi = p.validity_options_secs.indexOf(validity);
+  if (vi < 0) throw new PremiumError("choose one of the offered cover durations");
+  const ded = BigInt(p.deductible_mult_bps[di]);
+  const dur = BigInt(p.validity_mult_bps[vi]);
+  let flex = BPS;
+  if (i.route_window_days !== undefined && i.route_window_days !== null) {
+    if (i.route_window_days >= p.flex_window_mult_bps.length) throw new PremiumError("date window must be 0 to 3 days");
+    const group = i.airport_group ? BigInt(p.airport_group_mult_bps) : BPS;
+    flex = (BigInt(p.flex_window_mult_bps[i.route_window_days]) * group) / BPS;
+  }
+  const opt = (((ded * dur) / BPS) * flex) / BPS;
+  return { ded, dur, flex, opt, deductible, validity };
+}
+
 export function computePremium(p: ProductParams, i: PremiumInputs): PremiumBreakdown {
   if (i.current_price === 0) throw new PremiumError("price must be positive");
   if (i.departure_ts <= i.now) throw new PremiumError("flight has departed");
@@ -52,8 +72,9 @@ export function computePremium(p: ProductParams, i: PremiumInputs): PremiumBreak
   );
   const util = utilizationMultBps(p, utilBps, flightRatio);
   const money = moneynessMultBps(p, i.product, i.current_price, i.strike);
-  const num = base * mom * av * season * util * money;
-  const den = BPS ** 5n;
+  const o = optionsMultBps(p, i);
+  const num = base * mom * av * season * util * money * o.opt;
+  const den = BPS ** 6n;
   const unclamped = num / den + (num % den !== 0n ? 1n : 0n);
   const premium = min(max(unclamped, BigInt(p.min_premium)), BigInt(p.max_premium));
   return {
@@ -70,7 +91,12 @@ export function computePremium(p: ProductParams, i: PremiumInputs): PremiumBreak
     moneyness_mult_bps: Number(money),
     utilization_bps: Number(utilBps),
     flight_exposure_ratio_bps: Number(flightRatio),
-    deductible: p.deductible,
+    deductible_mult_bps: Number(o.ded),
+    validity_mult_bps: Number(o.dur),
+    flex_mult_bps: Number(o.flex),
+    options_mult_bps: Number(o.opt),
+    deductible: o.deductible,
+    validity_secs: o.validity,
     max_payout: p.max_payout,
   };
 }

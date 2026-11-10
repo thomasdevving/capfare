@@ -35,6 +35,11 @@ class PremiumInputs:
     vault_reserved: int
     new_lock: int
     flight_exposure: int
+    # Buyer choices (None = the product's default); route cover only: window and groups.
+    deductible: int | None = None
+    validity_secs: int | None = None
+    route_window_days: int | None = None
+    airport_group: bool = False
 
 
 class PremiumError(Exception):
@@ -53,6 +58,26 @@ def moneyness_mult_bps(p: dict, product: str, price: int, strike: int) -> int:
     dec = otm_bps * p["moneyness_slope_bps"] // BPS
     adj = max(0, BPS - dec)
     return max(adj, p["moneyness_floor_bps"])
+
+
+def options_mult_bps(p: dict, i: PremiumInputs) -> tuple[int, int, int, int, int, int]:
+    """Multiplier for the buyer's choices: deductible, cover duration, flexible route cover."""
+    deductible = p["deductible"] if i.deductible is None else i.deductible
+    validity = p["validity_secs"] if i.validity_secs is None else i.validity_secs
+    if deductible not in p["deductible_options"]:
+        raise PremiumError("choose one of the offered deductibles")
+    if validity not in p["validity_options_secs"]:
+        raise PremiumError("choose one of the offered cover durations")
+    ded = p["deductible_mult_bps"][p["deductible_options"].index(deductible)]
+    dur = p["validity_mult_bps"][p["validity_options_secs"].index(validity)]
+    flex = BPS
+    if i.route_window_days is not None:
+        if i.route_window_days >= len(p["flex_window_mult_bps"]):
+            raise PremiumError("date window must be 0 to 3 days")
+        group = p["airport_group_mult_bps"] if i.airport_group else BPS
+        flex = p["flex_window_mult_bps"][i.route_window_days] * group // BPS
+    opt = ded * dur // BPS * flex // BPS
+    return ded, dur, flex, opt, deductible, validity
 
 
 def compute_premium(p: dict, i: PremiumInputs) -> dict:
@@ -78,12 +103,15 @@ def compute_premium(p: dict, i: PremiumInputs) -> dict:
     flight_ratio_bps = min((i.flight_exposure + p["max_payout"]) * BPS // max(p["flight_exposure_cap"], 1), 1_000_000)
     util = utilization_mult_bps(p, util_bps, flight_ratio_bps)
     money = moneyness_mult_bps(p, i.product, i.current_price, i.strike)
-    num = base * mom * av * season * util * money
-    den = BPS**5
+    ded, dur, flex, opt, deductible, validity = options_mult_bps(p, i)
+    num = base * mom * av * season * util * money * opt
+    den = BPS**6
     unclamped = num // den + (1 if num % den else 0)
     premium = min(max(unclamped, p["min_premium"]), p["max_premium"])
     return {"premium": premium, "unclamped": unclamped, "base": base, "price_bucket": pb, "dtd_bucket": db,
-            "days_to_departure": days, "utilization_mult_bps": util, "moneyness_mult_bps": money}
+            "days_to_departure": days, "utilization_mult_bps": util, "moneyness_mult_bps": money,
+            "deductible_mult_bps": ded, "validity_mult_bps": dur, "flex_mult_bps": flex, "options_mult_bps": opt,
+            "deductible": deductible, "validity_secs": validity}
 
 
 def cap_payout(index: int, paid: int, strike: int, deductible: int, max_payout: int) -> int:

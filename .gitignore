@@ -33,3 +33,9 @@ web/playwright-report/
 extension/build/
 web/next-env.d.ts
 *.tsbuildinfo
+# Demo video: generated footage, frames, renders and browser profiles stay local
+video/footage/
+video/frames/
+video/out/
+video/.profile*/
+video/audio/*.wav

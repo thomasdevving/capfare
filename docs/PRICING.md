@@ -106,6 +106,49 @@ simulated per-policy P&L).
 | cap | 200 | €30,000 | €0 | 0% |
 | drop | 200 | €16,000 | €0 | 0% |
 
+## Buyer options: deductible and cover duration
+
+Buyers choose a deductible and how long the lock lasts. Each choice multiplies the premium.
+Deductible multipliers come from recomputing every simulated policy's payout with each
+deductible (expected payout relative to the default), so the loss ratio stays the same;
+they never increase with the deductible. Duration multipliers come from re-running the
+simulation with each cover duration (expected payout per policy relative to 7 days); they
+never decrease with the duration. Together they act as a duration dimension of the base
+table, kept separate so the table stays readable.
+
+| Product | Deductible (€) | Premium × | Duration (days) | Premium × |
+|---|---|---|---|---|
+| cap | 5, 10, 25, 50 | 1.00, 0.74, 0.29, 0.15 | 3, 7, 14, 30 | 0.39, 1.00, 2.34, 3.00 |
+| drop | 3, 10, 25 | 1.00, 0.62, 0.15 | 3, 7, 14, 30 | 0.68, 1.00, 1.23, 1.47 |
+
+Renewal: a Price Cap can be renewed without a gap (the new cover starts when the old
+one ends) if it is bought at least one activation delay before the end, so renewing at
+the last moment cannot skip the delay.
+
+## Route cover and flexible cover (date windows, airport groups)
+
+Route cover pays against the cheapest available fare in a set of flights. 120 synthetic
+route-days were generated with flights on the day and up to 3 days either side, at the main
+airport and two nearby airports of its group. Flights are aligned on calendar time, the
+cheapest open fare per step is the index, and the Price Cap buyer simulation runs on that
+index with the single-flight parameters. The multiplier is the loss ratio relative to
+single-flight cover on the same route-days (single-flight loss ratio 0.497).
+
+| Window (± days) | Airport group | Flights in the set | Loss ratio |
+|---|---|---|---|
+| 0 | no | 4 | 0.506 |
+| 1 | no | 12 | 0.573 |
+| 2 | no | 20 | 0.548 |
+| 3 | no | 28 | 0.508 |
+| 0 | yes | 12 | 0.492 |
+| 1 | yes | 36 | 0.524 |
+| 2 | yes | 60 | 0.387 |
+| 3 | yes | 84 | 0.417 |
+
+Exported multipliers: date window 0–3 days ×1.018, ×1.151, ×1.102, ×1.021; airport group ×0.853 (clipped to 0.6–2.0).
+Limitations: nearby airports are modelled as the same market with independent flights;
+real airports differ in price level and correlation. Re-fit on real fares.
+
 ## Combined view (secondary)
 
 Cap + drop together: premiums €69,629, payouts €33,640. No hedge between the products is assumed;
@@ -125,12 +168,3 @@ they sit in separate vaults.
 - FX between EUR and USDC is fixed per policy at purchase and not simulated.
 - Group collusion beyond the informed-buyer model (many accounts on one flight) is limited
   by per-user and per-flight caps but not simulated explicitly.
-- **Travellers per policy** (D28) multiply premium, lock and payout by seats with unchanged
-  per-traveller parameters; the flight exposure cap fills faster. Correlation between seats on
-  one booking (they always claim together) is not simulated.
-- **Route cover** (D30) uses the cap parameters on a different index: the cheapest available
-  fare over the tracked flights on a route and day. A minimum over flights rises no faster than
-  any one of them, so we expect a lower loss ratio than exact-flight caps, but this has not been
-  simulated; route paths should be added to the generator before pricing route cover separately.
-- **Return trips** are two independent policies; the backtest does not model whether outbound
-  and return prices move together.

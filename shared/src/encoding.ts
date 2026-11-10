@@ -34,8 +34,34 @@ export function flightKeyHash(k: FlightKey): string {
   return bytesToHex(digest(FLIGHT_KEY_DOMAIN, encodeFlightKey(k)));
 }
 
+export function encodeRouteKey(r: RouteKey): Uint8Array {
+  return new BorshWriter().string(r.origin).string(r.destination).string(r.departure_date).u8(r.date_window_days ?? 0).string(r.fare_class).bytes();
+}
+
 export function routeKeyHash(r: RouteKey): string {
-  return bytesToHex(digest(ROUTE_KEY_DOMAIN, new BorshWriter().string(r.origin).string(r.destination).string(r.departure_date).string(r.fare_class).bytes()));
+  return bytesToHex(digest(ROUTE_KEY_DOMAIN, encodeRouteKey(r)));
+}
+
+/** Airport groups for flexible route cover (mirrors capfare_core::AIRPORT_GROUPS). */
+export const AIRPORT_GROUPS: Record<string, { label: string; airports: string[] }> = {
+  "@LON": { label: "London airports", airports: ["LHR", "LGW", "STN", "LTN", "LCY", "SEN"] },
+  "@PAR": { label: "Paris airports", airports: ["CDG", "ORY", "BVA"] },
+  "@NL": { label: "Amsterdam, Rotterdam and Eindhoven", airports: ["AMS", "RTM", "EIN"] },
+  "@MIL": { label: "Milan airports", airports: ["MXP", "LIN", "BGY"] },
+  "@ROM": { label: "Rome airports", airports: ["FCO", "CIA"] },
+  "@NYC": { label: "New York airports", airports: ["JFK", "EWR", "LGA"] },
+};
+export const MAX_DATE_WINDOW_DAYS = 3;
+
+export const airportsOf = (code: string): string[] => AIRPORT_GROUPS[code]?.airports ?? [code];
+/** The group an airport belongs to, if any (for "include nearby airports"). */
+export const groupOf = (airport: string): string | undefined => Object.keys(AIRPORT_GROUPS).find((g) => AIRPORT_GROUPS[g].airports.includes(airport));
+
+/** Days since 1970-01-01 for "YYYY-MM-DD" (UTC calendar). */
+export function daysFromDate(d: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  const t = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  return Number.isFinite(t) ? Math.round(t / 86_400_000) : null;
 }
 
 export function coverageHash(c: Coverage): string {
@@ -52,9 +78,14 @@ export function legNullifier(bookingNullifier: string, flightKeyHashHex: string)
 
 /** Same rules as RouteKey::validate in Rust. */
 export function validateRouteKey(r: RouteKey): string | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.departure_date)) return "departure_date must be YYYY-MM-DD";
-  if (!/^[A-Z]{3}$/.test(r.origin) || !/^[A-Z]{3}$/.test(r.destination)) return "airports must be 3-letter uppercase IATA codes";
-  if (r.origin === r.destination) return "origin and destination must differ";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.departure_date) || daysFromDate(r.departure_date) === null) return "departure_date must be YYYY-MM-DD";
+  for (const a of [r.origin, r.destination]) {
+    if (!/^[A-Z]{3}$/.test(a) && !AIRPORT_GROUPS[a]) return "airports must be 3-letter uppercase IATA codes or airport groups such as @LON";
+  }
+  const d = airportsOf(r.destination);
+  if (airportsOf(r.origin).some((a) => d.includes(a))) return "origin and destination must differ";
+  const w = r.date_window_days ?? 0;
+  if (!Number.isInteger(w) || w < 0 || w > MAX_DATE_WINDOW_DAYS) return "date window must be 0 to 3 days";
   if (!(FARE_CLASSES as readonly string[]).includes(r.fare_class)) return "unknown fare_class";
   return null;
 }
@@ -67,20 +98,25 @@ export function validateCoverage(c: Coverage): string | null {
 export function coverageCovers(c: Coverage, k: FlightKey): boolean {
   if ("flight" in c) return flightKeyHash(c.flight) === flightKeyHash(k);
   const r = c.route;
-  return k.origin === r.origin && k.destination === r.destination && k.departure_date === r.departure_date && k.fare_class === r.fare_class;
+  const a = daysFromDate(k.departure_date);
+  const b = daysFromDate(r.departure_date);
+  const inWindow = a !== null && b !== null && Math.abs(a - b) <= (r.date_window_days ?? 0);
+  return airportsOf(r.origin).includes(k.origin) && airportsOf(r.destination).includes(k.destination) && inWindow && k.fare_class === r.fare_class;
 }
 
 /** Route, day and fare class of any coverage. */
 export function coverageRoute(c: Coverage): RouteKey {
   if ("route" in c) return c.route;
   const f = c.flight;
-  return { origin: f.origin, destination: f.destination, departure_date: f.departure_date, fare_class: f.fare_class };
+  return { origin: f.origin, destination: f.destination, departure_date: f.departure_date, date_window_days: 0, fare_class: f.fare_class };
 }
 
 /** "KL1695 AMS→BCN, 2027-06-14" or "Any flight AMS→BCN, 2027-06-14". */
 export function coverageLabel(c: Coverage): string {
   const r = coverageRoute(c);
-  return `${"flight" in c ? c.flight.flight_number : "Any flight"} ${r.origin}→${r.destination}, ${r.departure_date}`;
+  const place = (code: string) => (AIRPORT_GROUPS[code] ? airportsOf(code).join("/") : code);
+  const w = r.date_window_days ?? 0;
+  return `${"flight" in c ? c.flight.flight_number : "Any flight"} ${place(r.origin)}→${place(r.destination)}, ${r.departure_date}${w ? ` ±${w} day${w > 1 ? "s" : ""}` : ""}`;
 }
 
 /** Same rules as FlightKey::validate in Rust. Returns an error message or null. */

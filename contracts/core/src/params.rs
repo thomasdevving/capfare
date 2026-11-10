@@ -29,9 +29,23 @@ pub struct ProductParams {
     pub moneyness_floor_bps: u32,
     pub min_premium: u64,
     pub max_premium: u64,
+    /// Default deductible per traveller (cents); one of `deductible_options`.
     pub deductible: u64,
     pub max_payout: u64,
+    /// Default cover duration (seconds); one of `validity_options_secs`.
     pub validity_secs: u64,
+    /// Deductibles a buyer can choose (per traveller, cents, ascending) and the premium
+    /// multiplier for each (bps). A higher deductible pays less, so it costs less.
+    pub deductible_options: Vec<u64>,
+    pub deductible_mult_bps: Vec<u32>,
+    /// Cover durations a buyer can choose (seconds, ascending) and the premium multiplier for
+    /// each (bps, a duration dimension of the base table calibrated by the backtest).
+    pub validity_options_secs: Vec<u64>,
+    pub validity_mult_bps: Vec<u32>,
+    /// Flexible route cover: premium multiplier by date window (index = days either side,
+    /// 0..=3), and a further multiplier when either end is an airport group.
+    pub flex_window_mult_bps: [u32; 4],
+    pub airport_group_mult_bps: u32,
     /// Price Cap only: the policy cannot pay for bookings before purchase + delay.
     pub activation_delay_secs: u64,
     /// Max sum of outstanding max payouts (cents) per flight_key_hash.
@@ -59,6 +73,10 @@ pub struct GlobalParams {
     pub final_check_lead_secs: u64,
     /// Claims (cap) and settlements (drop) accepted until expiry + grace.
     pub claim_grace_secs: u64,
+    /// Many bookings can be cancelled free shortly after booking (US rule: 24 hours for
+    /// flights booked 7+ days ahead; some airlines everywhere). A payout needs a live check
+    /// of the booking verified at least this long after it was booked.
+    pub free_cancel_window_secs: u64,
     pub sold_out_premium_refund: bool,
     /// Protocol fee on earned premiums, in bps.
     pub protocol_fee_bps: u32,
@@ -76,6 +94,9 @@ pub struct Params {
     pub cap: ProductParams,
     pub drop: ProductParams,
 }
+
+/// Upper bound for the buyer-option multipliers (deductible, duration, flexible cover).
+pub const MAX_OPTION_MULT_BPS: u32 = 30_000;
 
 impl ProductParams {
     pub fn validate(&self) -> Result<(), &'static str> {
@@ -125,6 +146,41 @@ impl ProductParams {
         }
         if self.max_per_user_per_flight == 0 || self.max_per_user_per_day == 0 {
             return Err("per-user limits must be positive");
+        }
+        let opt_mult_ok = |m: &u32| *m > 0 && *m <= MAX_OPTION_MULT_BPS;
+        if self.deductible_options.is_empty() || self.deductible_options.len() != self.deductible_mult_bps.len() {
+            return Err("each deductible option needs a multiplier");
+        }
+        if !self.deductible_options.windows(2).all(|w| w[0] < w[1]) || !self.deductible_options.contains(&self.deductible) {
+            return Err("deductible options must be ascending and include the default deductible");
+        }
+        if self.deductible_options.iter().any(|d| *d >= self.max_payout) {
+            return Err("deductible options must be below the maximum payout");
+        }
+        // A higher deductible never costs more.
+        if !self.deductible_mult_bps.iter().all(opt_mult_ok) || !self.deductible_mult_bps.windows(2).all(|w| w[0] >= w[1]) {
+            return Err("deductible multipliers must be in 1..=30000 bps and not increase with the deductible");
+        }
+        if self.validity_options_secs.is_empty() || self.validity_options_secs.len() != self.validity_mult_bps.len() {
+            return Err("each duration option needs a multiplier");
+        }
+        if !self.validity_options_secs.windows(2).all(|w| w[0] < w[1]) || !self.validity_options_secs.contains(&self.validity_secs) {
+            return Err("duration options must be ascending and include the default duration");
+        }
+        // Longer cover never costs less.
+        if !self.validity_mult_bps.iter().all(opt_mult_ok) || !self.validity_mult_bps.windows(2).all(|w| w[0] <= w[1]) {
+            return Err("duration multipliers must be in 1..=30000 bps and not decrease with the duration");
+        }
+        if !self.flex_window_mult_bps.iter().all(opt_mult_ok) || !opt_mult_ok(&self.airport_group_mult_bps) {
+            return Err("flexible cover multipliers must be in 1..=30000 bps");
+        }
+        // Keeps the premium's integer product inside u128 (see premium.rs).
+        let max = |v: &[u32]| v.iter().copied().max().unwrap_or(0) as u128;
+        let worst = max(&self.deductible_mult_bps) * max(&self.validity_mult_bps) / 10_000 * max(&self.flex_window_mult_bps) / 10_000
+            * self.airport_group_mult_bps as u128
+            / 10_000;
+        if worst > 100_000 || self.base_table.iter().flatten().any(|b| *b > 1_000_000) {
+            return Err("option multipliers combined must stay within 10x and base prices within EUR 10,000");
         }
         Ok(())
     }
@@ -179,6 +235,12 @@ impl Params {
             deductible,
             max_payout,
             validity_secs: 7 * 86_400,
+            deductible_options: vec![deductible, deductible * 2, deductible * 5],
+            deductible_mult_bps: vec![10_000, 8_600, 6_200],
+            validity_options_secs: vec![3 * 86_400, 7 * 86_400, 14 * 86_400, 30 * 86_400],
+            validity_mult_bps: vec![6_400, 10_000, 14_800, 22_500],
+            flex_window_mult_bps: [10_000, 10_600, 11_100, 11_500],
+            airport_group_mult_bps: 10_400,
             activation_delay_secs: delay,
             flight_exposure_cap: 2_000_000,
             route_week_exposure_cap: 5_000_000,
@@ -194,6 +256,7 @@ impl Params {
                 max_attestation_age_secs: 3_600,
                 final_check_lead_secs: 86_400,
                 claim_grace_secs: 3 * 86_400,
+                free_cancel_window_secs: 86_400,
                 sold_out_premium_refund: true,
                 protocol_fee_bps: 500,
                 usdc_micro_per_cent: 10_800,

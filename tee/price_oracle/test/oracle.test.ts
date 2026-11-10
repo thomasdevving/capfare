@@ -118,6 +118,21 @@ describe("route index (route coverage)", () => {
     // Local demo sources skip the outbound politeness limit (the test would time out otherwise).
   });
 
+  it("flexible route cover: every airport of a group and every day of the window", async () => {
+    const oracle = new Oracle({ keys: devKeys("price_oracle"), adapters: [new ScriptedPriceAdapter(paths), new DemoModelAdapter()], now: () => 1_800_000_000, fetchRatePerSec: 0.001 });
+    const one = await oracle.routeSnapshot(route);
+    const flex = { ...route, origin: "@NL", date_window_days: 1 };
+    const r = await oracle.routeSnapshot(flex);
+    expect(r.route.snapshot.flight_key_hash).toBe(routeKeyHash(flex));
+    const origins = new Set(r.detail.map((d) => d.flight_key.origin));
+    const days = new Set(r.detail.map((d) => d.flight_key.departure_date));
+    expect([...origins].sort()).toEqual(["AMS", "EIN", "RTM"]);
+    expect([...days].sort()).toEqual(["2027-06-13", "2027-06-14", "2027-06-15"]);
+    expect(r.detail.length).toBeGreaterThan(one.detail.length);
+    // More flights to choose from: the index is never above the single route-day's.
+    expect(r.route.snapshot.price_minor).toBeLessThanOrEqual(one.route.snapshot.price_minor);
+  });
+
   it("route demo moves raise every flight, so the index rises", async () => {
     const scripted = new ScriptedPriceAdapter(paths);
     const model = new DemoModelAdapter();

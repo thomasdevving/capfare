@@ -15,7 +15,9 @@ def test_premiums_match_rust_core():
             momentum_bucket=i["signals"]["momentum_bucket"], availability_bucket=i["signals"]["availability_bucket"],
             season_flag=i["signals"]["season_flag"], now=i["now"], departure_ts=i["departure_ts"],
             vault_total_assets=int(i["vault_total_assets"]), vault_locked=int(i["vault_locked"]),
-            vault_reserved=int(i["vault_reserved"]), new_lock=int(i["new_lock"]), flight_exposure=i["flight_exposure"])
+            vault_reserved=int(i["vault_reserved"]), new_lock=int(i["new_lock"]), flight_exposure=i["flight_exposure"],
+            deductible=i.get("deductible"), validity_secs=i.get("validity_secs"),
+            route_window_days=i.get("route_window_days"), airport_group=i.get("airport_group", False))
         out = compute_premium(params[i["product"]], inp)
         assert out["premium"] == v["premium"]
         assert out["unclamped"] == v["unclamped"]

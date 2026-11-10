@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const snaps = await Promise.all(
       [...new Set(policies.map((p) => p.flight_key_hash))].map(async (h) => [h, await v.view(c.attestation, "get_latest_snapshot", { flight_key_hash: h })] as const),
     );
-    return NextResponse.json({ policies, credit, wallet, snapshots: Object.fromEntries(snaps), now: await v.blockTimeSecs(), global: params.global });
+    return NextResponse.json({ policies, credit, wallet, snapshots: Object.fromEntries(snaps), now: await v.blockTimeSecs(), global: params.global, cap: { activation_delay_secs: params.cap.activation_delay_secs } });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 503 });
   }

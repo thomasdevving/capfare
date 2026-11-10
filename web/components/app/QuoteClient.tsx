@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  coverageLabel, FARE_CLASSES, MAX_SEATS, parseBookingLink, validateCoverage, validateFlightKey,
+  AIRPORT_GROUPS, coverageLabel, FARE_CLASSES, groupOf, MAX_SEATS, parseBookingLink, validateCoverage, validateFlightKey,
   type Coverage, type FlightKey, type Params, type RouteKey, type SnapshotRecord, type VaultState,
 } from "@capfare/shared";
 import { commitmentFor, gasless, rememberedLastName, rememberLastName } from "@/lib/wallet";
@@ -73,7 +73,14 @@ export function parseBookingUrl(s: string): LinkRead {
 
 const dayLabel = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-const routeOf = (f: FlightKey): RouteKey => ({ origin: f.origin, destination: f.destination, departure_date: f.departure_date, fare_class: f.fare_class });
+/** Route cover for a leg: the day (± a window) and, with nearby airports, the airport groups. */
+const routeOf = (f: FlightKey, windowDays = 0, nearby = false): RouteKey => ({
+  origin: nearby ? groupOf(f.origin) ?? f.origin : f.origin,
+  destination: nearby ? groupOf(f.destination) ?? f.destination : f.destination,
+  departure_date: f.departure_date,
+  date_window_days: windowDays,
+  fare_class: f.fare_class,
+});
 const travellers = (n: number) => (n > 1 ? ` for ${n} travellers` : "");
 
 export default function QuoteClient({ cfg }: { cfg: Cfg }) {
@@ -101,6 +108,11 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
   });
   const [hint, setHint] = useState<number | undefined>(sp.get("hint") ? Number(sp.get("hint")) : undefined);
   const [link, setLink] = useState("");
+  // Buyer choices (null = the product's default) and flexible route cover.
+  const [deductible, setDeductible] = useState<number | null>(null);
+  const [validity, setValidity] = useState<number | null>(null);
+  const [windowDays, setWindowDays] = useState(Math.min(3, Math.max(0, Number(sp.get("window") ?? 0) || 0)));
+  const [nearby, setNearby] = useState(sp.get("nearby") === "1");
   const [linkNote, setLinkNote] = useState<string | null>(null);
   // One-tap lock from a price alert (opt-in, see NotifySettings): ?quick=1&cap=… loads the quote
   // with that maximum price, ready to confirm. Without it, the page works exactly as before.
@@ -169,8 +181,14 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
   const coverages: Coverage[] = useMemo(() => {
     if (product === "drop") return [{ flight: fk }];
     const legs = trip === "return" ? [fk, rfk] : [fk];
-    return legs.map((k) => (scope === "route" ? { route: routeOf(k) } : { flight: k }));
-  }, [product, scope, trip, fk, rfk]);
+    return legs.map((k) => (scope === "route" ? { route: routeOf(k, windowDays, nearby) } : { flight: k }));
+  }, [product, scope, trip, fk, rfk, windowDays, nearby]);
+  const nearbyGroups = [fk.origin, fk.destination].map((a) => groupOf(a)).filter((g): g is string => !!g);
+  const optsFor = (c: Coverage, ded: number | null = deductible, val: number | null = validity) => ({
+    deductible: ded ?? undefined,
+    validity_secs: val ?? undefined,
+    ...("route" in c ? { route_window_days: c.route.date_window_days ?? 0, airport_group: !!(AIRPORT_GROUPS[c.route.origin] || AIRPORT_GROUPS[c.route.destination]) } : {}),
+  });
   const formErr =
     product === "cap" && scope === "flight" && trip === "return" && !rfk.flight_number
       ? "Enter the return flight number (or choose “Any flight on this route and day”)."
@@ -214,17 +232,34 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
     return quotes.map((q, i) => {
       try {
         if (!strikes[i]) throw new Error("set your maximum price");
-        const p = premiumFor(q, product, strikes[i], policySeats, extra);
+        const p = premiumFor(q, product, strikes[i], policySeats, extra, optsFor(coverages[i]));
         extra += p.lock;
         return p;
       } catch (e) {
         return { error: errText(e) } as const;
       }
     });
-  }, [quotes, strikes, product, policySeats]);
+  }, [quotes, strikes, product, policySeats, deductible, validity, coverages]);
 
   const ok = premiums && premiums.every((p) => !("error" in p)) ? (premiums as Exclude<(typeof premiums)[number], { error: string }>[]) : null;
   const premiumTotal = ok ? ok.reduce((a, p) => a + p.premium, 0) : 0;
+  /** Total premium (all legs, all travellers) for a choice, to show next to each option. */
+  const totalFor = (ded: number | null, val: number | null): number | null => {
+    if (!quotes) return null;
+    try {
+      let extra = 0n;
+      let total = 0;
+      quotes.forEach((q, i) => {
+        if (!strikes[i]) throw new Error("no strike");
+        const p = premiumFor(q, product, strikes[i], policySeats, extra, optsFor(coverages[i], ded, val));
+        extra += p.lock;
+        total += p.premium;
+      });
+      return total;
+    } catch {
+      return null;
+    }
+  };
   const maxPays = ok ? ok.map((p) => maxPremium(p.premium)) : [];
   const rate = quotes ? BigInt(quotes[0].params.global.usdc_micro_per_cent) : 0n;
   const maxPayTotal = maxPays.reduce((a, b) => a + b, 0);
@@ -245,14 +280,14 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
         rememberLastName(lastName.trim());
         r = await gasless(cfg.registry, "buy_caps", {
           purchase: {
-            legs: coverages.map((coverage, i) => ({ coverage, strike_minor: caps[i], max_premium_minor: maxPays[i] })),
+            legs: coverages.map((coverage, i) => ({ coverage, strike_minor: caps[i], max_premium_minor: maxPays[i], deductible_minor: deductible, validity_secs: validity })),
             seats,
             passenger_commitment: await commitmentFor(lastName),
             auto_drop_max_premium_minor: autoDrop ? dropCeiling : null,
           },
         });
       } else {
-        r = await gasless(cfg.registry, "buy_drop", { attestation: proof!.attestation, flight_key: proof!.flight_key, max_premium_minor: maxPays[0] });
+        r = await gasless(cfg.registry, "buy_drop", { attestation: proof!.attestation, flight_key: proof!.flight_key, max_premium_minor: maxPays[0], deductible_minor: deductible, validity_secs: validity });
       }
       const bought = (r.events ?? []).filter((e) => e.event === "policy_purchased").map((e) => Number(e.data.policy_id));
       const active = (r.events ?? []).filter((e) => e.event === "policy_active");
@@ -313,7 +348,26 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
             <label><input type="radio" name="scope" checked={scope === "route"} onChange={() => { setScope("route"); reset(); }} /> Any flight on this route and day <span className="tag">option</span></label>
           </fieldset>
           {scope === "route" ? (
-            <p className="hint">Not sure which flight yet? We track every non-stop flight on the route and day. Your cap applies to the cheapest fare among them, and you can book whichever one you like.</p>
+            <>
+              <p className="hint">Not sure which flight yet? We track every non-stop flight on the route and day. Your cap applies to the cheapest fare among them, and you can book whichever one you like.</p>
+              <fieldset className="choice-row">
+                <legend>Flexible cover <span className="tag">option</span></legend>
+                <label className="inline-select">
+                  Dates
+                  <select aria-label="Dates" value={windowDays} onChange={(e) => { setWindowDays(Number(e.target.value)); reset(); }}>
+                    <option value={0}>Only this day</option>
+                    <option value={1}>± 1 day</option>
+                    <option value={2}>± 2 days</option>
+                    <option value={3}>± 3 days</option>
+                  </select>
+                </label>
+                {nearbyGroups.length ? (
+                  <label>
+                    <input type="checkbox" checked={nearby} onChange={(e) => { setNearby(e.target.checked); reset(); }} /> Include nearby airports ({nearbyGroups.map((g) => AIRPORT_GROUPS[g].airports.join(", ")).join("; ")})
+                  </label>
+                ) : null}
+              </fieldset>
+            </>
           ) : null}
           <fieldset className="choice-row">
             <legend>Trip</legend>
@@ -384,7 +438,7 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
                   </>
                 ) : (
                   <p>
-                    You paid <strong className="num">{eur(strikes[0])}</strong> per traveller. If the price of this flight drops within {duration(pp.validity_secs)}, you get the difference{travellers(policySeats)}.
+                    You paid <strong className="num">{eur(strikes[0])}</strong> per traveller. If the price of this flight drops within {duration(validity ?? pp.validity_secs)}, you get the difference{travellers(policySeats)}.
                   </p>
                 )}
                 {prem && "error" in prem ? <Msg kind="error">{prem.error}</Msg> : null}
@@ -392,6 +446,28 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
             );
           })}
 
+          {quotes && pp ? (
+            <OptionChoices
+              title="Deductible per traveller"
+              hint="You pay this part of any price rise yourself. A higher deductible means a lower premium."
+              options={pp.deductible_options}
+              value={deductible ?? pp.deductible}
+              label={(d) => eur(d)}
+              premium={(d) => totalFor(d, validity)}
+              onChange={setDeductible}
+            />
+          ) : null}
+          {quotes && pp ? (
+            <OptionChoices
+              title={product === "cap" ? "How long the lock lasts" : "How long the drop window lasts"}
+              hint={product === "cap" ? "Longer cover costs more. You can also renew a Price Cap later, without a gap." : undefined}
+              options={pp.validity_options_secs}
+              value={validity ?? pp.validity_secs}
+              label={(v) => duration(v)}
+              premium={(v) => totalFor(deductible, v)}
+              onChange={setValidity}
+            />
+          ) : null}
           {ok ? (
             <table className="data" style={{ maxWidth: 560 }}>
               <tbody>
@@ -399,17 +475,17 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
                   <tr key={i}><th>Premium{legName(i) ? ` (${legName(i).toLowerCase()})` : ""}</th><td className="r num"><strong>{eur(p.premium)}</strong>{policySeats > 1 ? <span className="small muted"> ({policySeats} × {eur(p.per_seat)})</span> : null}</td></tr>
                 ))}
                 {ok.length > 1 ? <tr><th>Total premium</th><td className="r num"><strong>{eur(premiumTotal)}</strong></td></tr> : null}
-                <tr><th>Deductible per traveller</th><td className="r num">{eur(pp.deductible)}</td></tr>
+                <tr><th>Deductible per traveller</th><td className="r num">{eur(deductible ?? pp.deductible)}</td></tr>
                 <tr><th>Maximum payout{ok.length > 1 ? " per flight" : ""}</th><td className="r num">{eur(pp.max_payout * policySeats)}{policySeats > 1 ? <span className="small muted"> ({policySeats} × {eur(pp.max_payout)})</span> : null}</td></tr>
                 {product === "cap" ? <tr><th>Starts after</th><td className="r">{duration(pp.activation_delay_secs)}</td></tr> : null}
-                <tr><th>Valid for</th><td className="r">{duration(pp.validity_secs)}</td></tr>
+                <tr><th>Valid for</th><td className="r">{duration(validity ?? pp.validity_secs)}</td></tr>
                 <tr><th>Locked in the vault for you</th><td className="r num">{usdc(ok.reduce((a, p) => a + p.lock, 0n).toString())} tUSDC</td></tr>
               </tbody>
             </table>
           ) : null}
           {ok && product === "cap" ? (
             <p className="small muted" style={{ marginTop: 12 }}>
-              Example: if you book at {eur(caps[0] + 5000)} per traveller while the airline asks {eur(caps[0] + 5000)}, you get {eur(Math.max(0, Math.min(5000 - pp.deductible, pp.max_payout)) * policySeats)}{travellers(policySeats)}.
+              Example: if you book at {eur(caps[0] + 5000)} per traveller while the airline asks {eur(caps[0] + 5000)}, you get {eur(Math.max(0, Math.min(5000 - (deductible ?? pp.deductible), pp.max_payout)) * policySeats)}{travellers(policySeats)}.
               {scope === "route" ? " For route cover the airline price is the cheapest fare on the route at the time you book." : ""}
             </p>
           ) : null}
@@ -478,6 +554,36 @@ function QuickReady({ note, cap, premium, delay }: { note: string | null; cap: n
       <strong>Ready to lock from your alert:</strong> maximum <span className="num">{eur(cap)}</span> per traveller for <span className="num">{eur(premium)}</span>, starting after {delay}. Check the details and press Lock below, or change anything above.
       {note ? <> {note}</> : null}
     </div>
+  );
+}
+
+/** One buyer choice (deductible or duration) with the premium each option would cost. */
+function OptionChoices({ title, hint, options, value, label, premium, onChange }: {
+  title: string;
+  hint?: string;
+  options: number[];
+  value: number;
+  label: (v: number) => string;
+  premium: (v: number) => number | null;
+  onChange: (v: number) => void;
+}) {
+  if (options.length < 2) return null;
+  return (
+    <fieldset className="option-choices">
+      <legend>{title}</legend>
+      <div className="option-row" role="radiogroup" aria-label={title}>
+        {options.map((o) => {
+          const p = premium(o);
+          return (
+            <button key={o} type="button" role="radio" aria-checked={o === value} className={`option${o === value ? " is-on" : ""}`} onClick={() => onChange(o)}>
+              <span className="option-label">{label(o)}</span>
+              <span className="option-price num">{p === null ? "–" : eur(p)}</span>
+            </button>
+          );
+        })}
+      </div>
+      {hint ? <p className="hint">{hint}</p> : null}
+    </fieldset>
   );
 }
 

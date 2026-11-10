@@ -1,0 +1,22 @@
+const { openBrowser, APP, sleep } = require("./lib.cjs");
+const fs = require("fs");
+(async () => {
+  const prof = "/tmp/claude-0/-home-user-capfare/678f7fc1-6c91-55cb-b2fc-24c6ae0e995e/scratchpad/pk-prof2";
+  fs.rmSync(prof, { recursive: true, force: true });
+  const ctx = await openBrowser(prof);
+  const page = ctx.pages()[0];
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send("WebAuthn.enable");
+  await cdp.send("WebAuthn.addVirtualAuthenticator", { options: { protocol: "ctap2", ctap2Version: "ctap2_1", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, hasPrf: true, automaticPresenceSimulation: true } });
+  await page.goto(APP + "/account");
+  await page.getByLabel("Choose an account name").fill("pktest" + (Date.now() % 100000));
+  await page.getByLabel(/Passkey/).check();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await page.getByText("Signed in as").waitFor({ timeout: 60000 });
+  console.log((await page.locator("main").innerText()).slice(0, 300));
+  await page.goto(APP + "/credit");
+  await page.getByRole("button", { name: /Top up €20/ }).click();
+  await page.getByText(/to your credit/).first().waitFor({ timeout: 90000 }).catch(() => {});
+  console.log("----", (await page.locator("main").innerText()).slice(0, 400));
+  await ctx.close();
+})().catch((e) => { console.error(e); process.exit(1); });

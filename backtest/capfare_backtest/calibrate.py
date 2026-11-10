@@ -7,7 +7,14 @@ import itertools
 
 import numpy as np
 
+from .formula import cap_payout, drop_payout
 from .simulate import BuyerConfig, simulate_cap, simulate_drop, summarize
+
+DAY = 86_400
+# Choices offered to buyers (per traveller, cents). The default deductible from the search is
+# always included; options at or above the maximum payout are dropped.
+DEDUCTIBLE_MENU = {"cap": [500, 1_000, 2_500, 5_000], "drop": [300, 1_000, 2_500]}
+DURATION_MENU = [3 * DAY, 7 * DAY, 14 * DAY, 30 * DAY]
 
 PRICE_BOUNDS = [10_000, 20_000, 35_000]
 DTD_BOUNDS = [7, 21, 60]
@@ -32,6 +39,13 @@ def skeleton(product: str, deductible: int, max_payout: int) -> dict:
         "deductible": deductible,
         "max_payout": max_payout,
         "validity_secs": 7 * 86_400,
+        # Neutral options during the search; finalize_options() calibrates the menus.
+        "deductible_options": [deductible],
+        "deductible_mult_bps": [10_000],
+        "validity_options_secs": [7 * 86_400],
+        "validity_mult_bps": [10_000],
+        "flex_window_mult_bps": [10_000] * 4,
+        "airport_group_mult_bps": 10_000,
         "activation_delay_secs": 86_400 if product == "cap" else 0,
         "flight_exposure_cap": max_payout * 40,
         "route_week_exposure_cap": max_payout * 400,
@@ -140,3 +154,51 @@ def search(product: str, flights, cfg: BuyerConfig, consumer_max_eur: float = 10
     oks = [r for r in results if r["ok"]] or results
     best = max(oks, key=lambda r: (round(r["return"], 2) >= 0.15, r["max_payout"], -r["deductible"], r["return"]))
     return best["params"], best, results
+
+
+def _payout_with(r, product: str, deductible: int, max_payout: int) -> int:
+    m = r.meta
+    if product == "cap" and "index" in m:
+        return cap_payout(m["index"], m["paid"], r.strike, deductible, max_payout)
+    if product == "drop" and "lowest" in m:
+        return drop_payout(m["paid"], m["lowest"], deductible, max_payout)
+    return 0
+
+
+def finalize_options(product: str, flights, p: dict, cfg: BuyerConfig, log=print) -> dict:
+    """Calibrates the buyer menus on top of the chosen parameters.
+
+    Deductible: each simulated policy's payout is recomputed with every deductible on the menu;
+    the multiplier is the expected payout relative to the default deductible (so the loss ratio
+    stays the same), never increasing with the deductible.
+    Duration: the simulation is re-run with each cover duration; the multiplier is the expected
+    payout per policy relative to 7 days, never decreasing with the duration. This is the
+    duration dimension of the base table, kept separable so the 2-D table stays readable."""
+    p = copy.deepcopy(p)
+    sim = simulate_cap if product == "cap" else simulate_drop
+    recs = sim(flights, p, cfg, seed=11)
+    menu = sorted({d for d in DEDUCTIBLE_MENU[product] if d < p["max_payout"]} | {p["deductible"]})
+    base = np.mean([_payout_with(r, product, p["deductible"], p["max_payout"]) for r in recs]) or 1e-9
+    ratios = [np.mean([_payout_with(r, product, d, p["max_payout"]) for r in recs]) / base for d in menu]
+    ratios = np.minimum.accumulate(np.clip(ratios, 0.15, 1.5))
+    i0 = menu.index(p["deductible"])
+    ratios = ratios / ratios[i0]
+    p["deductible_options"] = menu
+    p["deductible_mult_bps"] = [int(round(float(x) * 10_000)) for x in ratios]
+    means = []
+    for v in DURATION_MENU:
+        q = copy.deepcopy(p)
+        q["validity_secs"] = v
+        q["validity_options_secs"] = [v]
+        q["validity_mult_bps"] = [10_000]
+        rs = sim(flights, q, cfg, seed=11)
+        means.append(np.mean([r.payout for r in rs]) if rs else 0.0)
+    ref = means[DURATION_MENU.index(7 * DAY)] or 1e-9
+    durs = np.maximum.accumulate(np.clip(np.array(means) / ref, 0.25, 3.0))
+    durs = durs / durs[DURATION_MENU.index(7 * DAY)]
+    p["validity_secs"] = 7 * DAY
+    p["validity_options_secs"] = list(DURATION_MENU)
+    p["validity_mult_bps"] = [int(round(float(x) * 10_000)) for x in durs]
+    log(f"  {product} deductibles {[d / 100 for d in menu]} -> x{[round(float(x), 2) for x in ratios]}; "
+        f"durations 3/7/14/30 days -> x{[round(float(x), 2) for x in durs]}")
+    return p

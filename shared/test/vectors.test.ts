@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
-  attestationDigest, bytesToHex, capPayout, coverageCovers, coverageHash, legNullifier, routeKeyHash, validateRouteKey, computePremium, dropPayout, encodeAttestation, encodeSnapshot,
+  attestationDigest, bytesToHex, encodeRouteKey, capPayout, coverageCovers, coverageHash, legNullifier, routeKeyHash, validateRouteKey, computePremium, dropPayout, encodeAttestation, encodeSnapshot,
   flightKeyHash, keyFromSeed, routeWeekKey, signAttestation, signSnapshot, snapshotDigest, validateFlightKey,
   verifyAttestation, verifySnapshot,
 } from "../src/index.ts";
@@ -34,6 +34,15 @@ describe("conformance with contracts/core", () => {
     expect(coverageCovers(V.coverages[1].coverage, { ...flight, flight_number: "VY1234", airline: "VY" })).toBe(true);
     expect(coverageCovers(V.coverages[1].coverage, { ...flight, departure_date: "2027-06-15" })).toBe(false);
     expect(coverageCovers(V.coverages[0].coverage, { ...flight, flight_number: "KL1696" })).toBe(false);
+    // Flexible cover: airport groups and a date window, same bytes and hash as Rust.
+    expect(validateRouteKey(V.flex_route_key.value)).toBeNull();
+    expect(bytesToHex(encodeRouteKey(V.flex_route_key.value))).toBe(V.flex_route_key.borsh_hex);
+    expect(routeKeyHash(V.flex_route_key.value)).toBe(V.flex_route_key.hash);
+    const flexCov = V.coverages[2].coverage;
+    const lon = { ...flight, origin: "EIN", destination: "LGW", fare_class: "economy_standard" };
+    expect(coverageCovers(flexCov, { ...lon, departure_date: "2027-06-16" })).toBe(true);
+    expect(coverageCovers(flexCov, { ...lon, departure_date: "2027-06-17" })).toBe(false);
+    expect(coverageCovers(flexCov, { ...lon, destination: "CDG" })).toBe(false);
   });
   it("route week key", () => {
     const r = V.route_week;

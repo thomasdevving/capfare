@@ -107,6 +107,7 @@ def simulate_cap(flights: list[FlightPath], p: dict, cfg: BuyerConfig, seed: int
             exposure += p["max_payout"]
             premium = q["premium"]
             start, end = t + delay, min(t + validity, T - 1)
+            meta: dict = {}
             booked = False
             payout = 0
             refunded = False
@@ -123,6 +124,7 @@ def simulate_cap(flights: list[FlightPath], p: dict, cfg: BuyerConfig, seed: int
                     booked = True
                     if not cancelled:
                         payout = cap_payout(index, paid, strike, p["deductible"], p["max_payout"])
+                        meta = {"index": index, "paid": paid}
             if not booked and cfg.sold_out_refund:
                 w = np.arange(t, end + 1)
                 if (~fp.available[w]).any():
@@ -131,7 +133,7 @@ def simulate_cap(flights: list[FlightPath], p: dict, cfg: BuyerConfig, seed: int
             out.append(PolicyRecord("cap", fp.flight_id, fp.route, (fp.departure_day - int(fp.dtd[t])) // 7, informed,
                                     price, strike, premium, payout, p["max_payout"], booked, refunded, q["dtd_bucket"],
                                     q["price_bucket"], fp.momentum_bucket(t), fp.availability_bucket(t), fp.season, otm,
-                                    q["days_to_departure"]))
+                                    q["days_to_departure"], meta))
     return out
 
 
@@ -171,10 +173,11 @@ def simulate_drop(flights: list[FlightPath], p: dict, cfg: BuyerConfig, seed: in
             refundable = rng.random() < cfg.refundable_share
             cancelled = refundable and rng.random() < cfg.cancel_prob_refundable
             payout = 0 if cancelled else drop_payout(paid, lowest, p["deductible"], p["max_payout"])
+            meta = {} if cancelled else {"paid": paid, "lowest": lowest}
             out.append(PolicyRecord("drop", fp.flight_id, fp.route, (fp.departure_day - int(fp.dtd[b])) // 7, informed,
                                     price, paid, q["premium"], payout, p["max_payout"], True, False, q["dtd_bucket"],
                                     q["price_bucket"], fp.momentum_bucket(b), fp.availability_bucket(b), fp.season, 0.0,
-                                    q["days_to_departure"]))
+                                    q["days_to_departure"], meta))
     return out
 
 

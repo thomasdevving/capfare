@@ -181,7 +181,7 @@ delegate would exceed the gas limit). The checker refuses to attest a flight whe
 shows a total for several flights — it previously used the trip total as the price of one flight,
 which would have overpaid a Drop Guarantee.
 
-**D30. Route cover (option).** `Coverage::Route` covers every non-stop flight the oracle tracks on
+**D30. Route cover (option)** (extended by D44 to date windows and airport groups). `Coverage::Route` covers every non-stop flight the oracle tracks on
 a route and day in one fare class. The oracle publishes a route snapshot keyed by the route key
 hash: the cheapest available fare, the earliest departure (so expiry and the final check are
 never later than any covered flight) and the least constrained availability bucket, plus one
@@ -291,3 +291,45 @@ copy and README no longer say a booking "is checked inside a secure enclave". Mo
 hardware means deploying the two services as dstack apps (e.g. Phala Cloud) with
 `CAPFARE_KEY_PROVIDER=dstack`, verifying the TDX quote, and registering the new keys through the
 same timelock; the label then changes by itself.
+
+**D41. Payouts wait for a live check after the free-cancellation window.** Many bookings can
+be cancelled for a full refund shortly after booking: in the US for 24 hours on flights booked
+at least 7 days ahead, and some airlines allow it everywhere. Paying non-refundable tickets as
+soon as the email was verified let someone book, claim and then cancel. Now every payout (Price
+Cap claims and Drop settlements) needs a live check of the booking (the booking site itself:
+the extension's Verify with CapFare or a pasted booking link) verified at least
+`free_cancel_window_secs` (24 h; 30 s on the demo) after `booked_at`. A claim that already
+carries such a check is paid at once; an email claim, or a live check inside the window, is
+approved and held, and `finalize_claim` releases it with a later live check. Refundable and
+unknown fares keep their check from departure minus the lead time (D27), whichever is later.
+The window applies to every booking rather than only US routes: the checker cannot yet attest
+whether a fare has free cancellation. A future version can let the verifier attest
+`free_cancel_until` per booking and hold only those.
+
+**D42. Buyers choose the deductible.** Each product has a menu of deductibles
+(`deductible_options`, per traveller) with premium multipliers (`deductible_mult_bps`). The
+backtest recomputes every simulated policy's payout with each deductible and sets the
+multiplier to the expected payout relative to the default, so the loss ratio stays the same; a
+higher deductible never costs more (checked on-chain and by a property test). The policy stores
+the chosen deductible and payouts use it. Cap menu: €5, €10, €25, €50; Drop: €3, €10, €25.
+
+**D43. Buyers choose how long the lock lasts, and can renew without a gap.** Each product offers
+3, 7, 14 or 30 days (`validity_options_secs`) with multipliers (`validity_mult_bps`) from
+re-running the backtest per duration: a separable duration dimension of the base table, never
+cheaper for longer cover. `renew_cap` buys a new Price Cap with the same coverage, travellers,
+cap, deductible and passenger that starts exactly when the old one ends, priced at today's price.
+It must be bought at least one activation delay before the end, so renewing cannot skip the
+delay; it is refused once the price is above the cap (claim instead). The demo keeps 90-second
+Drop windows, with the same multipliers on 60/90/180/300 seconds.
+
+**D44. Flexible cover: date windows and airport groups.** A route cover can also cover flights
+up to 3 days either side of the chosen day (`RouteKey.date_window_days`) and from an airport
+group (`@LON`, `@PAR`, `@NL` = AMS/RTM/EIN, `@MIL`, `@ROM`, `@NYC`). The oracle's route index is
+the cheapest open fare over every flight in that set; matching a booked flight checks group
+membership and the day difference (whole days, so month and year ends work). The new backtest in
+`backtest/capfare_backtest/flex.py` builds such sets from synthetic flights aligned on calendar
+time and compares their loss ratio with single-flight cover on the same route-days; this is
+also the first backtest of route cover (D30). The resulting multipliers (`flex_window_mult_bps`,
+`airport_group_mult_bps`) are applied on top of the single-flight formula. In this synthetic
+model a group lowers the loss ratio (more flights keep the cheapest fare down); real airports
+differ in price level and correlation, so the fit must be redone on real fares.

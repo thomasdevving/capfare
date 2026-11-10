@@ -211,5 +211,127 @@
       "total_capital_eur": 16000.0,
       "p_loss_after_year": 0.0
     }
-  ]
+  ],
+  "flex": {
+    "scenarios": 120,
+    "single_flight_loss_ratio": 0.497,
+    "single_flight_policies": 449,
+    "sets": [
+      {
+        "window_days": 0,
+        "airport_group": false,
+        "flights_in_set": 4,
+        "loss_ratio": 0.506,
+        "policies": 456
+      },
+      {
+        "window_days": 1,
+        "airport_group": false,
+        "flights_in_set": 12,
+        "loss_ratio": 0.573,
+        "policies": 471
+      },
+      {
+        "window_days": 2,
+        "airport_group": false,
+        "flights_in_set": 20,
+        "loss_ratio": 0.548,
+        "policies": 449
+      },
+      {
+        "window_days": 3,
+        "airport_group": false,
+        "flights_in_set": 28,
+        "loss_ratio": 0.508,
+        "policies": 461
+      },
+      {
+        "window_days": 0,
+        "airport_group": true,
+        "flights_in_set": 12,
+        "loss_ratio": 0.492,
+        "policies": 453
+      },
+      {
+        "window_days": 1,
+        "airport_group": true,
+        "flights_in_set": 36,
+        "loss_ratio": 0.524,
+        "policies": 476
+      },
+      {
+        "window_days": 2,
+        "airport_group": true,
+        "flights_in_set": 60,
+        "loss_ratio": 0.387,
+        "policies": 471
+      },
+      {
+        "window_days": 3,
+        "airport_group": true,
+        "flights_in_set": 84,
+        "loss_ratio": 0.417,
+        "policies": 469
+      }
+    ],
+    "flex_window_mult": [
+      1.018,
+      1.151,
+      1.102,
+      1.021
+    ],
+    "airport_group_mult": 0.853
+  },
+  "options": {
+    "cap": {
+      "deductibles_eur": [
+        5.0,
+        10.0,
+        25.0,
+        50.0
+      ],
+      "deductible_mult": [
+        1.0,
+        0.7435,
+        0.2874,
+        0.15
+      ],
+      "durations_days": [
+        3.0,
+        7.0,
+        14.0,
+        30.0
+      ],
+      "duration_mult": [
+        0.3937,
+        1.0,
+        2.336,
+        3.0
+      ]
+    },
+    "drop": {
+      "deductibles_eur": [
+        3.0,
+        10.0,
+        25.0
+      ],
+      "deductible_mult": [
+        1.0,
+        0.6169,
+        0.15
+      ],
+      "durations_days": [
+        3.0,
+        7.0,
+        14.0,
+        30.0
+      ],
+      "duration_mult": [
+        0.6825,
+        1.0,
+        1.2298,
+        1.4662
+      ]
+    }
+  }
 }

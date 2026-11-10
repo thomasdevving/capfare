@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn route_coverage_matches_flights_on_the_route_and_day() {
-        let r = RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), fare_class: "economy_light".into() };
+        let r = RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), date_window_days: 0, fare_class: "economy_light".into() };
         assert!(r.validate().is_ok());
         let c = Coverage::Route(r.clone());
         assert!(c.covers(&demo_key()));
@@ -120,6 +120,37 @@ mod tests {
         let mut bad = r;
         bad.destination = "AMS".into();
         assert!(bad.validate().is_err());
+    }
+
+    #[test]
+    fn flexible_cover_matches_date_window_and_airport_groups() {
+        let r = RouteKey { origin: "@NL".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), date_window_days: 2, fare_class: "economy_light".into() };
+        assert!(r.validate().is_ok());
+        let mut k = demo_key();
+        assert!(r.matches(&k));
+        k.origin = "EIN".into();
+        k.departure_date = "2027-06-16".into();
+        assert!(r.matches(&k), "two days later from Eindhoven");
+        k.departure_date = "2027-06-12".into();
+        assert!(r.matches(&k), "two days earlier");
+        k.departure_date = "2027-06-17".into();
+        assert!(!r.matches(&k), "outside the window");
+        k.departure_date = "2027-06-14".into();
+        k.origin = "LHR".into();
+        assert!(!r.matches(&k), "not in the group");
+        // Month and year boundaries.
+        let r2 = RouteKey { departure_date: "2027-12-31".into(), date_window_days: 1, ..r.clone() };
+        let mut k2 = demo_key();
+        k2.departure_date = "2028-01-01".into();
+        assert!(r2.matches(&k2));
+        assert_eq!(days_from_date("1970-01-01"), Some(0));
+        assert_eq!(days_from_date("2027-03-01").unwrap() - days_from_date("2027-02-28").unwrap(), 1);
+        assert_eq!(days_from_date("2028-03-01").unwrap() - days_from_date("2028-02-28").unwrap(), 2);
+        // Bad keys.
+        assert!(RouteKey { date_window_days: 4, ..r.clone() }.validate().is_err());
+        assert!(RouteKey { origin: "@XX".into(), ..r.clone() }.validate().is_err());
+        assert!(RouteKey { origin: "@NL".into(), destination: "AMS".into(), ..r.clone() }.validate().is_err());
+        assert!(RouteKey { origin: "@LON".into(), destination: "@NL".into(), ..r }.validate().is_ok());
     }
 
     #[test]

@@ -19,6 +19,16 @@ use near_sdk::{Promise, PromiseOrValue};
 
 pub const MAX_LEGS: usize = 2;
 
+/// Buyer choices for one policy. None = the product's default.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct BuyOptions {
+    pub deductible: Option<u64>,
+    pub validity: Option<u64>,
+    /// Renewal: cover starts here (the end of the policy it continues) instead of after the
+    /// activation delay.
+    pub start_at: Option<u64>,
+}
+
 impl PolicyRegistry {
     pub(crate) fn check_user_limits(&self, owner: &AccountId, product: Product, fkh: &Hash32) -> Result<(), String> {
         let pp = self.params.product(product);
@@ -47,6 +57,7 @@ impl PolicyRegistry {
         vault: &VaultFigures,
         max_premium: u64,
         passenger_commitment: Hash32,
+        opts: BuyOptions,
     ) -> Result<Policy, String> {
         let now = now_secs();
         let g = &self.params.global;
@@ -90,6 +101,13 @@ impl PolicyRegistry {
             new_lock: U128(lock_usdc),
             // The formula adds one max payout itself; the other seats count as exposure.
             flight_exposure: flight_exposure + pp.max_payout * u64::from(seats - 1),
+            deductible: opts.deductible,
+            validity_secs: opts.validity,
+            route_window_days: match &coverage {
+                Coverage::Route(r) => Some(r.date_window_days),
+                Coverage::Flight(_) => None,
+            },
+            airport_group: matches!(&coverage, Coverage::Route(r) if r.uses_group()),
         };
         let b = compute_premium(pp, &inputs).map_err(|e| e.msg().to_string())?;
         let premium = b.premium * u64::from(seats);
@@ -100,11 +118,16 @@ impl PolicyRegistry {
         if self.credit_of(&owner) < premium_usdc {
             return Err("not enough credit; top up first".into());
         }
-        let active_from = match product {
-            Product::Cap => now + pp.activation_delay_secs,
-            Product::Drop => now,
+        let active_from = match (product, opts.start_at) {
+            (_, Some(start)) => start,
+            (Product::Cap, None) => now + pp.activation_delay_secs,
+            (Product::Drop, None) => now,
         };
-        let expires_at = (now + pp.validity_secs).min(snap.departure_ts);
+        let cover_from = opts.start_at.unwrap_or(now);
+        let expires_at = (cover_from + b.validity_secs).min(snap.departure_ts);
+        if expires_at <= active_from {
+            return Err("the cover would end before it starts (too close to departure)".into());
+        }
         Ok(Policy {
             id: self.next_policy_id,
             owner,
@@ -113,7 +136,7 @@ impl PolicyRegistry {
             coverage,
             seats,
             strike_minor: strike,
-            deductible_minor: pp.deductible,
+            deductible_minor: b.deductible,
             max_payout_minor: pp.max_payout,
             premium_minor: premium,
             purchased_at: now,
@@ -134,6 +157,9 @@ impl PolicyRegistry {
             auto_drop_max_premium_minor: None,
             linked_policy: None,
             final_check_at: None,
+            booked_at: None,
+            renewal_of: None,
+            renewed_by: None,
             usdc_micro_per_cent: rate,
             premium_usdc: U128(premium_usdc),
             lock_usdc: U128(lock_usdc),
@@ -199,7 +225,7 @@ impl PolicyRegistry {
     /// the last name and a salt derived from the user's key; the name never leaves the device).
     pub fn buy_cap(&mut self, flight_key: FlightKey, strike_minor: u64, max_premium_minor: u64, passenger_commitment: Hash32) -> Promise {
         self.buy_caps(CapPurchase {
-            legs: vec![CapLeg { coverage: Coverage::Flight(flight_key), strike_minor, max_premium_minor }],
+            legs: vec![CapLeg { coverage: Coverage::Flight(flight_key), strike_minor, max_premium_minor, deductible_minor: None, validity_secs: None }],
             seats: 1,
             passenger_commitment,
             auto_drop_max_premium_minor: None,
@@ -241,8 +267,9 @@ impl PolicyRegistry {
         for (i, leg) in purchase.legs.into_iter().enumerate() {
             let snap: Option<SnapshotView> = promise_json(i as u64).unwrap_or_else(|e| env::panic_str(&e));
             let snap = snap.unwrap_or_else(|| env::panic_str("no oracle price for this flight yet"));
+            let opts = BuyOptions { deductible: leg.deductible_minor, validity: leg.validity_secs, start_at: None };
             let mut p = self
-                .build_policy(owner.clone(), Product::Cap, leg.coverage, purchase.seats, leg.strike_minor, &snap, &vault, leg.max_premium_minor, purchase.passenger_commitment)
+                .build_policy(owner.clone(), Product::Cap, leg.coverage, purchase.seats, leg.strike_minor, &snap, &vault, leg.max_premium_minor, purchase.passenger_commitment, opts)
                 .unwrap_or_else(|e| env::panic_str(&e));
             p.id = first_id + i as u64;
             if n == 2 {
@@ -276,11 +303,71 @@ impl PolicyRegistry {
         promises.swap_remove(0)
     }
 
+    /// Renews an active Price Cap: a new policy for the same coverage, travellers, cap,
+    /// deductible and passenger, starting exactly when this one ends, so there is no gap.
+    /// It must be bought at least one activation delay before the current cover ends, so the
+    /// delay cannot be skipped by renewing at the last moment. Priced at today's price;
+    /// not available once the price is above the cap (then claim instead).
+    pub fn renew_cap(&mut self, policy_id: u64, validity_secs: Option<u64>, max_premium_minor: u64) -> Promise {
+        require!(!self.paused, "sales are paused");
+        let p = self.policies.get(&policy_id).cloned().unwrap_or_else(|| env::panic_str("unknown policy"));
+        let owner = env::predecessor_account_id();
+        require!(p.owner == owner, "only the policy owner can renew");
+        require!(p.product == Product::Cap, "only Price Caps can be renewed");
+        require!(p.state == PolicyState::Active && !p.busy, "policy is not active");
+        require!(p.renewed_by.is_none(), "this Price Cap has already been renewed");
+        require!(
+            now_secs() + self.params.cap.activation_delay_secs <= p.expires_at,
+            "renew at least one activation delay before the cover ends"
+        );
+        if let Err(e) = self.check_user_limits(&owner, Product::Cap, &p.flight_key_hash) {
+            env::panic_str(&e);
+        }
+        ext_att::ext(self.attestation.clone())
+            .with_static_gas(GAS_VIEW)
+            .get_latest_snapshot(p.flight_key_hash)
+            .and(ext_vault::ext(self.cap_vault.clone()).with_static_gas(GAS_VIEW).get_state())
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_PURCHASE_CB)
+                    .on_renew_inputs(owner, policy_id, validity_secs, max_premium_minor),
+            )
+    }
+
+    #[private]
+    pub fn on_renew_inputs(&mut self, owner: AccountId, policy_id: u64, validity_secs: Option<u64>, max_premium_minor: u64) -> Promise {
+        let old = self.policies.get(&policy_id).cloned().expect("policy");
+        require!(old.state == PolicyState::Active && old.renewed_by.is_none(), "policy is no longer renewable");
+        let snap: Option<SnapshotView> = promise_json(0).unwrap_or_else(|e| env::panic_str(&e));
+        let snap = snap.unwrap_or_else(|| env::panic_str("no oracle price for this flight yet"));
+        let vault: VaultFigures = promise_json(1).unwrap_or_else(|e| env::panic_str(&e));
+        let opts = BuyOptions { deductible: Some(old.deductible_minor), validity: validity_secs, start_at: Some(old.expires_at) };
+        let mut p = self
+            .build_policy(owner, Product::Cap, old.coverage.clone(), old.seats, old.strike_minor, &snap, &vault, max_premium_minor, old.passenger_commitment, opts)
+            .unwrap_or_else(|e| env::panic_str(&e));
+        p.renewal_of = Some(old.id);
+        p.trip_id = old.trip_id;
+        p.auto_drop_max_premium_minor = old.auto_drop_max_premium_minor;
+        if let Some(prev) = self.policies.get_mut(&policy_id) {
+            prev.renewed_by = Some(p.id);
+        }
+        event("policy_renewed", json!({"policy_id": policy_id, "renewal_id": p.id, "starts_at": p.active_from, "expires_at": p.expires_at}));
+        self.fund(p)
+    }
+
     /// Buys a Drop Guarantee for a verified booking (all travellers on it). The booking's
     /// nullifier is consumed for the drop product; it is released again if the purchase fails.
     /// `from_cap`: the Price Cap that was claimed with this same booking (opt-in "Drop after
     /// claim"); the two policies are linked.
-    pub fn buy_drop(&mut self, attestation: SignedBookingAttestation, flight_key: FlightKey, max_premium_minor: u64, from_cap: Option<u64>) -> Promise {
+    pub fn buy_drop(
+        &mut self,
+        attestation: SignedBookingAttestation,
+        flight_key: FlightKey,
+        max_premium_minor: u64,
+        from_cap: Option<u64>,
+        deductible_minor: Option<u64>,
+        validity_secs: Option<u64>,
+    ) -> Promise {
         require!(!self.paused, "sales are paused");
         if let Err(e) = flight_key.validate() {
             env::panic_str(e);
@@ -317,12 +404,20 @@ impl PolicyRegistry {
             .then(
                 Self::ext(env::current_account_id())
                     .with_static_gas(GAS_PURCHASE_CB)
-                    .on_drop_inputs(owner, flight_key, max_premium_minor, from_cap),
+                    .on_drop_inputs(owner, flight_key, max_premium_minor, from_cap, deductible_minor, validity_secs),
             )
     }
 
     #[private]
-    pub fn on_drop_inputs(&mut self, owner: AccountId, flight_key: FlightKey, max_premium_minor: u64, from_cap: Option<u64>) -> PromiseOrValue<bool> {
+    pub fn on_drop_inputs(
+        &mut self,
+        owner: AccountId,
+        flight_key: FlightKey,
+        max_premium_minor: u64,
+        from_cap: Option<u64>,
+        deductible_minor: Option<u64>,
+        validity_secs: Option<u64>,
+    ) -> PromiseOrValue<bool> {
         let check: BookingCheckView = match promise_json(0) {
             Ok(c) => c,
             // Attestation rejected: nothing was consumed.
@@ -349,8 +444,10 @@ impl PolicyRegistry {
                 &vault,
                 max_premium_minor,
                 check.attestation.passenger_commitment,
+                BuyOptions { deductible: deductible_minor, validity: validity_secs, start_at: None },
             )?;
             p.booking_nullifier = Some(nullifier);
+            p.booked_at = Some(check.attestation.booked_at);
             p.paid_price_minor = Some(paid);
             p.refundable = Some(check.attestation.refundable);
             p.booked_flight = Some(flight_key.clone());
@@ -410,6 +507,13 @@ impl PolicyRegistry {
         p.note = Some("vault could not lock coverage; premium returned to credit".into());
         if let (Product::Drop, Some(n), Some(f)) = (p.product, p.booking_nullifier, p.booked_flight_key_hash) {
             let _ = ext_att::ext(self.attestation.clone()).with_static_gas(GAS_VIEW).release_nullifier(Product::Drop, n, f);
+        }
+        if let Some(old) = p.renewal_of {
+            if let Some(prev) = self.policies.get_mut(&old) {
+                if prev.renewed_by == Some(policy_id) {
+                    prev.renewed_by = None;
+                }
+            }
         }
         if let (Product::Drop, Some(cap_id)) = (p.product, p.linked_policy) {
             if let Some(cap) = self.policies.get_mut(&cap_id) {

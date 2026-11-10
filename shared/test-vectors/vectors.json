@@ -6,6 +6,7 @@
       "max_attestation_age_secs": 3600,
       "final_check_lead_secs": 86400,
       "claim_grace_secs": 259200,
+      "free_cancel_window_secs": 86400,
       "sold_out_premium_refund": true,
       "protocol_fee_bps": 500,
       "usdc_micro_per_cent": 10800,
@@ -73,6 +74,35 @@
       "deductible": 1000,
       "max_payout": 10000,
       "validity_secs": 604800,
+      "deductible_options": [
+        1000,
+        2000,
+        5000
+      ],
+      "deductible_mult_bps": [
+        10000,
+        8600,
+        6200
+      ],
+      "validity_options_secs": [
+        259200,
+        604800,
+        1209600,
+        2592000
+      ],
+      "validity_mult_bps": [
+        6400,
+        10000,
+        14800,
+        22500
+      ],
+      "flex_window_mult_bps": [
+        10000,
+        10600,
+        11100,
+        11500
+      ],
+      "airport_group_mult_bps": 10400,
       "activation_delay_secs": 86400,
       "flight_exposure_cap": 2000000,
       "route_week_exposure_cap": 5000000,
@@ -143,6 +173,35 @@
       "deductible": 500,
       "max_payout": 6000,
       "validity_secs": 604800,
+      "deductible_options": [
+        500,
+        1000,
+        2500
+      ],
+      "deductible_mult_bps": [
+        10000,
+        8600,
+        6200
+      ],
+      "validity_options_secs": [
+        259200,
+        604800,
+        1209600,
+        2592000
+      ],
+      "validity_mult_bps": [
+        6400,
+        10000,
+        14800,
+        22500
+      ],
+      "flex_window_mult_bps": [
+        10000,
+        10600,
+        11100,
+        11500
+      ],
+      "airport_group_mult_bps": 10400,
       "activation_delay_secs": 0,
       "flight_exposure_cap": 2000000,
       "route_week_exposure_cap": 5000000,
@@ -219,9 +278,21 @@
       "origin": "AMS",
       "destination": "BCN",
       "departure_date": "2027-06-14",
+      "date_window_days": 0,
       "fare_class": "economy_light"
     },
-    "hash": "297e2240df0a44eb866bbed47dae13d5f6d9c1f70bcaefa2eb7a4f187e38386e"
+    "hash": "220b6491293feff6ccbee3336bded626dcad336285e84493d18487881da976d5"
+  },
+  "flex_route_key": {
+    "value": {
+      "origin": "@NL",
+      "destination": "@LON",
+      "departure_date": "2027-06-14",
+      "date_window_days": 2,
+      "fare_class": "economy_standard"
+    },
+    "hash": "b48d3ca4c160eadbd63946f408c88cfa0e337d923b639d7588de2bd29ce86780",
+    "borsh_hex": "03000000404e4c04000000404c4f4e0a000000323032372d30362d3134021000000065636f6e6f6d795f7374616e64617264"
   },
   "coverages": [
     {
@@ -243,10 +314,23 @@
           "origin": "AMS",
           "destination": "BCN",
           "departure_date": "2027-06-14",
+          "date_window_days": 0,
           "fare_class": "economy_light"
         }
       },
-      "hash": "297e2240df0a44eb866bbed47dae13d5f6d9c1f70bcaefa2eb7a4f187e38386e"
+      "hash": "220b6491293feff6ccbee3336bded626dcad336285e84493d18487881da976d5"
+    },
+    {
+      "coverage": {
+        "route": {
+          "origin": "@NL",
+          "destination": "@LON",
+          "departure_date": "2027-06-14",
+          "date_window_days": 2,
+          "fare_class": "economy_standard"
+        }
+      },
+      "hash": "b48d3ca4c160eadbd63946f408c88cfa0e337d923b639d7588de2bd29ce86780"
     }
   ],
   "leg_nullifier": {
@@ -277,7 +361,11 @@
         "vault_locked": "729756367",
         "vault_reserved": "98857450",
         "new_lock": "108000000",
-        "flight_exposure": 874987
+        "flight_exposure": 874987,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
       "premium": 1266,
       "unclamped": 1266
@@ -298,121 +386,120 @@
         "vault_locked": "174783160",
         "vault_reserved": "19380597",
         "new_lock": "108000000",
-        "flight_exposure": 537871
+        "flight_exposure": 537871,
+        "deductible": 5000,
+        "validity_secs": 604800,
+        "route_window_days": 3,
+        "airport_group": true
       },
-      "premium": 539,
-      "unclamped": 539
+      "premium": 400,
+      "unclamped": 400
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 62417,
-        "strike": 75494,
+        "current_price": 49398,
+        "strike": 63771,
         "signals": {
           "momentum_bucket": 2,
           "availability_bucket": 3,
-          "season_flag": true
+          "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1807306173,
-        "vault_total_assets": "1970273252",
-        "vault_locked": "494623763",
-        "vault_reserved": "38947903",
+        "departure_ts": 1805781293,
+        "vault_total_assets": "5239266173",
+        "vault_locked": "520099895",
+        "vault_reserved": "70731509",
         "new_lock": "108000000",
-        "flight_exposure": 1228493
+        "flight_exposure": 858170,
+        "deductible": 5000,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 559,
-      "unclamped": 559
+      "premium": 300,
+      "unclamped": 287
     },
     {
       "inputs": {
         "product": "drop",
-        "current_price": 29173,
-        "strike": 29173,
+        "current_price": 53994,
+        "strike": 53994,
         "signals": {
           "momentum_bucket": 0,
           "availability_bucket": 4,
-          "season_flag": true
+          "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1802507756,
-        "vault_total_assets": "9862208493",
-        "vault_locked": "461030994",
-        "vault_reserved": "687350",
+        "departure_ts": 1804559392,
+        "vault_total_assets": "2254691934",
+        "vault_locked": "192765890",
+        "vault_reserved": "2731961",
         "new_lock": "108000000",
-        "flight_exposure": 1175049
+        "flight_exposure": 1326348,
+        "deductible": 500,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 1456,
-      "unclamped": 1456
+      "premium": 2182,
+      "unclamped": 2182
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 57899,
-        "strike": 61491,
+        "current_price": 14757,
+        "strike": 25930,
         "signals": {
-          "momentum_bucket": 4,
+          "momentum_bucket": 2,
           "availability_bucket": 0,
           "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1805183148,
-        "vault_total_assets": "1686494395",
-        "vault_locked": "898799058",
-        "vault_reserved": "61151757",
+        "departure_ts": 1808860377,
+        "vault_total_assets": "5368459814",
+        "vault_locked": "709950482",
+        "vault_reserved": "62226960",
         "new_lock": "108000000",
-        "flight_exposure": 221173
+        "flight_exposure": 465286,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 1562,
-      "unclamped": 1562
+      "premium": 300,
+      "unclamped": 217
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 58737,
-        "strike": 69997,
+        "current_price": 27038,
+        "strike": 39407,
         "signals": {
           "momentum_bucket": 1,
-          "availability_bucket": 2,
-          "season_flag": true
+          "availability_bucket": 3,
+          "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1806539282,
-        "vault_total_assets": "1362226960",
-        "vault_locked": "502965286",
-        "vault_reserved": "24464038",
+        "departure_ts": 1805995208,
+        "vault_total_assets": "7858289943",
+        "vault_locked": "805321541",
+        "vault_reserved": "12117107",
         "new_lock": "108000000",
-        "flight_exposure": 117369
+        "flight_exposure": 189477,
+        "deductible": 2000,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 366,
-      "unclamped": 366
+      "premium": 300,
+      "unclamped": 280
     },
     {
       "inputs": {
         "product": "drop",
-        "current_price": 37831,
-        "strike": 37831,
-        "signals": {
-          "momentum_bucket": 3,
-          "availability_bucket": 1,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1802334743,
-        "vault_total_assets": "7205321541",
-        "vault_locked": "112117107",
-        "vault_reserved": "91189477",
-        "new_lock": "108000000",
-        "flight_exposure": 1144894
-      },
-      "premium": 1619,
-      "unclamped": 1619
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 15801,
-        "strike": 27826,
+        "current_price": 45025,
+        "strike": 45025,
         "signals": {
           "momentum_bucket": 3,
           "availability_bucket": 2,
@@ -424,238 +511,111 @@
         "vault_locked": "293812352",
         "vault_reserved": "18074467",
         "new_lock": "108000000",
-        "flight_exposure": 1003279
+        "flight_exposure": 1003279,
+        "deductible": 2500,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 357,
-      "unclamped": 357
+      "premium": 1221,
+      "unclamped": 1221
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 52580,
-        "strike": 59162,
+        "current_price": 42184,
+        "strike": 52170,
         "signals": {
           "momentum_bucket": 4,
-          "availability_bucket": 1,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1804147937,
-        "vault_total_assets": "8197307942",
-        "vault_locked": "363253498",
-        "vault_reserved": "46280309",
-        "new_lock": "108000000",
-        "flight_exposure": 840149
-      },
-      "premium": 1217,
-      "unclamped": 1217
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 11132,
-        "strike": 11132,
-        "signals": {
-          "momentum_bucket": 3,
-          "availability_bucket": 1,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1810075660,
-        "vault_total_assets": "6706740242",
-        "vault_locked": "41874458",
-        "vault_reserved": "15303708",
-        "new_lock": "108000000",
-        "flight_exposure": 1362418
-      },
-      "premium": 1040,
-      "unclamped": 1040
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 36531,
-        "strike": 40858,
-        "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 4,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1809473031,
-        "vault_total_assets": "6176094933",
-        "vault_locked": "75364820",
-        "vault_reserved": "18787673",
-        "new_lock": "108000000",
-        "flight_exposure": 887855
-      },
-      "premium": 964,
-      "unclamped": 964
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 16549,
-        "strike": 26956,
-        "signals": {
-          "momentum_bucket": 1,
-          "availability_bucket": 0,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1806224802,
-        "vault_total_assets": "4711594499",
-        "vault_locked": "756209099",
-        "vault_reserved": "7385684",
-        "new_lock": "108000000",
-        "flight_exposure": 953150
-      },
-      "premium": 300,
-      "unclamped": 209
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 31665,
-        "strike": 31665,
-        "signals": {
-          "momentum_bucket": 2,
-          "availability_bucket": 0,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1807885201,
-        "vault_total_assets": "8218142908",
-        "vault_locked": "112655841",
-        "vault_reserved": "24885010",
-        "new_lock": "108000000",
-        "flight_exposure": 453098
-      },
-      "premium": 797,
-      "unclamped": 797
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 42081,
-        "strike": 43622,
-        "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 0,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1802270570,
-        "vault_total_assets": "3375738022",
-        "vault_locked": "663341623",
-        "vault_reserved": "68765503",
-        "new_lock": "108000000",
-        "flight_exposure": 883351
-      },
-      "premium": 1004,
-      "unclamped": 1004
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 38748,
-        "strike": 52566,
-        "signals": {
-          "momentum_bucket": 3,
-          "availability_bucket": 1,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1805173118,
-        "vault_total_assets": "4046068798",
-        "vault_locked": "608108114",
-        "vault_reserved": "46950300",
-        "new_lock": "108000000",
-        "flight_exposure": 1294959
-      },
-      "premium": 539,
-      "unclamped": 539
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 5502,
-        "strike": 5502,
-        "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 3,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1806512137,
-        "vault_total_assets": "5260665407",
-        "vault_locked": "867210887",
-        "vault_reserved": "88869108",
-        "new_lock": "108000000",
-        "flight_exposure": 213063
-      },
-      "premium": 581,
-      "unclamped": 581
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 22899,
-        "strike": 23653,
-        "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 4,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1808444858,
-        "vault_total_assets": "3932828483",
-        "vault_locked": "896607089",
-        "vault_reserved": "79653367",
-        "new_lock": "108000000",
-        "flight_exposure": 1259968
-      },
-      "premium": 1430,
-      "unclamped": 1430
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 42994,
-        "strike": 55989,
-        "signals": {
-          "momentum_bucket": 2,
-          "availability_bucket": 3,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1807136839,
-        "vault_total_assets": "8391234713",
-        "vault_locked": "523780356",
-        "vault_reserved": "83538312",
-        "new_lock": "108000000",
-        "flight_exposure": 164365
-      },
-      "premium": 421,
-      "unclamped": 421
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 18184,
-        "strike": 18184,
-        "signals": {
-          "momentum_bucket": 0,
           "availability_bucket": 2,
           "season_flag": true
         },
         "now": 1800000000,
-        "departure_ts": 1809140274,
-        "vault_total_assets": "7084780456",
-        "vault_locked": "414676055",
-        "vault_reserved": "66622381",
+        "departure_ts": 1810050298,
+        "vault_total_assets": "8646280309",
+        "vault_locked": "728340149",
+        "vault_reserved": "19768132",
         "new_lock": "108000000",
-        "flight_exposure": 1401464
+        "flight_exposure": 1142358,
+        "deductible": 1000,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 1038,
+      "unclamped": 1038
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 41860,
+        "strike": 47102,
+        "signals": {
+          "momentum_bucket": 3,
+          "availability_bucket": 3,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1805078331,
+        "vault_total_assets": "1323659327",
+        "vault_locked": "736999415",
+        "vault_reserved": "55992494",
+        "new_lock": "108000000",
+        "flight_exposure": 866667,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 1629,
+      "unclamped": 1629
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 51231,
+        "strike": 51231,
+        "signals": {
+          "momentum_bucket": 3,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1802500655,
+        "vault_total_assets": "8287433549",
+        "vault_locked": "886720407",
+        "vault_reserved": "90895056",
+        "new_lock": "108000000",
+        "flight_exposure": 110795,
+        "deductible": 500,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 1627,
+      "unclamped": 1627
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 57499,
+        "strike": 71598,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1804632857,
+        "vault_total_assets": "5930075085",
+        "vault_locked": "650295738",
+        "vault_reserved": "68736401",
+        "new_lock": "108000000",
+        "flight_exposure": 142908,
+        "deductible": 1000,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
       },
       "premium": 736,
       "unclamped": 736
@@ -663,401 +623,527 @@
     {
       "inputs": {
         "product": "cap",
-        "current_price": 40938,
-        "strike": 52480,
+        "current_price": 36098,
+        "strike": 45179,
         "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 1,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1805146524,
-        "vault_total_assets": "5394096981",
-        "vault_locked": "860926135",
-        "vault_reserved": "12559526",
-        "new_lock": "108000000",
-        "flight_exposure": 822141
-      },
-      "premium": 324,
-      "unclamped": 324
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 22865,
-        "strike": 36110,
-        "signals": {
-          "momentum_bucket": 2,
+          "momentum_bucket": 1,
           "availability_bucket": 0,
           "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1807341763,
-        "vault_total_assets": "9252151524",
-        "vault_locked": "619098237",
-        "vault_reserved": "42583137",
+        "departure_ts": 1801207203,
+        "vault_total_assets": "8824753770",
+        "vault_locked": "575738022",
+        "vault_reserved": "63341623",
         "new_lock": "108000000",
-        "flight_exposure": 1048753
+        "flight_exposure": 265503,
+        "deductible": 2000,
+        "validity_secs": 259200,
+        "route_window_days": 2,
+        "airport_group": false
       },
       "premium": 300,
-      "unclamped": 282
+      "unclamped": 163
     },
     {
       "inputs": {
         "product": "drop",
-        "current_price": 18977,
-        "strike": 18977,
-        "signals": {
-          "momentum_bucket": 1,
-          "availability_bucket": 4,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1801571567,
-        "vault_total_assets": "7379400672",
-        "vault_locked": "131904107",
-        "vault_reserved": "79618063",
-        "new_lock": "108000000",
-        "flight_exposure": 447961
-      },
-      "premium": 1062,
-      "unclamped": 1062
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 11497,
-        "strike": 15454,
-        "signals": {
-          "momentum_bucket": 4,
-          "availability_bucket": 4,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1803900804,
-        "vault_total_assets": "8748527841",
-        "vault_locked": "893483104",
-        "vault_reserved": "27501046",
-        "new_lock": "108000000",
-        "flight_exposure": 69539
-      },
-      "premium": 656,
-      "unclamped": 656
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 44170,
-        "strike": 58208,
-        "signals": {
-          "momentum_bucket": 1,
-          "availability_bucket": 1,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1800656971,
-        "vault_total_assets": "6204544709",
-        "vault_locked": "451196236",
-        "vault_reserved": "47661058",
-        "new_lock": "108000000",
-        "flight_exposure": 1208118
-      },
-      "premium": 336,
-      "unclamped": 336
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 5471,
-        "strike": 5471,
-        "signals": {
-          "momentum_bucket": 2,
-          "availability_bucket": 2,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1809198076,
-        "vault_total_assets": "2672288153",
-        "vault_locked": "182608646",
-        "vault_reserved": "18343340",
-        "new_lock": "108000000",
-        "flight_exposure": 1051573
-      },
-      "premium": 792,
-      "unclamped": 792
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 20845,
-        "strike": 26120,
-        "signals": {
-          "momentum_bucket": 1,
-          "availability_bucket": 4,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1803357751,
-        "vault_total_assets": "6458534189",
-        "vault_locked": "557849451",
-        "vault_reserved": "23692503",
-        "new_lock": "108000000",
-        "flight_exposure": 34336
-      },
-      "premium": 526,
-      "unclamped": 526
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 58411,
-        "strike": 64527,
-        "signals": {
-          "momentum_bucket": 1,
-          "availability_bucket": 4,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1806266199,
-        "vault_total_assets": "3886106347",
-        "vault_locked": "181567110",
-        "vault_reserved": "83701551",
-        "new_lock": "108000000",
-        "flight_exposure": 1087729
-      },
-      "premium": 1413,
-      "unclamped": 1413
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 32439,
-        "strike": 32439,
-        "signals": {
-          "momentum_bucket": 2,
-          "availability_bucket": 0,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1801024725,
-        "vault_total_assets": "8835305394",
-        "vault_locked": "889546129",
-        "vault_reserved": "49905878",
-        "new_lock": "108000000",
-        "flight_exposure": 66917
-      },
-      "premium": 754,
-      "unclamped": 754
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 26010,
-        "strike": 30276,
+        "current_price": 62541,
+        "strike": 62541,
         "signals": {
           "momentum_bucket": 3,
-          "availability_bucket": 0,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1809993906,
-        "vault_total_assets": "9960011821",
-        "vault_locked": "538457077",
-        "vault_reserved": "9224370",
-        "new_lock": "108000000",
-        "flight_exposure": 259841
-      },
-      "premium": 501,
-      "unclamped": 501
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 35836,
-        "strike": 41887,
-        "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 0,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1801671694,
-        "vault_total_assets": "2967635912",
-        "vault_locked": "637073943",
-        "vault_reserved": "78033523",
-        "new_lock": "108000000",
-        "flight_exposure": 1132437
-      },
-      "premium": 346,
-      "unclamped": 346
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 36799,
-        "strike": 36799,
-        "signals": {
-          "momentum_bucket": 1,
-          "availability_bucket": 4,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1805209144,
-        "vault_total_assets": "2382681298",
-        "vault_locked": "51686443",
-        "vault_reserved": "57394251",
-        "new_lock": "108000000",
-        "flight_exposure": 228455
-      },
-      "premium": 1440,
-      "unclamped": 1440
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 44670,
-        "strike": 54461,
-        "signals": {
-          "momentum_bucket": 4,
-          "availability_bucket": 1,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1800450592,
-        "vault_total_assets": "6465434066",
-        "vault_locked": "131782637",
-        "vault_reserved": "85191520",
-        "new_lock": "108000000",
-        "flight_exposure": 1003436
-      },
-      "premium": 448,
-      "unclamped": 448
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 33619,
-        "strike": 40693,
-        "signals": {
-          "momentum_bucket": 4,
           "availability_bucket": 3,
           "season_flag": true
         },
         "now": 1800000000,
-        "departure_ts": 1807290757,
-        "vault_total_assets": "3754939620",
-        "vault_locked": "377136329",
-        "vault_reserved": "57545188",
+        "departure_ts": 1807224914,
+        "vault_total_assets": "5046950300",
+        "vault_locked": "221794959",
+        "vault_reserved": "14022502",
         "new_lock": "108000000",
-        "flight_exposure": 691763
+        "flight_exposure": 770980,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 670,
-      "unclamped": 670
+      "premium": 1753,
+      "unclamped": 1753
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 41053,
+        "strike": 55310,
+        "signals": {
+          "momentum_bucket": 2,
+          "availability_bucket": 2,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1809329908,
+        "vault_total_assets": "3452713063",
+        "vault_locked": "336859899",
+        "vault_reserved": "54840754",
+        "new_lock": "108000000",
+        "flight_exposure": 850795,
+        "deductible": 1000,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 392,
+      "unclamped": 392
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 7058,
+        "strike": 20541,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 2,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1807460794,
+        "vault_total_assets": "3292207995",
+        "vault_locked": "737230077",
+        "vault_reserved": "60766418",
+        "new_lock": "108000000",
+        "flight_exposure": 370915,
+        "deductible": 2000,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 350,
+      "unclamped": 350
     },
     {
       "inputs": {
         "product": "drop",
-        "current_price": 3037,
-        "strike": 3037,
+        "current_price": 43356,
+        "strike": 43356,
         "signals": {
           "momentum_bucket": 2,
+          "availability_bucket": 0,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1807652590,
+        "vault_total_assets": "4258429597",
+        "vault_locked": "815148804",
+        "vault_reserved": "18791474",
+        "new_lock": "108000000",
+        "flight_exposure": 780456,
+        "deductible": 2500,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 603,
+      "unclamped": 603
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 24464,
+        "strike": 32402,
+        "signals": {
+          "momentum_bucket": 2,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1800178593,
+        "vault_total_assets": "2478381724",
+        "vault_locked": "794096981",
+        "vault_reserved": "60926135",
+        "new_lock": "108000000",
+        "flight_exposure": 59526,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": 1,
+        "airport_group": false
+      },
+      "premium": 300,
+      "unclamped": 174
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 31245,
+        "strike": 35367,
+        "signals": {
+          "momentum_bucket": 0,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1810340324,
+        "vault_total_assets": "5219098237",
+        "vault_locked": "42583137",
+        "vault_reserved": "92048753",
+        "new_lock": "108000000",
+        "flight_exposure": 735977,
+        "deductible": 1000,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 919,
+      "unclamped": 919
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 29822,
+        "strike": 29822,
+        "signals": {
+          "momentum_bucket": 2,
+          "availability_bucket": 2,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1806414863,
+        "vault_total_assets": "5045947961",
+        "vault_locked": "108668497",
+        "vault_reserved": "32643957",
+        "new_lock": "108000000",
+        "flight_exposure": 835219,
+        "deductible": 500,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 2007,
+      "unclamped": 2007
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 23004,
+        "strike": 30845,
+        "signals": {
+          "momentum_bucket": 4,
           "availability_bucket": 1,
           "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1802429745,
-        "vault_total_assets": "2535554969",
-        "vault_locked": "778016034",
-        "vault_reserved": "81517168",
+        "departure_ts": 1805529970,
+        "vault_total_assets": "7599429038",
+        "vault_locked": "614094681",
+        "vault_reserved": "80253051",
         "new_lock": "108000000",
-        "flight_exposure": 1023314
+        "flight_exposure": 687635,
+        "deductible": 2000,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 693,
-      "unclamped": 693
+      "premium": 385,
+      "unclamped": 385
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 25413,
-        "strike": 34869,
-        "signals": {
-          "momentum_bucket": 2,
-          "availability_bucket": 1,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1809396630,
-        "vault_total_assets": "1481141651",
-        "vault_locked": "93946480",
-        "vault_reserved": "80782536",
-        "new_lock": "108000000",
-        "flight_exposure": 699443
-      },
-      "premium": 344,
-      "unclamped": 344
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 61232,
-        "strike": 64707,
-        "signals": {
-          "momentum_bucket": 2,
-          "availability_bucket": 4,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1801278522,
-        "vault_total_assets": "8946943652",
-        "vault_locked": "622609797",
-        "vault_reserved": "29578948",
-        "new_lock": "108000000",
-        "flight_exposure": 5105
-      },
-      "premium": 1797,
-      "unclamped": 1797
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 51677,
-        "strike": 51677,
-        "signals": {
-          "momentum_bucket": 2,
-          "availability_bucket": 1,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1802327436,
-        "vault_total_assets": "5914952253",
-        "vault_locked": "343156669",
-        "vault_reserved": "95551842",
-        "new_lock": "108000000",
-        "flight_exposure": 817788
-      },
-      "premium": 1241,
-      "unclamped": 1241
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 17964,
-        "strike": 29692,
+        "current_price": 59236,
+        "strike": 65294,
         "signals": {
           "momentum_bucket": 3,
           "availability_bucket": 1,
           "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1806069252,
-        "vault_total_assets": "1051460270",
-        "vault_locked": "410407603",
-        "vault_reserved": "10267540",
+        "departure_ts": 1802597382,
+        "vault_total_assets": "1913107024",
+        "vault_locked": "96001276",
+        "vault_reserved": "72288153",
         "new_lock": "108000000",
-        "flight_exposure": 498575
+        "flight_exposure": 1108646,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 303,
-      "unclamped": 303
+      "premium": 1243,
+      "unclamped": 1243
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 26340,
+        "strike": 26340,
+        "signals": {
+          "momentum_bucket": 3,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1800557671,
+        "vault_total_assets": "1070931089",
+        "vault_locked": "13144788",
+        "vault_reserved": "35760951",
+        "new_lock": "108000000",
+        "flight_exposure": 34189,
+        "deductible": 500,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 1223,
+      "unclamped": 1223
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 37336,
+        "strike": 47747,
+        "signals": {
+          "momentum_bucket": 1,
+          "availability_bucket": 1,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1808301208,
+        "vault_total_assets": "1041229399",
+        "vault_locked": "186106347",
+        "vault_reserved": "81567110",
+        "new_lock": "108000000",
+        "flight_exposure": 1201551,
+        "deductible": 2000,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 746,
+      "unclamped": 746
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 56262,
+        "strike": 66342,
+        "signals": {
+          "momentum_bucket": 1,
+          "availability_bucket": 0,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1805558929,
+        "vault_total_assets": "3349905878",
+        "vault_locked": "690066917",
+        "vault_reserved": "40903010",
+        "new_lock": "108000000",
+        "flight_exposure": 1264266,
+        "deductible": 5000,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 554,
+      "unclamped": 554
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 4376,
+        "strike": 4376,
+        "signals": {
+          "momentum_bucket": 1,
+          "availability_bucket": 1,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1800341170,
+        "vault_total_assets": "5747759841",
+        "vault_locked": "552932836",
+        "vault_reserved": "82231051",
+        "new_lock": "108000000",
+        "flight_exposure": 923775,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 370,
+      "unclamped": 370
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 56745,
+        "strike": 67388,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 2,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1806814323,
+        "vault_total_assets": "5135132437",
+        "vault_locked": "788733799",
+        "vault_reserved": "91040401",
+        "new_lock": "108000000",
+        "flight_exposure": 298604,
+        "deductible": 2000,
+        "validity_secs": 259200,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 300,
+      "unclamped": 300
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 44298,
+        "strike": 55741,
+        "signals": {
+          "momentum_bucket": 1,
+          "availability_bucket": 0,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1805807591,
+        "vault_total_assets": "9988914274",
+        "vault_locked": "849823786",
+        "vault_reserved": "64161552",
+        "new_lock": "108000000",
+        "flight_exposure": 385792,
+        "deductible": 2000,
+        "validity_secs": 604800,
+        "route_window_days": 0,
+        "airport_group": true
+      },
+      "premium": 300,
+      "unclamped": 278
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 33619,
+        "strike": 33619,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 4,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1803069868,
+        "vault_total_assets": "9859085957",
+        "vault_locked": "54939620",
+        "vault_reserved": "77136329",
+        "new_lock": "108000000",
+        "flight_exposure": 1045188,
+        "deductible": 2500,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 1447,
+      "unclamped": 1447
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 39132,
+        "strike": 51803,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1806348834,
+        "vault_total_assets": "9581517168",
+        "vault_locked": "283023314",
+        "vault_reserved": "73682413",
+        "new_lock": "108000000",
+        "flight_exposure": 1359456,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 513,
+      "unclamped": 513
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 42232,
+        "strike": 45563,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1808295280,
+        "vault_total_assets": "4580782536",
+        "vault_locked": "170199443",
+        "vault_reserved": "29838232",
+        "new_lock": "108000000",
+        "flight_exposure": 858475,
+        "deductible": 5000,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 817,
+      "unclamped": 817
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 45140,
+        "strike": 45140,
+        "signals": {
+          "momentum_bucket": 2,
+          "availability_bucket": 2,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1805943748,
+        "vault_total_assets": "5713005105",
+        "vault_locked": "807948677",
+        "vault_reserved": "1429942",
+        "new_lock": "108000000",
+        "flight_exposure": 10081,
+        "deductible": 2500,
+        "validity_secs": 259200,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 368,
+      "unclamped": 368
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 55253,
+        "strike": 56922,
+        "signals": {
+          "momentum_bucket": 2,
+          "availability_bucket": 3,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1802575528,
+        "vault_total_assets": "8087346763",
+        "vault_locked": "836932651",
+        "vault_reserved": "1056919",
+        "new_lock": "108000000",
+        "flight_exposure": 1156452,
+        "deductible": 2000,
+        "validity_secs": 2592000,
+        "route_window_days": 0,
+        "airport_group": false
+      },
+      "premium": 3500,
+      "unclamped": 4304
     },
     {
       "inputs": {
@@ -1075,7 +1161,11 @@
         "vault_locked": "623985656",
         "vault_reserved": "70402131",
         "new_lock": "108000000",
-        "flight_exposure": 234653
+        "flight_exposure": 234653,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
       "premium": 391,
       "unclamped": 391
@@ -1096,142 +1186,145 @@
         "vault_locked": "144818023",
         "vault_reserved": "16883595",
         "new_lock": "108000000",
-        "flight_exposure": 317086
+        "flight_exposure": 317086,
+        "deductible": 500,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 704,
-      "unclamped": 704
+      "premium": 1583,
+      "unclamped": 1583
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 58260,
-        "strike": 72147,
+        "current_price": 15876,
+        "strike": 30734,
         "signals": {
-          "momentum_bucket": 1,
+          "momentum_bucket": 3,
+          "availability_bucket": 1,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1803083954,
+        "vault_total_assets": "5830579045",
+        "vault_locked": "292376943",
+        "vault_reserved": "894833",
+        "new_lock": "108000000",
+        "flight_exposure": 57883,
+        "deductible": 5000,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 313,
+      "unclamped": 313
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 53367,
+        "strike": 61426,
+        "signals": {
+          "momentum_bucket": 3,
+          "availability_bucket": 0,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1809858802,
+        "vault_total_assets": "4979200565",
+        "vault_locked": "152218725",
+        "vault_reserved": "97678381",
+        "new_lock": "108000000",
+        "flight_exposure": 221617,
+        "deductible": 2000,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 851,
+      "unclamped": 851
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 50540,
+        "strike": 50540,
+        "signals": {
+          "momentum_bucket": 2,
           "availability_bucket": 3,
           "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1808703986,
-        "vault_total_assets": "8371061907",
-        "vault_locked": "64255154",
-        "vault_reserved": "30579045",
+        "departure_ts": 1803531267,
+        "vault_total_assets": "2879887765",
+        "vault_locked": "109442426",
+        "vault_reserved": "1416766",
         "new_lock": "108000000",
-        "flight_exposure": 1376943
+        "flight_exposure": 588610,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 446,
-      "unclamped": 446
+      "premium": 1360,
+      "unclamped": 1360
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 37833,
-        "strike": 50716,
+        "current_price": 11047,
+        "strike": 13576,
         "signals": {
           "momentum_bucket": 4,
-          "availability_bucket": 1,
+          "availability_bucket": 3,
           "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1806153859,
-        "vault_total_assets": "4346024468",
-        "vault_locked": "3421260",
-        "vault_reserved": "45650176",
+        "departure_ts": 1808890297,
+        "vault_total_assets": "6056680920",
+        "vault_locked": "796511379",
+        "vault_reserved": "68839504",
         "new_lock": "108000000",
-        "flight_exposure": 26002
+        "flight_exposure": 112866,
+        "deductible": 2000,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 476,
-      "unclamped": 476
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 3565,
-        "strike": 3565,
-        "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 1,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1802426803,
-        "vault_total_assets": "3623434074",
-        "vault_locked": "162707540",
-        "vault_reserved": "99917872",
-        "new_lock": "108000000",
-        "flight_exposure": 75978
-      },
-      "premium": 486,
-      "unclamped": 486
+      "premium": 569,
+      "unclamped": 569
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 23665,
-        "strike": 31132,
+        "current_price": 27788,
+        "strike": 38067,
         "signals": {
-          "momentum_bucket": 0,
+          "momentum_bucket": 2,
           "availability_bucket": 1,
-          "season_flag": true
+          "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1801493410,
-        "vault_total_assets": "3533088047",
-        "vault_locked": "22502529",
-        "vault_reserved": "45897214",
+        "departure_ts": 1807433021,
+        "vault_total_assets": "7929367877",
+        "vault_locked": "494059879",
+        "vault_reserved": "33480755",
         "new_lock": "108000000",
-        "flight_exposure": 674153
+        "flight_exposure": 1117531,
+        "deductible": 1000,
+        "validity_secs": 259200,
+        "route_window_days": null,
+        "airport_group": false
       },
       "premium": 300,
-      "unclamped": 274
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 46561,
-        "strike": 55058,
-        "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 4,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1805457666,
-        "vault_total_assets": "5444963882",
-        "vault_locked": "70704950",
-        "vault_reserved": "36824788",
-        "new_lock": "108000000",
-        "flight_exposure": 670279
-      },
-      "premium": 553,
-      "unclamped": 553
+      "unclamped": 203
     },
     {
       "inputs": {
         "product": "drop",
-        "current_price": 24732,
-        "strike": 24732,
-        "signals": {
-          "momentum_bucket": 1,
-          "availability_bucket": 1,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1805444677,
-        "vault_total_assets": "5994059879",
-        "vault_locked": "633480755",
-        "vault_reserved": "9617531",
-        "new_lock": "108000000",
-        "flight_exposure": 581031
-      },
-      "premium": 706,
-      "unclamped": 706
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 57364,
-        "strike": 64914,
+        "current_price": 10550,
+        "strike": 10550,
         "signals": {
           "momentum_bucket": 4,
           "availability_bucket": 2,
@@ -1243,142 +1336,145 @@
         "vault_locked": "552474805",
         "vault_reserved": "65505448",
         "new_lock": "108000000",
-        "flight_exposure": 1021147
+        "flight_exposure": 1021147,
+        "deductible": 1000,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 1137,
-      "unclamped": 1137
+      "premium": 983,
+      "unclamped": 983
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 49783,
-        "strike": 57928,
+        "current_price": 51512,
+        "strike": 56052,
+        "signals": {
+          "momentum_bucket": 2,
+          "availability_bucket": 4,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1804408124,
+        "vault_total_assets": "2073466316",
+        "vault_locked": "26096279",
+        "vault_reserved": "67555406",
+        "new_lock": "108000000",
+        "flight_exposure": 1069906,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 1734,
+      "unclamped": 1734
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 32430,
+        "strike": 37911,
         "signals": {
           "momentum_bucket": 2,
           "availability_bucket": 0,
           "season_flag": true
         },
         "now": 1800000000,
-        "departure_ts": 1807986299,
-        "vault_total_assets": "8470430873",
-        "vault_locked": "488651324",
-        "vault_reserved": "73466316",
+        "departure_ts": 1803838699,
+        "vault_total_assets": "5363789540",
+        "vault_locked": "309633777",
+        "vault_reserved": "82661436",
         "new_lock": "108000000",
-        "flight_exposure": 596279
+        "flight_exposure": 1375372,
+        "deductible": 2000,
+        "validity_secs": 2592000,
+        "route_window_days": 1,
+        "airport_group": false
       },
-      "premium": 492,
-      "unclamped": 492
+      "premium": 1047,
+      "unclamped": 1047
     },
     {
       "inputs": {
         "product": "drop",
-        "current_price": 58406,
-        "strike": 58406,
+        "current_price": 57726,
+        "strike": 57726,
         "signals": {
           "momentum_bucket": 1,
-          "availability_bucket": 0,
+          "availability_bucket": 1,
           "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1809249332,
-        "vault_total_assets": "9667734570",
-        "vault_locked": "454607574",
-        "vault_reserved": "91185899",
+        "departure_ts": 1809489801,
+        "vault_total_assets": "1906664020",
+        "vault_locked": "628762360",
+        "vault_reserved": "95475155",
         "new_lock": "108000000",
-        "flight_exposure": 289540
+        "flight_exposure": 1232652,
+        "deductible": 1000,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 711,
-      "unclamped": 711
+      "premium": 1141,
+      "unclamped": 1141
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 36777,
-        "strike": 48213,
-        "signals": {
-          "momentum_bucket": 2,
-          "availability_bucket": 3,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1800525837,
-        "vault_total_assets": "3870175915",
-        "vault_locked": "780714726",
-        "vault_reserved": "18415061",
-        "new_lock": "108000000",
-        "flight_exposure": 434266
-      },
-      "premium": 312,
-      "unclamped": 312
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 50843,
-        "strike": 55844,
-        "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 0,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1807261452,
-        "vault_total_assets": "8124851528",
-        "vault_locked": "379495190",
-        "vault_reserved": "53357824",
-        "new_lock": "108000000",
-        "flight_exposure": 54264
-      },
-      "premium": 556,
-      "unclamped": 556
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 61524,
-        "strike": 61524,
+        "current_price": 60824,
+        "strike": 70088,
         "signals": {
           "momentum_bucket": 4,
           "availability_bucket": 4,
-          "season_flag": true
+          "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1809439759,
-        "vault_total_assets": "8403899081",
-        "vault_locked": "354527936",
-        "vault_reserved": "5503609",
+        "departure_ts": 1809308800,
+        "vault_total_assets": "2188914959",
+        "vault_locked": "203899081",
+        "vault_reserved": "54527936",
         "new_lock": "108000000",
-        "flight_exposure": 28481
+        "flight_exposure": 503609,
+        "deductible": 5000,
+        "validity_secs": 259200,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 2331,
-      "unclamped": 2331
+      "premium": 506,
+      "unclamped": 506
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 43208,
-        "strike": 55678,
+        "current_price": 15470,
+        "strike": 29118,
         "signals": {
           "momentum_bucket": 3,
-          "availability_bucket": 3,
+          "availability_bucket": 1,
           "season_flag": true
         },
         "now": 1800000000,
-        "departure_ts": 1806393356,
-        "vault_total_assets": "7694823666",
-        "vault_locked": "590877247",
-        "vault_reserved": "78012955",
+        "departure_ts": 1801876466,
+        "vault_total_assets": "5190877247",
+        "vault_locked": "78012955",
+        "vault_reserved": "35595307",
         "new_lock": "108000000",
-        "flight_exposure": 595307
+        "flight_exposure": 602775,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 643,
-      "unclamped": 643
+      "premium": 424,
+      "unclamped": 424
     },
     {
       "inputs": {
-        "product": "cap",
-        "current_price": 5775,
-        "strike": 13983,
+        "product": "drop",
+        "current_price": 11208,
+        "strike": 11208,
         "signals": {
           "momentum_bucket": 3,
           "availability_bucket": 3,
@@ -1390,136 +1486,364 @@
         "vault_locked": "739917284",
         "vault_reserved": "17332125",
         "new_lock": "108000000",
-        "flight_exposure": 1231930
+        "flight_exposure": 1231930,
+        "deductible": 500,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 391,
-      "unclamped": 391
+      "premium": 2601,
+      "unclamped": 2601
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 61299,
+        "strike": 61809,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 3,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1807239670,
+        "vault_total_assets": "1497657959",
+        "vault_locked": "88725051",
+        "vault_reserved": "5224171",
+        "new_lock": "108000000",
+        "flight_exposure": 576386,
+        "deductible": 5000,
+        "validity_secs": 2592000,
+        "route_window_days": 1,
+        "airport_group": true
+      },
+      "premium": 3500,
+      "unclamped": 3975
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 25413,
+        "strike": 25613,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 4,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1802954380,
+        "vault_total_assets": "7507136503",
+        "vault_locked": "558084308",
+        "vault_reserved": "16279751",
+        "new_lock": "108000000",
+        "flight_exposure": 1217970,
+        "deductible": 5000,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 3500,
+      "unclamped": 4840
     },
     {
       "inputs": {
         "product": "drop",
-        "current_price": 3633,
-        "strike": 3633,
+        "current_price": 17270,
+        "strike": 17270,
         "signals": {
           "momentum_bucket": 3,
-          "availability_bucket": 4,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1803510229,
-        "vault_total_assets": "5054741708",
-        "vault_locked": "209551605",
-        "vault_reserved": "52570870",
-        "new_lock": "108000000",
-        "flight_exposure": 1157959
-      },
-      "premium": 1621,
-      "unclamped": 1621
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 48051,
-        "strike": 57222,
-        "signals": {
-          "momentum_bucket": 1,
-          "availability_bucket": 1,
-          "season_flag": false
-        },
-        "now": 1800000000,
-        "departure_ts": 1809070493,
-        "vault_total_assets": "5190653660",
-        "vault_locked": "202282413",
-        "vault_reserved": "90820200",
-        "new_lock": "108000000",
-        "flight_exposure": 1399764
-      },
-      "premium": 344,
-      "unclamped": 344
-    },
-    {
-      "inputs": {
-        "product": "cap",
-        "current_price": 24504,
-        "strike": 31481,
-        "signals": {
-          "momentum_bucket": 0,
           "availability_bucket": 3,
           "season_flag": true
         },
         "now": 1800000000,
-        "departure_ts": 1803460551,
-        "vault_total_assets": "1490217970",
-        "vault_locked": "646687781",
-        "vault_reserved": "87075015",
+        "departure_ts": 1801781280,
+        "vault_total_assets": "5133062214",
+        "vault_locked": "41375258",
+        "vault_reserved": "56685118",
         "new_lock": "108000000",
-        "flight_exposure": 494270
+        "flight_exposure": 1332016,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 406,
-      "unclamped": 406
-    },
-    {
-      "inputs": {
-        "product": "drop",
-        "current_price": 12998,
-        "strike": 12998,
-        "signals": {
-          "momentum_bucket": 3,
-          "availability_bucket": 2,
-          "season_flag": true
-        },
-        "now": 1800000000,
-        "departure_ts": 1809075014,
-        "vault_total_assets": "6441375258",
-        "vault_locked": "556685118",
-        "vault_reserved": "73832016",
-        "new_lock": "108000000",
-        "flight_exposure": 1465552
-      },
-      "premium": 1159,
-      "unclamped": 1159
+      "premium": 1347,
+      "unclamped": 1347
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 15722,
-        "strike": 24356,
+        "current_price": 28552,
+        "strike": 41274,
         "signals": {
           "momentum_bucket": 4,
+          "availability_bucket": 4,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1801229156,
+        "vault_total_assets": "9943256752",
+        "vault_locked": "431198973",
+        "vault_reserved": "1547462",
+        "new_lock": "108000000",
+        "flight_exposure": 22473,
+        "deductible": 1000,
+        "validity_secs": 259200,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 417,
+      "unclamped": 417
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 28581,
+        "strike": 33546,
+        "signals": {
+          "momentum_bucket": 3,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1807056908,
+        "vault_total_assets": "1412343018",
+        "vault_locked": "215067339",
+        "vault_reserved": "41318794",
+        "new_lock": "108000000",
+        "flight_exposure": 1200451,
+        "deductible": 2000,
+        "validity_secs": 259200,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 300,
+      "unclamped": 242
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 18757,
+        "strike": 18757,
+        "signals": {
+          "momentum_bucket": 2,
+          "availability_bucket": 0,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1801063975,
+        "vault_total_assets": "7581282549",
+        "vault_locked": "154870780",
+        "vault_reserved": "67616159",
+        "new_lock": "108000000",
+        "flight_exposure": 1263092,
+        "deductible": 500,
+        "validity_secs": 259200,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 412,
+      "unclamped": 412
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 46055,
+        "strike": 47564,
+        "signals": {
+          "momentum_bucket": 3,
           "availability_bucket": 0,
           "season_flag": true
         },
         "now": 1800000000,
-        "departure_ts": 1806789552,
-        "vault_total_assets": "4131198973",
-        "vault_locked": "401547462",
-        "vault_reserved": "69022473",
+        "departure_ts": 1802319293,
+        "vault_total_assets": "4576255908",
+        "vault_locked": "39032315",
+        "vault_reserved": "52809474",
         "new_lock": "108000000",
-        "flight_exposure": 532659
+        "flight_exposure": 889478,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 378,
-      "unclamped": 378
+      "premium": 1838,
+      "unclamped": 1838
     },
     {
       "inputs": {
         "product": "cap",
-        "current_price": 40556,
-        "strike": 51137,
+        "current_price": 46304,
+        "strike": 61232,
         "signals": {
-          "momentum_bucket": 0,
-          "availability_bucket": 3,
+          "momentum_bucket": 4,
+          "availability_bucket": 4,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1809978978,
+        "vault_total_assets": "6320653240",
+        "vault_locked": "255855347",
+        "vault_reserved": "10591532",
+        "new_lock": "108000000",
+        "flight_exposure": 1333462,
+        "deductible": 1000,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 1546,
+      "unclamped": 1546
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 28707,
+        "strike": 28707,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 4,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1800782004,
+        "vault_total_assets": "4208254883",
+        "vault_locked": "47711100",
+        "vault_reserved": "46810146",
+        "new_lock": "108000000",
+        "flight_exposure": 208250,
+        "deductible": 500,
+        "validity_secs": 259200,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 1313,
+      "unclamped": 1313
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 11357,
+        "strike": 14832,
+        "signals": {
+          "momentum_bucket": 3,
+          "availability_bucket": 2,
           "season_flag": false
         },
         "now": 1800000000,
-        "departure_ts": 1801819299,
-        "vault_total_assets": "3715236108",
-        "vault_locked": "412343018",
-        "vault_reserved": "15067339",
+        "departure_ts": 1801782585,
+        "vault_total_assets": "9751030705",
+        "vault_locked": "24171586",
+        "vault_reserved": "50582312",
         "new_lock": "108000000",
-        "flight_exposure": 318794
+        "flight_exposure": 1267814,
+        "deductible": 1000,
+        "validity_secs": 604800,
+        "route_window_days": null,
+        "airport_group": false
       },
-      "premium": 393,
-      "unclamped": 393
+      "premium": 369,
+      "unclamped": 369
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 18611,
+        "strike": 25524,
+        "signals": {
+          "momentum_bucket": 1,
+          "availability_bucket": 1,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1803504897,
+        "vault_total_assets": "9383634065",
+        "vault_locked": "44531444",
+        "vault_reserved": "73860237",
+        "new_lock": "108000000",
+        "flight_exposure": 83830,
+        "deductible": null,
+        "validity_secs": null,
+        "route_window_days": 0,
+        "airport_group": true
+      },
+      "premium": 300,
+      "unclamped": 295
+    },
+    {
+      "inputs": {
+        "product": "drop",
+        "current_price": 12230,
+        "strike": 12230,
+        "signals": {
+          "momentum_bucket": 1,
+          "availability_bucket": 4,
+          "season_flag": false
+        },
+        "now": 1800000000,
+        "departure_ts": 1808941302,
+        "vault_total_assets": "2016388489",
+        "vault_locked": "813465418",
+        "vault_reserved": "84694736",
+        "new_lock": "108000000",
+        "flight_exposure": 648181,
+        "deductible": 2500,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 871,
+      "unclamped": 871
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 9560,
+        "strike": 17605,
+        "signals": {
+          "momentum_bucket": 1,
+          "availability_bucket": 1,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1805275811,
+        "vault_total_assets": "2304597480",
+        "vault_locked": "6256035",
+        "vault_reserved": "71120342",
+        "new_lock": "108000000",
+        "flight_exposure": 931143,
+        "deductible": 2000,
+        "validity_secs": 1209600,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 305,
+      "unclamped": 305
+    },
+    {
+      "inputs": {
+        "product": "cap",
+        "current_price": 17019,
+        "strike": 27565,
+        "signals": {
+          "momentum_bucket": 4,
+          "availability_bucket": 3,
+          "season_flag": true
+        },
+        "now": 1800000000,
+        "departure_ts": 1807791233,
+        "vault_total_assets": "8361881134",
+        "vault_locked": "261977742",
+        "vault_reserved": "80326335",
+        "new_lock": "108000000",
+        "flight_exposure": 1264196,
+        "deductible": 5000,
+        "validity_secs": 2592000,
+        "route_window_days": null,
+        "airport_group": false
+      },
+      "premium": 839,
+      "unclamped": 839
     }
   ],
   "cap_payouts": [

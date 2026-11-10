@@ -1,4 +1,4 @@
-import { flightKeyHash, routeKeyHash, signSnapshot, validateFlightKey, validateRouteKey, type FlightKey, type PriceSnapshot, type RouteKey, type SignedSnapshot } from "@capfare/shared";
+import { airportsOf, daysFromDate, flightKeyHash, routeKeyHash, signSnapshot, validateFlightKey, validateRouteKey, type FlightKey, type PriceSnapshot, type RouteKey, type SignedSnapshot } from "@capfare/shared";
 import { RateLimiter, type KeyMaterial } from "@capfare/tee-common";
 import type { PriceAdapter } from "./adapters/types.ts";
 import { availabilityBucket, momentumBucket, seasonFlag, type Obs } from "./signals.ts";
@@ -69,9 +69,19 @@ export class Oracle {
   }
 
   /** Flights the oracle tracks on a route and day (union over sources, by flight number). */
+  /** Every tracked flight the route cover pays for: each airport of a group, each day of the window. */
   flightsOn(r: RouteKey): FlightKey[] {
     const seen = new Map<string, FlightKey>();
-    for (const a of this.opts.adapters) for (const k of a.flightsOn?.(r) ?? []) seen.set(k.flight_number, k);
+    const mid = daysFromDate(r.departure_date);
+    if (mid === null) return [];
+    const w = r.date_window_days ?? 0;
+    for (const o of airportsOf(r.origin))
+      for (const d of airportsOf(r.destination))
+        for (let k = -w; k <= w; k++) {
+          const date = new Date((mid + k) * 86_400_000).toISOString().slice(0, 10);
+          const plain: RouteKey = { origin: o, destination: d, departure_date: date, date_window_days: 0, fare_class: r.fare_class };
+          for (const a of this.opts.adapters) for (const key of a.flightsOn?.(plain) ?? []) seen.set(`${key.flight_number}|${key.departure_date}`, key);
+        }
     return [...seen.values()];
   }
 

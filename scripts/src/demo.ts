@@ -120,8 +120,21 @@ export async function demo(network = process.env.NETWORK ?? "sandbox") {
   kv("attestation", `paid ${formatEur(cap.attestation.attestation.paid_price_minor)}, ${cap.attestation.attestation.refundable}, no PII`);
   await user.call(d.registry, "claim_cap", { policy_id: capId, attestation: cap.attestation });
 
+  // An email cannot show a free cancellation in the first 24 hours (30 s on the demo): the
+  // payout waits for a live check of the booking after that window (D41).
+  const held = await waitPolicy(chain, d.registry, capId, ["claimed", "paid_out", "active"]);
+  kv("claim", held.final_check_at ? `approved, held until a live check from ${new Date(held.final_check_at * 1000).toISOString()}` : held.state);
+  if (held.state === "claimed" && held.final_check_at) {
+    while ((await chain.nowSecs()) < held.final_check_at + 1) await sleep(1000);
+    say("6b. Live check of the booking after the free-cancellation window (airline status check in the enclave)");
+    const live = await post<{ attestation: any }>(`${VERIFIER}/v1/verify/status`, {
+      sealed: await sealJson({ airline: "KL", booking_ref: cap.booking_ref, last_name: cap.last_name, salt: user.salt(), flight_key: CAP_FLIGHT, booked_at: booked }, cap.box),
+    });
+    await user.call(d.registry, "finalize_claim", { policy_id: capId, attestation: live.attestation });
+  }
+
   say("7. Payout = min(260, 255) − 180 − deductible, capped at max payout");
-  const paid = await waitPolicy(chain, d.registry, capId, ["paid_out", "claimed", "active"]);
+  const paid = await waitPolicy(chain, d.registry, capId, ["paid_out", "voided"]);
   const expected = capPayout(26000, 25500, 18000, params.cap.deductible, params.cap.max_payout);
   kv("index at booking", formatEur(paid.index_at_booking_minor ?? 0));
   kv("payout", `${formatEur(paid.payout_minor ?? 0)} (expected ${formatEur(expected)}) → state ${paid.state}`);

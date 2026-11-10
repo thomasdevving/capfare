@@ -47,7 +47,10 @@ function readEvents(r: RelayResult) {
     }
     if (e.event === "payout_held_for_final_check") {
       held = true;
-      lines.push("Refundable ticket: the payout is held until a final check one day before departure. We'll remind you.");
+      const at = Number(d.final_check_at);
+      lines.push(
+        `Approved. The payout is released after a live check of your booking from ${new Date(at * 1000).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}: bookings can be cancelled free for 24 hours, and refundable tickets until departure. We'll remind you.`,
+      );
     }
     if (e.event === "payout_sent" || (e.event === "policy_resolved" && String(d.state) === "paid_out")) sent = true;
     if (e.event === "payout_sent") lines.push("Paid to your account.");
@@ -183,7 +186,7 @@ export default function ClaimClient({ id, registry, demo }: { id: number; regist
       ) : null}
       {results.length ? (
         <section className="card claim-result" aria-live="polite">
-          <p className="small muted">{results.every((r) => r.sent) ? "Paid to your account" : results.some((r) => r.held) ? "Approved, paid after the final check" : "Approved"}</p>
+          <p className="small muted">{results.every((r) => r.sent) ? "Paid to your account" : results.some((r) => r.held) ? "Approved, paid after a live check of your booking" : "Approved"}</p>
           <p className="big num">{eur(total)}</p>
           {results.map((r) => (
             <table key={r.policy.id} className="data" style={{ maxWidth: 460 }}>
@@ -234,7 +237,7 @@ export default function ClaimClient({ id, registry, demo }: { id: number; regist
             onVerified={(r) => onVerified([r])}
             defaultPaid={p.product === "cap" ? 25500 : p.strike_minor}
             defaultPassengers={p.seats}
-            liveOnly={method === "finalize_claim" || (method === "settle_drop" && p.refundable !== "non_refundable")}
+            liveOnly={method === "finalize_claim" || method === "settle_drop"}
           />
         </>
       ) : (

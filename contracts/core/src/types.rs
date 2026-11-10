@@ -127,33 +127,107 @@ fn validate_airports(origin: &str, destination: &str) -> Result<(), &'static str
     Ok(())
 }
 
-/// Flexible coverage: every non-stop flight CapFare's price oracle tracks on one route and
-/// departure day, in one fare class. The index is the cheapest available fare among them.
+/// Airport groups for flexible route cover: a code starting with '@' stands for every airport
+/// in the group (e.g. all London airports). Mirrored in /shared/src/encoding.ts.
+pub const AIRPORT_GROUPS: &[(&str, &[&str])] = &[
+    ("@LON", &["LHR", "LGW", "STN", "LTN", "LCY", "SEN"]),
+    ("@PAR", &["CDG", "ORY", "BVA"]),
+    ("@NL", &["AMS", "RTM", "EIN"]),
+    ("@MIL", &["MXP", "LIN", "BGY"]),
+    ("@ROM", &["FCO", "CIA"]),
+    ("@NYC", &["JFK", "EWR", "LGA"]),
+];
+
+/// Widest date window for flexible cover: the chosen day plus or minus this many days.
+pub const MAX_DATE_WINDOW_DAYS: u8 = 3;
+
+/// The airports an origin or destination code stands for: a group's members, or the airport.
+pub fn airports_of(code: &str) -> Vec<&str> {
+    match AIRPORT_GROUPS.iter().find(|(g, _)| *g == code) {
+        Some((_, members)) => members.to_vec(),
+        None => vec![code],
+    }
+}
+
+pub fn is_airport_group(code: &str) -> bool {
+    AIRPORT_GROUPS.iter().any(|(g, _)| *g == code)
+}
+
+/// Days since 1970-01-01 for a valid "YYYY-MM-DD" (proleptic Gregorian).
+pub fn days_from_date(d: &str) -> Option<i64> {
+    let y: i64 = d.get(0..4)?.parse().ok()?;
+    let m: i64 = d.get(5..7)?.parse().ok()?;
+    let day: i64 = d.get(8..10)?.parse().ok()?;
+    if !(1..=12).contains(&m) || !(1..=31).contains(&day) {
+        return None;
+    }
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + day - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    Some(era * 146_097 + doe - 719_468)
+}
+
+/// Flexible coverage: every non-stop flight CapFare's price oracle tracks between the origin
+/// and destination (an airport or an airport group) on the departure day, or within
+/// `date_window_days` either side of it, in one fare class. The index is the cheapest available
+/// fare among them.
 #[near(serializers = [borsh, json])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RouteKey {
+    /// IATA airport code, or an airport group code such as "@LON".
     pub origin: String,
     pub destination: String,
-    /// Local date at origin, "YYYY-MM-DD".
+    /// Local date at origin, "YYYY-MM-DD" (the middle of the window).
     pub departure_date: String,
+    /// 0..=MAX_DATE_WINDOW_DAYS: also covers flights this many days before and after.
+    #[serde(default)]
+    pub date_window_days: u8,
     pub fare_class: String,
 }
 
 impl RouteKey {
     pub fn validate(&self) -> Result<(), &'static str> {
         validate_date(&self.departure_date)?;
-        validate_airports(&self.origin, &self.destination)?;
+        if days_from_date(&self.departure_date).is_none() {
+            return Err("departure_date must be YYYY-MM-DD");
+        }
+        for a in [&self.origin, &self.destination] {
+            let airport = a.len() == 3 && a.chars().all(|c| c.is_ascii_uppercase());
+            if !airport && !is_airport_group(a) {
+                return Err("airports must be 3-letter uppercase IATA codes or airport groups such as @LON");
+            }
+        }
+        let (o, d) = (airports_of(&self.origin), airports_of(&self.destination));
+        if o.iter().any(|a| d.contains(a)) {
+            return Err("origin and destination must differ");
+        }
+        if self.date_window_days > MAX_DATE_WINDOW_DAYS {
+            return Err("date window must be 0 to 3 days");
+        }
         if !FARE_CLASSES.contains(&self.fare_class.as_str()) {
             return Err("unknown fare_class");
         }
         Ok(())
     }
 
+    /// Flexible beyond one route and day: a date window or an airport group.
+    pub fn uses_group(&self) -> bool {
+        is_airport_group(&self.origin) || is_airport_group(&self.destination)
+    }
+
     /// True if `k` is a flight this route coverage pays for.
     pub fn matches(&self, k: &FlightKey) -> bool {
-        k.origin == self.origin
-            && k.destination == self.destination
-            && k.departure_date == self.departure_date
+        let day = |d: &str| days_from_date(d);
+        let in_window = match (day(&k.departure_date), day(&self.departure_date)) {
+            (Some(a), Some(b)) => (a - b).abs() <= i64::from(self.date_window_days),
+            _ => false,
+        };
+        airports_of(&self.origin).contains(&k.origin.as_str())
+            && airports_of(&self.destination).contains(&k.destination.as_str())
+            && in_window
             && k.fare_class == self.fare_class
     }
 }

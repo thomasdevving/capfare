@@ -6,7 +6,8 @@ import copy
 import json
 from pathlib import Path
 
-from .calibrate import evaluate, search
+from .calibrate import evaluate, finalize_options, search
+from .flex import calibrate_flex
 from .data import CsvSource, SyntheticSource
 from .report import chart_dist, chart_sensitivity, chart_weekly, write_markdown
 from .simulate import BuyerConfig, required_capital, simulate_cap, simulate_drop
@@ -17,6 +18,9 @@ GLOBAL = {
     "max_attestation_age_secs": 3_600,
     "final_check_lead_secs": 86_400,
     "claim_grace_secs": 3 * 86_400,
+    # US rule: free cancellation for 24 hours after booking (flights booked 7+ days ahead);
+    # payouts wait for a live booking check after it.
+    "free_cancel_window_secs": 86_400,
     "sold_out_premium_refund": True,
     "protocol_fee_bps": 500,
     "usdc_micro_per_cent": 10_800,
@@ -29,8 +33,11 @@ def demo_variant(params: dict) -> dict:
     d = copy.deepcopy(params)
     d["global"]["param_timelock_secs"] = 60
     d["global"]["claim_grace_secs"] = 3_600
+    d["global"]["free_cancel_window_secs"] = 30
     d["cap"]["activation_delay_secs"] = 20
     d["drop"]["validity_secs"] = 90
+    # Same duration multipliers, demo-length windows (the default 90 s stands in for 7 days).
+    d["drop"]["validity_options_secs"] = [60, 90, 180, 300]
     d["drop"]["purchase_window_secs"] = 3_600
     return d
 
@@ -49,6 +56,9 @@ def run(args):
     print(f"{len(flights)} flights ({'synthetic' if flights[0].synthetic else 'real'})")
     cap_p, cap_best, _ = search("cap", flights, cfg, args.consumer_max)
     drop_p, drop_best, _ = search("drop", flights, cfg, args.consumer_max)
+    cap_p = finalize_options("cap", flights, cap_p, cfg)
+    drop_p = finalize_options("drop", flights, drop_p, cfg)
+    cap_p, flex_report = calibrate_flex(cap_p, cfg, n=args.flex_scenarios)
     params = {"global": GLOBAL, "cap": cap_p, "drop": drop_p}
     cap_s = evaluate("cap", flights, cap_p, cfg, seed=99)
     drop_s = evaluate("drop", flights, drop_p, cfg, seed=98)
@@ -75,7 +85,10 @@ def run(args):
     res = {"seed": args.seed, "flights": len(flights), "buyers_per_flight": args.buyers, "informed_share": args.informed,
            "synthetic": flights[0].synthetic, "cap": cap_s, "drop": drop_s, "cap_best": {k: v for k, v in cap_best.items() if k != "params"},
            "drop_best": {k: v for k, v in drop_best.items() if k != "params"}, "sensitivity": sens,
-           "capital": capital}
+           "capital": capital, "flex": flex_report,
+           "options": {k: {"deductibles_eur": [d / 100 for d in p["deductible_options"]], "deductible_mult": [m / 10_000 for m in p["deductible_mult_bps"]],
+                           "durations_days": [v / 86_400 for v in p["validity_options_secs"]], "duration_mult": [m / 10_000 for m in p["validity_mult_bps"]]}
+                       for k, p in (("cap", cap_p), ("drop", drop_p))}}
     chart_weekly(cap_s, "Price Cap vault — weekly P&L (synthetic)", img / "cap_weekly.png")
     chart_weekly(drop_s, "Drop Guarantee vault — weekly P&L (synthetic)", img / "drop_weekly.png")
     chart_dist(cap_s, "Price Cap — P&L per policy (synthetic)", img / "cap_dist.png")
@@ -106,6 +119,7 @@ def main():
     r.add_argument("--informed", type=float, default=0.25)
     r.add_argument("--consumer-max", type=float, default=10.0)
     r.add_argument("--csv", default=None)
+    r.add_argument("--flex-scenarios", type=int, default=120)
     r.add_argument("--out", default="output")
     r.add_argument("--docs", default="../docs")
     a = ap.parse_args()

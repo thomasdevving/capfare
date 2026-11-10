@@ -133,6 +133,42 @@ def write_markdown(path: Path, res: dict, img_rel: str):
               "|---|---|---|---|---|"]
     for c in res["capital"]:
         lines.append(f"| {c['product']} | {c['policies_per_week']} | €{c['collateral_eur']:,.0f} | €{abs(c['loss_buffer_eur']):,.0f} | {fmt_pct(c['p_loss_after_year'])} |")
+    opts, flex = res.get("options"), res.get("flex")
+    if opts:
+        lines += ["", "## Buyer options: deductible and cover duration", "",
+                  "Buyers choose a deductible and how long the lock lasts. Each choice multiplies the premium.",
+                  "Deductible multipliers come from recomputing every simulated policy's payout with each",
+                  "deductible (expected payout relative to the default), so the loss ratio stays the same;",
+                  "they never increase with the deductible. Duration multipliers come from re-running the",
+                  "simulation with each cover duration (expected payout per policy relative to 7 days); they",
+                  "never decrease with the duration. Together they act as a duration dimension of the base",
+                  "table, kept separate so the table stays readable.", "",
+                  "| Product | Deductible (€) | Premium × | Duration (days) | Premium × |", "|---|---|---|---|---|"]
+        for k in ("cap", "drop"):
+            o = opts[k]
+            ded = ", ".join(f"{d:g}" for d in o["deductibles_eur"])
+            dm = ", ".join(f"{m:.2f}" for m in o["deductible_mult"])
+            dur = ", ".join(f"{d:g}" for d in o["durations_days"])
+            vm = ", ".join(f"{m:.2f}" for m in o["duration_mult"])
+            lines.append(f"| {k} | {ded} | {dm} | {dur} | {vm} |")
+        lines += ["", "Renewal: a Price Cap can be renewed without a gap (the new cover starts when the old",
+                  "one ends) if it is bought at least one activation delay before the end, so renewing at",
+                  "the last moment cannot skip the delay."]
+    if flex:
+        lines += ["", "## Route cover and flexible cover (date windows, airport groups)", "",
+                  f"Route cover pays against the cheapest available fare in a set of flights. {flex['scenarios']} synthetic",
+                  "route-days were generated with flights on the day and up to 3 days either side, at the main",
+                  "airport and two nearby airports of its group. Flights are aligned on calendar time, the",
+                  "cheapest open fare per step is the index, and the Price Cap buyer simulation runs on that",
+                  "index with the single-flight parameters. The multiplier is the loss ratio relative to",
+                  f"single-flight cover on the same route-days (single-flight loss ratio {flex['single_flight_loss_ratio']}).", "",
+                  "| Window (± days) | Airport group | Flights in the set | Loss ratio |", "|---|---|---|---|"]
+        for r in flex["sets"]:
+            lines.append(f"| {r['window_days']} | {'yes' if r['airport_group'] else 'no'} | {r['flights_in_set']} | {r['loss_ratio']} |")
+        lines += ["", f"Exported multipliers: date window 0–3 days ×{', ×'.join(str(x) for x in flex['flex_window_mult'])};"
+                  f" airport group ×{flex['airport_group_mult']} (clipped to 0.6–2.0).",
+                  "Limitations: nearby airports are modelled as the same market with independent flights;",
+                  "real airports differ in price level and correlation. Re-fit on real fares."]
     lines += ["", "## Combined view (secondary)", "",
               f"Cap + drop together: premiums €{cap['premium_total_eur'] + drop['premium_total_eur']:,.0f},"
               f" payouts €{cap['payout_total_eur'] + drop['payout_total_eur']:,.0f}. No hedge between the products is assumed;",

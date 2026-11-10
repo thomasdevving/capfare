@@ -46,6 +46,21 @@ describe("alerts", () => {
     expect(policyAlerts(policy({ expires_at: T - 4 * 86_400 }), ctx(T, snap(17_000)))).toEqual([]);
   });
 
+  it("offers renewal while it can still start without a gap", () => {
+    const c = { ...ctx(T, snap(17_000)), cap_activation_delay_secs: 86_400 };
+    const renew = policyAlerts(policy({ expires_at: T + 1.5 * 86_400 }), c);
+    expect(renew.map((x) => x.kind)).toEqual(["cap_renew"]);
+    expect(renew[0].title).toContain("Renew before");
+    // Too late (less than the activation delay left) or already renewed: no offer.
+    expect(policyAlerts(policy({ expires_at: T + 3_600 }), c).map((x) => x.kind)).toEqual(["cap_expiring"]);
+    expect(policyAlerts(policy({ expires_at: T + 1.5 * 86_400, renewed_by: 9 }), c)).toEqual([]);
+  });
+
+  it("explains a held payout on a non-refundable ticket (free 24-hour cancellation)", () => {
+    const held = policy({ state: "claimed", final_check_at: T + 3_600, payout_minor: 13_000, refundable: "non_refundable" });
+    expect(policyAlerts(held, ctx(T - 2 * 86_400, null))[0].body).toContain("cancelled free for 24 hours");
+  });
+
   it("offers the sold-out refund", () => {
     expect(policyAlerts(policy(), ctx(T, snap(17_000, false))).map((x) => x.kind)).toContain("sold_out");
   });

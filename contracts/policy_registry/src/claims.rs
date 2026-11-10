@@ -1,10 +1,14 @@
 //! Claims, settlement, final status checks, expiry, sold-out refunds, payouts.
 //!
-//! Payout timing (anti cancel-after-claim, brief 5.3):
-//! * verified non-refundable fare  -> pay as soon as the claim is verified;
-//! * refundable / unknown          -> hold until a status check verified at or after
-//!   departure - FINAL_CHECK_LEAD confirms the booking is still active;
-//! * final check says cancelled    -> void the claim and release coverage.
+//! Payout timing (anti cancel-after-claim, brief 5.3, D41):
+//! * every payout needs a LIVE check of the booking (the booking site itself, not the email)
+//!   verified after the free-cancellation window that follows the booking
+//!   (`free_cancel_window_secs`, 24 hours: many bookings can be cancelled for a full refund
+//!   in that time, e.g. US flights booked 7+ days ahead). A claim that already carries such a
+//!   check is paid at once; otherwise the payout is held until one is submitted;
+//! * refundable / unknown fares    -> the live check must also be at or after
+//!   departure - FINAL_CHECK_LEAD;
+//! * the live check says cancelled -> void the claim and release coverage.
 
 use crate::ext::*;
 use crate::*;
@@ -26,10 +30,24 @@ impl PolicyRegistry {
             .then(Self::ext(env::current_account_id()).with_static_gas(GAS_SMALL_CB).on_vault_resolved(id, target))
     }
 
-    fn after_claim_verified(&mut self, mut p: Policy, verified_at: u64) -> PromiseOrValue<bool> {
+    /// When a payout may be released: after the free-cancellation window that follows the
+    /// booking, and for refundable/unknown fares not before departure - final_check_lead.
+    pub(crate) fn release_at(&self, p: &Policy, booked_at: u64) -> u64 {
+        let g = &self.params.global;
+        let after_cancel_window = booked_at.saturating_add(g.free_cancel_window_secs);
+        if p.refundable == Some(Refundability::NonRefundable) {
+            after_cancel_window
+        } else {
+            after_cancel_window.max(p.departure_ts.saturating_sub(g.final_check_lead_secs))
+        }
+    }
+
+    /// `live`: the verification read the booking from the booking site (not the email).
+    fn after_claim_verified(&mut self, mut p: Policy, verified_at: u64, live: bool, booked_at: u64) -> PromiseOrValue<bool> {
         let payout = p.payout_minor.unwrap_or(0);
-        let final_at = p.departure_ts.saturating_sub(self.params.global.final_check_lead_secs);
-        let pay_now = payout == 0 || p.refundable == Some(Refundability::NonRefundable) || verified_at >= final_at;
+        let final_at = self.release_at(&p, booked_at);
+        let pay_now = payout == 0 || (live && verified_at >= final_at);
+        p.booked_at = Some(booked_at);
         p.state = PolicyState::Claimed;
         if pay_now {
             p.final_check_at = None;
@@ -122,7 +140,7 @@ impl PolicyRegistry {
             json!({"policy_id": policy_id, "index_minor": index, "paid_minor": a.paid_price_minor, "seats": seats,
                    "payout_per_seat_minor": per_seat, "payout_minor": payout, "refundable": a.refundable}),
         );
-        self.after_claim_verified(p, a.verified_at)
+        self.after_claim_verified(p, a.verified_at, a.method.is_live(), a.booked_at)
     }
 
     /// Final booking-status check for held payouts (anyone may submit it).
@@ -134,7 +152,7 @@ impl PolicyRegistry {
         p.busy = true;
         let (fkh, pc) = (p.status_key(), p.passenger_commitment);
         self.save(p);
-        // A final check exists only for refundable/unknown fares: it must be live.
+        // Releasing a held payout always takes a live check of the booking.
         ext_att::ext(self.attestation.clone())
             .with_static_gas(GAS_VIEW)
             .check_status(attestation, nullifier, fkh, pc, true, at, self.params.global.max_attestation_age_secs, None, None)
@@ -192,11 +210,14 @@ impl PolicyRegistry {
         let nullifier = p.booking_nullifier.expect("nullifier");
         p.busy = true;
         let (fkh, from, to, pc) = (p.status_key(), p.purchased_at, p.expires_at, p.passenger_commitment);
-        let live = p.refundable != Some(Refundability::NonRefundable);
+        // Settlement takes a live check after the window ends and after the free-cancellation
+        // window that followed the booking (a cancelled booking must not be paid).
+        let booked_at = p.booked_at.unwrap_or(p.purchased_at);
+        let min_verified = to.max(booked_at.saturating_add(self.params.global.free_cancel_window_secs));
         self.save(p);
         ext_att::ext(self.attestation.clone())
             .with_static_gas(GAS_ATT_CONSUME)
-            .check_status(attestation, nullifier, fkh, pc, live, to, self.params.global.max_attestation_age_secs, Some(from), Some(to))
+            .check_status(attestation, nullifier, fkh, pc, true, min_verified, self.params.global.max_attestation_age_secs, Some(from), Some(to))
             .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CLAIM_CB).on_drop_settled(policy_id))
     }
 
@@ -233,7 +254,8 @@ impl PolicyRegistry {
                     p.refundable = Some(Refundability::NonRefundable);
                 }
                 event("drop_settled", json!({"policy_id": policy_id, "lowest_minor": lowest, "payout_minor": payout}));
-                self.after_claim_verified(p, r.verified_at)
+                let booked_at = p.booked_at.unwrap_or(p.purchased_at);
+                self.after_claim_verified(p, r.verified_at, true, booked_at)
             }
         }
     }

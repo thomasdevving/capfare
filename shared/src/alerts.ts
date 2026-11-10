@@ -11,6 +11,7 @@ export type AlertKind =
   | "cap_active"
   | "cap_in_money"
   | "cap_expiring"
+  | "cap_renew"
   | "claim_window"
   | "sold_out"
   | "drop_falling"
@@ -52,6 +53,8 @@ export interface AlertContext {
   snapshot: SnapshotRecord | null | undefined;
   claim_grace_secs: number;
   sold_out_premium_refund: boolean;
+  /** Price Cap activation delay: renewals must be bought at least this long before expiry. */
+  cap_activation_delay_secs?: number;
 }
 
 const H = 3600;
@@ -105,6 +108,11 @@ export function policyAlerts(p: Policy, ctx: AlertContext): Alert[] {
       if (p.expires_at - now <= DAY) {
         add("cap_expiring", "action", `Your Price Cap ends in ${inText(p.expires_at - now)}`, `${label}: bookings made after ${whenText(p.expires_at)} are not covered. Already booked? Claim now.`, "Claim", claim);
       }
+      // Renewal without a gap is possible until one activation delay before the end.
+      const renewBy = p.expires_at - (ctx.cap_activation_delay_secs ?? DAY);
+      if (!p.renewed_by && now < renewBy && renewBy - now <= 2 * DAY) {
+        add("cap_renew", "action", `Not booked yet? Renew before ${whenText(renewBy)}`, `${label}: your cap of ${eurText(p.strike_minor)} ends ${whenText(p.expires_at)}. Renew now and the new cover starts the moment this one ends.`, "Renew", card);
+      }
       if (s && !s.available && ctx.sold_out_premium_refund) {
         add("sold_out", "action", "Fare sold out: get your premium back", `${label}: the covered fare class is sold out. Your premium of ${eurText(p.premium_minor)} can go back to your credit.`, "Refund premium", card);
       }
@@ -143,7 +151,11 @@ export function policyAlerts(p: Policy, ctx: AlertContext): Alert[] {
     } else if (p.final_check_at - now <= DAY) {
       add("final_check_soon", "info", `Final booking check opens in ${inText(p.final_check_at - now)}`, `${label}: your ${amount} payout is paid once you confirm the booking is still active, from ${whenText(p.final_check_at)}.`, "View", card);
     } else {
-      add("payout_held", "info", `${amount} approved`, `${label}: refundable ticket, so it's paid after a final check of your booking from ${whenText(p.final_check_at)}. We'll remind you.`, "View", card);
+      const why =
+        p.refundable === "non_refundable"
+          ? "many bookings can be cancelled free for 24 hours, so it's paid after a live check of your booking"
+          : "refundable ticket, so it's paid after a final live check of your booking";
+      add("payout_held", "info", `${amount} approved`, `${label}: ${why} from ${whenText(p.final_check_at)}. We'll remind you.`, "View", card);
     }
   }
 
@@ -165,9 +177,12 @@ export function accountAlerts(
   snapshots: Record<string, SnapshotRecord | null | undefined>,
   now: number,
   g: { claim_grace_secs: number; sold_out_premium_refund: boolean },
+  capActivationDelaySecs?: number,
 ): Alert[] {
   return policies
-    .flatMap((p) => policyAlerts(p, { now, snapshot: snapshots[p.flight_key_hash], claim_grace_secs: g.claim_grace_secs, sold_out_premium_refund: g.sold_out_premium_refund }))
+    .flatMap((p) =>
+      policyAlerts(p, { now, snapshot: snapshots[p.flight_key_hash], claim_grace_secs: g.claim_grace_secs, sold_out_premium_refund: g.sold_out_premium_refund, cap_activation_delay_secs: capActivationDelaySecs }),
+    )
     .sort((a, b) => RANK[a.urgency] - RANK[b.urgency] || b.policy_id - a.policy_id);
 }
 

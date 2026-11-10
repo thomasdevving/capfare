@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { accountAlerts, coverageLabel, coverageRoute, type GlobalParams, type Policy, type SnapshotRecord } from "@capfare/shared";
+import { accountAlerts, AIRPORT_GROUPS, coverageLabel, coverageRoute, type GlobalParams, type Policy, type SnapshotRecord } from "@capfare/shared";
+import { maxPremium, premiumFor, type PremiumQuote } from "@/lib/premium";
 import { gasless } from "@/lib/wallet";
 import { dateTime, duration, eur, usdc } from "@/lib/format";
 import { errText, getJson, Msg, postJson, SignInFirst, useSession } from "./ui";
@@ -16,6 +17,7 @@ interface Data {
   snapshots: Record<string, SnapshotRecord | null>;
   now: number;
   global: GlobalParams;
+  cap: { activation_delay_secs: number };
 }
 
 const STATE: Record<string, string> = {
@@ -65,7 +67,18 @@ export default function PoliciesClient({ registry, demo }: { registry: string; d
     }
   }
 
-  const alerts = d ? accountAlerts(d.policies, d.snapshots, d.now, d.global) : [];
+  const alerts = d ? accountAlerts(d.policies, d.snapshots, d.now, d.global, d.cap?.activation_delay_secs) : [];
+
+  /** Renews a Price Cap without a gap: priced now with the same cap, deductible and travellers. */
+  async function renew(p: Policy) {
+    const q = await postJson<PremiumQuote>("/api/quote", { coverage: p.coverage, product: "cap" });
+    const r = "route" in p.coverage ? p.coverage.route : null;
+    const prem = premiumFor(q, "cap", p.strike_minor, p.seats, 0n, {
+      deductible: p.deductible_minor,
+      ...(r ? { route_window_days: r.date_window_days ?? 0, airport_group: !!(AIRPORT_GROUPS[r.origin] || AIRPORT_GROUPS[r.destination]) } : {}),
+    });
+    return gasless(registry, "renew_cap", { policy_id: p.id, validity_secs: null, max_premium_minor: maxPremium(prem.premium) });
+  }
   const attention = alerts.filter((a) => a.urgency !== "info");
 
   return (
@@ -126,7 +139,9 @@ export default function PoliciesClient({ registry, demo }: { registry: string; d
                 ) : null}
                 {p.state === "active" ? <tr><th>Ends</th><td className="r">{now < p.expires_at ? `in ${duration(p.expires_at - now)}` : `ended ${dateTime(p.expires_at)}`}</td></tr> : null}
                 {p.payout_minor !== null ? <tr><th>Payout{seats > 1 ? ` (${seats} travellers)` : ""}</th><td className="r num"><strong>{eur(p.payout_minor)}</strong></td></tr> : null}
-                {p.final_check_at ? <tr><th>Final booking check</th><td className="r">from {dateTime(p.final_check_at)}, until {dateTime(p.departure_ts + grace)}</td></tr> : null}
+                {p.final_check_at ? <tr><th>Live booking check</th><td className="r">from {dateTime(p.final_check_at)}, until {dateTime(p.departure_ts + grace)}</td></tr> : null}
+                {p.renewal_of ? <tr><th>Renewal of</th><td className="r"><a href={`#p${p.renewal_of}`}>#{p.renewal_of}</a>, starts when it ends</td></tr> : null}
+                {p.renewed_by ? <tr><th>Renewed</th><td className="r"><a href={`#p${p.renewed_by}`}>#{p.renewed_by}</a> continues from {dateTime(p.expires_at)}</td></tr> : null}
                 {p.auto_drop_max_premium_minor !== null && p.product === "cap" && p.linked_policy === null ? <tr><th>Drop option</th><td className="r">added when you claim (at most {eur(p.auto_drop_max_premium_minor)})</td></tr> : null}
                 {p.linked_policy !== null ? <tr><th>{p.product === "cap" ? "Drop Guarantee" : "From Price Cap"}</th><td className="r"><a href={`#p${p.linked_policy}`}>#{p.linked_policy}</a></td></tr> : null}
               </tbody>
@@ -135,7 +150,10 @@ export default function PoliciesClient({ registry, demo }: { registry: string; d
             <div className="btn-row" style={{ marginTop: 12 }}>
               {p.product === "cap" && p.state === "active" && now >= p.active_from ? <a className="btn btn-primary" href={`/claim/${p.id}`}>I booked: claim</a> : null}
               {p.product === "drop" && p.state === "active" && now >= p.expires_at ? <a className="btn btn-primary" href={`/claim/${p.id}`}>Window ended: settle</a> : null}
-              {p.state === "claimed" && p.final_check_at && now >= p.final_check_at && now <= p.departure_ts + grace ? <a className="btn btn-primary" href={`/claim/${p.id}`}>Final booking check</a> : null}
+              {p.state === "claimed" && p.final_check_at && now >= p.final_check_at && now <= p.departure_ts + grace ? <a className="btn btn-primary" href={`/claim/${p.id}`}>Check my booking</a> : null}
+              {p.product === "cap" && p.state === "active" && !p.renewed_by && d.cap && now + d.cap.activation_delay_secs <= p.expires_at ? (
+                <button className="btn" disabled={!!busy} onClick={() => act("renew", () => renew(p))}>Renew without a gap</button>
+              ) : null}
               {p.state === "claimed" && p.final_check_at && now > p.departure_ts + grace ? (
                 <button className="btn" disabled={!!busy} onClick={() => act("void", () => gasless(registry, "void_unconfirmed_claim", { policy_id: p.id }))}>Close unconfirmed claim</button>
               ) : null}

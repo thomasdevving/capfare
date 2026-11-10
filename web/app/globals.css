@@ -86,12 +86,6 @@ a:hover { text-decoration-thickness: 2px; }
 .btn-sm { min-height: 40px; padding: 0 16px; font-size: var(--s1); }
 
 /* header / footer */
-.testnet-pill {
-  margin: 12px auto 0; width: fit-content; max-width: calc(100% - 32px); text-align: center;
-  font-size: var(--s1); padding: 4px 14px; border-radius: 999px;
-  background: rgba(20, 18, 52, 0.55); border: 1px solid var(--glass-border); color: #ece8ff;
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-}
 .site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; flex-wrap: wrap; }
 .brand { color: #fff; text-decoration: none; display: inline-flex; align-items: center; }
 .nav { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; font-size: var(--s1); }
@@ -416,3 +410,43 @@ label.check input { margin-top: 4px; flex: 0 0 auto; width: auto; }
 .tx-notice a { font-weight: 650; }
 .tx-x { margin-left: auto; background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; }
 .explorer-link { font-size: var(--s1); }
+
+/* ---- App pages (account, credit and payouts, quote, policies, claims, LP, transparency): plain white ---- */
+html:has(.app-shell) { background: #fff; }
+.app-shell {
+  --text: #0b2447; --muted: #50627a; --price: #173f73; --link: #173f73; --line: #dfe7f0;
+  --ok: #246c42; --danger: #a43129;
+  --glass: #fff; --glass-strong: #f2f6fb; --glass-soft: #f6f9fc; --glass-border: #dfe7f0;
+  --shadow: 0 1px 2px rgba(11, 36, 71, 0.04), 0 10px 30px rgba(11, 36, 71, 0.06); --blur: none;
+  position: relative; isolation: isolate; display: flow-root; min-height: 100vh; background: #fff; color: var(--text); color-scheme: light;
+}
+.app-shell .glass, .app-shell .card, .app-shell .figure { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.app-shell .site-header { border-bottom: 1px solid var(--line); }
+.app-shell .brand, .app-shell .nav a { color: var(--text); }
+.app-shell .netbadge { border-color: var(--line); color: var(--muted); background: #f2f6fb; }
+.app-shell .btn { border-color: #c9d6e6; background: #fff; color: var(--text); }
+.app-shell .btn:hover { background: #f2f6fb; }
+.app-shell .btn-primary { background: var(--yellow); border-color: var(--yellow); color: var(--on-yellow); }
+.app-shell .btn-primary:hover { background: #ffdc3d; }
+.app-shell input, .app-shell select, .app-shell textarea { background: #fff; border-color: #c9d6e6; color: var(--text); }
+.app-shell input::placeholder { color: #8a9ab0; }
+.app-shell input:focus, .app-shell select:focus { border-color: var(--link); }
+.app-shell input[type="range"] { background: none; border: 0; accent-color: #0f5fc2; }
+.app-shell input[type="radio"], .app-shell input[type="checkbox"] { accent-color: #0f5fc2; }
+.app-shell .tag { border-color: var(--line); color: var(--muted); }
+.app-shell .claim-result .big { color: var(--ok); }
+.app-shell .alert.action { border-color: #f0c400; }
+.app-shell :focus-visible { outline-color: var(--link); }
+.app-shell ::selection { background: #ffdf4d; color: #0b2447; }
+
+/* Buyer choices on the quote: deductible and cover duration */
+.option-choices { border: 0; padding: 0; margin: 16px 0 6px; }
+.option-choices legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+.option-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.option { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 104px; padding: 10px 14px; border-radius: 12px;
+  border: 1.5px solid var(--glass-border); background: var(--glass); color: var(--text); font: inherit; cursor: pointer; text-align: left; }
+.option:hover { border-color: #9fb3cc; }
+.option.is-on { border-color: #0f5fc2; box-shadow: 0 0 0 1px #0f5fc2 inset; background: #eef4fd; }
+.option-label { font-weight: 650; }
+.option-price { font-size: var(--s1); color: var(--muted); }
+.option.is-on .option-price { color: var(--text); }

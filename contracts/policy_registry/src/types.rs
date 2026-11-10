@@ -64,8 +64,15 @@ pub struct Policy {
     pub auto_drop_max_premium_minor: Option<u64>,
     /// Cap -> the Drop Guarantee added with its booking, and back.
     pub linked_policy: Option<u64>,
-    /// Earliest verified_at for the final status check (refundable/unknown fares).
+    /// Earliest verified_at for the live booking check that releases a held payout: the end of
+    /// the free-cancellation window after booking, and for refundable/unknown fares departure
+    /// minus the final-check lead, whichever is later.
     pub final_check_at: Option<u64>,
+    /// When the booking was made (set when a booking is attached).
+    pub booked_at: Option<u64>,
+    /// Renewal: the Price Cap this one continues (it starts when that one ends), and back.
+    pub renewal_of: Option<u64>,
+    pub renewed_by: Option<u64>,
     /// Settlement FX locked at purchase.
     pub usdc_micro_per_cent: u64,
     pub premium_usdc: U128,
@@ -97,6 +104,12 @@ pub struct CapLeg {
     pub strike_minor: u64,
     /// Highest acceptable premium for this leg (all seats), cents.
     pub max_premium_minor: u64,
+    /// Chosen deductible per traveller (one of the product's options); None = default.
+    #[serde(default)]
+    pub deductible_minor: Option<u64>,
+    /// Chosen cover duration in seconds (one of the product's options); None = default.
+    #[serde(default)]
+    pub validity_secs: Option<u64>,
 }
 
 /// Price Cap purchase: one leg, or two legs bought together (outbound and return).

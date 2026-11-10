@@ -1,0 +1,34 @@
+const { openBrowser, APP, sleep } = require("./lib.cjs");
+const fs = require("fs");
+(async () => {
+  const prof = "/tmp/claude-0/-home-user-capfare/678f7fc1-6c91-55cb-b2fc-24c6ae0e995e/scratchpad/pk-prof";
+  fs.rmSync(prof, { recursive: true, force: true });
+  let ctx = await openBrowser(prof);
+  let page = ctx.pages()[0];
+  let cdp = await ctx.newCDPSession(page);
+  await cdp.send("WebAuthn.enable");
+  const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", { options: { protocol: "ctap2", ctap2Version: "ctap2_1", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, hasPrf: true, automaticPresenceSimulation: true } });
+  await page.goto(APP + "/account");
+  const name = "pktest" + (Date.now() % 100000);
+  await page.getByLabel("Choose an account name").fill(name);
+  console.log("passkey radio enabled:", await page.getByLabel(/Passkey/).isEnabled());
+  await page.getByLabel(/Passkey/).check();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await page.getByText("Signed in as").waitFor({ timeout: 60000 });
+  console.log("created", name);
+  const { credentials } = await cdp.send("WebAuthn.getCredentials", { authenticatorId });
+  fs.writeFileSync(prof + "-cred.json", JSON.stringify(credentials));
+  await ctx.close();
+  // Session 2: same profile, re-add the credential, then sign a gasless transaction (faucet).
+  ctx = await openBrowser(prof);
+  page = ctx.pages()[0];
+  cdp = await ctx.newCDPSession(page);
+  await cdp.send("WebAuthn.enable");
+  const a2 = await cdp.send("WebAuthn.addVirtualAuthenticator", { options: { protocol: "ctap2", ctap2Version: "ctap2_1", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, hasPrf: true, automaticPresenceSimulation: true } });
+  for (const c of credentials) await cdp.send("WebAuthn.addCredential", { authenticatorId: a2.authenticatorId, credential: c });
+  await page.goto(APP + "/credit");
+  await page.getByRole("button", { name: "Faucet" }).click();
+  await sleep(25000);
+  console.log((await page.locator("main").innerText()).slice(0, 700));
+  await ctx.close();
+})().catch((e) => { console.error(e); process.exit(1); });

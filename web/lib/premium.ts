@@ -14,7 +14,16 @@ export interface PremiumQuote {
  * per-traveller formula sees the whole policy's lock and the other seats as flight exposure.
  * `extraLock`: coverage already locked by an earlier leg of the same purchase (micro-USDC).
  */
-export function premiumFor(q: PremiumQuote, product: "cap" | "drop", strike: number, seats = 1, extraLock = 0n) {
+/** The buyer's choices; undefined fields use the product's defaults. */
+export interface QuoteOptions {
+  deductible?: number;
+  validity_secs?: number;
+  /** Route cover only. */
+  route_window_days?: number;
+  airport_group?: boolean;
+}
+
+export function premiumFor(q: PremiumQuote, product: "cap" | "drop", strike: number, seats = 1, extraLock = 0n, opts: QuoteOptions = {}) {
   const pp = q.params[product];
   const lock = BigInt(pp.max_payout) * BigInt(seats) * BigInt(q.params.global.usdc_micro_per_cent);
   const b = computePremium(pp, {
@@ -29,6 +38,10 @@ export function premiumFor(q: PremiumQuote, product: "cap" | "drop", strike: num
     vault_reserved: q.vault.pending_withdrawals,
     new_lock: lock.toString(),
     flight_exposure: q.exposure[0] + pp.max_payout * (seats - 1),
+    deductible: opts.deductible,
+    validity_secs: opts.validity_secs,
+    route_window_days: opts.route_window_days,
+    airport_group: opts.airport_group,
   });
   return { ...b, per_seat: b.premium, premium: b.premium * seats, lock };
 }

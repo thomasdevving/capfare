@@ -5,6 +5,7 @@
     "max_attestation_age_secs": 3600,
     "final_check_lead_secs": 86400,
     "claim_grace_secs": 3600,
+    "free_cancel_window_secs": 30,
     "sold_out_premium_refund": true,
     "protocol_fee_bps": 500,
     "usdc_micro_per_cent": 10800,
@@ -72,6 +73,37 @@
     "deductible": 500,
     "max_payout": 15000,
     "validity_secs": 604800,
+    "deductible_options": [
+      500,
+      1000,
+      2500,
+      5000
+    ],
+    "deductible_mult_bps": [
+      10000,
+      7435,
+      2874,
+      1500
+    ],
+    "validity_options_secs": [
+      259200,
+      604800,
+      1209600,
+      2592000
+    ],
+    "validity_mult_bps": [
+      3937,
+      10000,
+      23360,
+      30000
+    ],
+    "flex_window_mult_bps": [
+      10175,
+      11511,
+      11024,
+      10208
+    ],
+    "airport_group_mult_bps": 8531,
     "activation_delay_secs": 20,
     "flight_exposure_cap": 600000,
     "route_week_exposure_cap": 6000000,
@@ -142,6 +174,35 @@
     "deductible": 300,
     "max_payout": 8000,
     "validity_secs": 90,
+    "deductible_options": [
+      300,
+      1000,
+      2500
+    ],
+    "deductible_mult_bps": [
+      10000,
+      6169,
+      1500
+    ],
+    "validity_options_secs": [
+      60,
+      90,
+      180,
+      300
+    ],
+    "validity_mult_bps": [
+      6825,
+      10000,
+      12298,
+      14662
+    ],
+    "flex_window_mult_bps": [
+      10000,
+      10000,
+      10000,
+      10000
+    ],
+    "airport_group_mult_bps": 10000,
     "activation_delay_secs": 0,
     "flight_exposure_cap": 320000,
     "route_week_exposure_cap": 3200000,

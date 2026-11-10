@@ -27,7 +27,7 @@ checked by services designed to run in TEEs. Users get gasless named accounts.
 | `core` (`capfare-core`) | Pure types and formulas: flight-key hashing, signing payloads, premium formula, payout rules, parameters. Shared by every contract and mirrored bit-for-bit in TS (`/shared`) and Python (`/backtest`) via conformance vectors. |
 | `vault` | LP vault, deployed twice (`cap_vault`, `drop_vault`). Weekly epochs for deposits and withdrawals, full collateralisation, unearned premiums kept outside LP assets until a policy resolves, rollback on every failed transfer. |
 | `attestation_registry` | Enclave keys/measurements (timelocked add, immediate revoke), signed oracle snapshots with history, booking-attestation verification, per-product nullifiers. |
-| `policy_registry` | Premium engine (on-chain formula + timelocked params), policy lifecycle, claims and settlement, payout timing (non-refundable vs refundable), exposure caps, per-user limits, prepaid credit. |
+| `policy_registry` | Premium engine (on-chain formula + timelocked params), policy lifecycle, claims and settlement, payout timing (24-hour free-cancellation window, refundable fares), buyer options (deductible, duration, flexible route cover), renewals, exposure caps, per-user limits, prepaid credit. |
 | `mock_ft` | "Test USDC" for demos and tests, with failure injection. |
 | `tests` | Sandbox integration tests (near-sandbox + near-api). |
 
@@ -56,8 +56,9 @@ claim_cap(attestation, booked_flight?)   settle_drop(status attestation at windo
      (nullifier per flight; route caps: index = route snapshot, booked flight must match)
      payout = per-traveller payout × min(policy travellers, booking travellers)
 on_cap_claim / on_drop_settled: compute payout with capfare-core
-  non-refundable fare        → vault.payout now
-  refundable / unknown fare  → hold; finalize_claim(status check ≥ departure − lead)
+  live check ≥ booked_at + 24 h (non-refundable)  → vault.payout now
+  otherwise                                       → hold; finalize_claim(live check ≥ booked_at + 24 h,
+                                                    and ≥ departure − lead for refundable/unknown fares)
                                active → pay, cancelled → void (coverage released)
 vault.payout: paid part leaves locked coverage; transfer; callback confirms or rolls back
 on_vault_resolved: PaidOut / Expired / Voided — or Claimed + retry_payout

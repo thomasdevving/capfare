@@ -11,7 +11,7 @@ export const en = {
   hero: {
     h1a: "Protect your flight price.",
     h1b: "Before and after booking.",
-    sub: "Set a price cap before you book, or cover a price drop after. Protect one exact flight or any flight on a route and day, one-way or return, for everyone on the booking, with a deductible and payout limit agreed upfront.",
+    sub: "Set a price cap before you book, or cover a price drop after. Protect one exact flight or any flight on a route and dates you choose, one-way or return, for everyone on the booking. You choose the deductible and how long the lock lasts.",
     ctaChrome: "Get the extension",
     ctaCheck: "Check a flight",
     chromeNote: "Chrome extension: load it unpacked from the repository while it is in review.",
@@ -44,7 +44,7 @@ export const en = {
         body: "While you browse, the CapFare extension recognises the flight on the page and shows what it costs to lock a maximum price for that exact flight, date and fare class. The premium comes from the public formula on the blockchain; the price on the page is only a hint.",
         points: (d: number): string[] => [
           "You see the cap, premium, deductible (" + "€" + (d / 100).toFixed(0) + ") and maximum payout before you pay.",
-          "The lock lasts 7 days and starts after a short activation delay.",
+          "Choose a lock of 3, 7, 14 or 30 days and a deductible; a higher deductible costs less. It starts after a short activation delay, and you can renew it without a gap.",
           "Travelling together or returning? One lock covers up to 9 travellers, and both flights of a return trip.",
           "No extension? Check a flight on this website does the same on your phone.",
         ],
@@ -66,7 +66,7 @@ export const en = {
       },
     ],
     steps: [
-      { n: "1", title: "Lock a max price", body: "Choose the flight, date and fare class, set your maximum price and pay a small premium. The lock lasts 7 days." },
+      { n: "1", title: "Lock a max price", body: "Choose the flight, date and fare class, set your maximum price and pay a small premium. Choose how long the lock lasts: 3 to 30 days." },
       { n: "2", title: "Book anywhere", body: "Book that flight on the airline's website or with any travel agency, whenever you are ready." },
       { n: "3", title: "Get the difference", body: "Upload your booking confirmation. If the airline's price was above your cap, the difference is paid to you." },
     ],
@@ -82,7 +82,7 @@ export const en = {
     cap: {
       name: "Price Cap",
       when: "Before you book",
-      body: "Lock a maximum price for 7 days. If the price rises, claim the eligible difference after booking.",
+      body: "Lock a maximum price for 3 to 30 days, on one flight or any flight on your route and dates. If the price rises, claim the eligible difference after booking.",
       example: (d: number, m: number) =>
         `Book at €255 with a €180 cap and ${eur(d)} deductible: ${eur(Math.max(0, Math.min(25500 - 18000 - d, m)))} back.`,
     },
@@ -126,14 +126,14 @@ export const en = {
   fine: {
     title: "Policy details",
     items: [
-      "Coverage is for one exact flight, date, fare class and airport pair, or (route cover) any flight CapFare tracks on that route and day in that fare class, paid against the cheapest fare. Anything else is not covered.",
+      "Coverage is for one exact flight, date, fare class and airport pair, or (route cover) any flight CapFare tracks on that route in that fare class on the day, or up to 3 days either side, and optionally from nearby airports (for example all London airports), paid against the cheapest fare. Anything else is not covered.",
       (h: number): string => `A Price Cap starts ${h === 1 ? "1 hour" : `${h} hours`} after you buy it. Bookings made before that do not count.`,
-      "A deductible is taken off every payout, and each policy has a maximum payout. Both are shown before you pay.",
+      "A deductible is taken off every payout, and each policy has a maximum payout. You choose the deductible (a higher one means a lower premium); both are shown before you pay.",
       (refund: boolean): string =>
         refund
           ? "We don't promise that seats stay available. If your fare class sells out while your cap is active and unused, your premium is refunded."
           : "We don't promise that seats stay available. If your fare class sells out, the cap simply cannot be used.",
-      "Non-refundable tickets are paid out as soon as the claim is checked. Refundable tickets are paid after one more live check of the booking, from a day before departure: open your booking page with the CapFare extension, or paste its link. An email alone can't show that you didn't cancel.",
+      "Many bookings can be cancelled free for 24 hours (for example US flights booked at least 7 days ahead). So a payout is released after a live check of the booking from 24 hours after you booked: open your booking page with the CapFare extension, or paste its link. Claim with a live check after that and you are paid at once. Refundable tickets get their live check from a day before departure. An email alone can't show that you didn't cancel.",
       "Only bookings for the lead passenger you named when buying can be used to claim.",
     ],
   },
@@ -146,7 +146,7 @@ export const en = {
   faq: {
     title: "Questions",
     items: [
-      { q: "What happens if I don't book?", a: "Nothing more happens. The cap expires after 7 days and the premium is not refunded, unless your fare class sold out while the cap was active." },
+      { q: "What happens if I don't book?", a: "Nothing more happens. The cap expires at the end of the period you chose and the premium is not refunded, unless your fare class sold out while the cap was active. Still deciding? Renew it before it ends and the new cover starts the moment the old one stops." },
       { q: "What if the flight sells out?", a: "We don't cover availability. If the oracle sees your fare class sold out while your cap is active and unused, the premium goes back to your credit." },
       { q: "What if I cancel my booking?", a: "Then there is no payout. For refundable tickets we check one day before departure that the booking still exists before paying." },
       { q: "Which airlines work?", a: "Coverage works for any booking whose confirmation we can verify. In this prototype that is KLM-format confirmations (tested with synthetic examples). More airlines follow." },

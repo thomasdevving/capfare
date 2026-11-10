@@ -55,7 +55,7 @@ fn vault_json(total: u128) -> Vec<u8> {
 
 fn one_leg(fk: FlightKey, strike: u64, max_premium: u64) -> CapPurchase {
     CapPurchase {
-        legs: vec![CapLeg { coverage: Coverage::Flight(fk), strike_minor: strike, max_premium_minor: max_premium }],
+        legs: vec![CapLeg { coverage: Coverage::Flight(fk), strike_minor: strike, max_premium_minor: max_premium, deductible_minor: None, validity_secs: None }],
         seats: 1,
         passenger_commitment: PC,
         auto_drop_max_premium_minor: None,
@@ -200,11 +200,21 @@ fn check_json(paid: u64, index: u64, refundable: &str, verified_at: u64) -> Vec<
 }
 
 fn check_json_for(flight: &FlightKey, paid: u64, index: u64, refundable: &str, verified_at: u64, seats: u8) -> Vec<u8> {
+    check_json_full(flight, paid, index, refundable, verified_at, seats, "dkim_eml", verified_at - 100)
+}
+
+/// A live check (the booking site itself) of a booking made two days before it was verified.
+fn live_check_json(paid: u64, index: u64, refundable: &str, verified_at: u64) -> Vec<u8> {
+    check_json_full(&fk(), paid, index, refundable, verified_at, 1, "tls_page", verified_at - 2 * 86_400)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn check_json_full(flight: &FlightKey, paid: u64, index: u64, refundable: &str, verified_at: u64, seats: u8, method: &str, booked_at: u64) -> Vec<u8> {
     serde_json::to_vec(&json!({
         "attestation": {
             "flight_key_hash": flight_key_hash(flight), "paid_price_minor": paid, "currency": "EUR",
             "fare_class": flight.fare_class, "refundable": refundable, "booking_ref_nullifier": Hash32([3; 32]),
-            "status": "active", "method": "dkim_eml", "booked_at": verified_at - 100, "verified_at": verified_at,
+            "status": "active", "method": method, "booked_at": booked_at, "verified_at": verified_at,
             "enclave_measurement": Hash32([1; 32]), "passenger_commitment": PC, "seats": seats
         },
         "index_price": index, "latest": null
@@ -217,13 +227,13 @@ fn signed(check: &[u8]) -> SignedBookingAttestation {
 }
 
 #[test]
-fn cap_claim_non_refundable_pays_immediately() {
+fn live_check_after_free_cancel_window_pays_immediately() {
     let mut r = setup();
     let id = buy(&mut r, T0 + 100);
     activate(&mut r, id, T0 + 101);
-    // Pretend claim_cap ran (busy flag) and attestation verified.
-    let now = T0 + 100 + 2 * 86_400;
-    ctx("registry.test".parse().unwrap(), now, vec![PromiseResult::Successful(check_json(25_500, 26_000, "non_refundable", now - 10))]);
+    // Pretend claim_cap ran (busy flag): live check, booking two days old, non-refundable.
+    let now = T0 + 100 + 3 * 86_400;
+    ctx("registry.test".parse().unwrap(), now, vec![PromiseResult::Successful(live_check_json(25_500, 26_000, "non_refundable", now - 10))]);
     let _ = r.on_cap_claim(id, fk());
     let p = r.get_policy(id).unwrap();
     assert_eq!(p.payout_minor, Some(6_500));
@@ -235,6 +245,47 @@ fn cap_claim_non_refundable_pays_immediately() {
     let p = r.get_policy(id).unwrap();
     assert_eq!(p.state, PolicyState::PaidOut);
     assert_eq!(r.get_flight_exposure(Product::Cap, p.flight_key_hash).0, 0);
+}
+
+#[test]
+fn email_claim_is_held_through_the_free_cancel_window() {
+    // The loophole: book, claim with the confirmation email, then cancel free within 24 hours.
+    let mut r = setup();
+    let id = buy(&mut r, T0 + 100);
+    activate(&mut r, id, T0 + 101);
+    let now = T0 + 100 + 2 * 86_400;
+    ctx("registry.test".parse().unwrap(), now, vec![PromiseResult::Successful(check_json(25_500, 26_000, "non_refundable", now - 10))]);
+    let _ = r.on_cap_claim(id, fk());
+    let p = r.get_policy(id).unwrap();
+    assert_eq!(p.state, PolicyState::Claimed);
+    assert!(!p.busy, "nothing paid yet");
+    let booked_at = now - 10 - 100;
+    assert_eq!(p.booked_at, Some(booked_at));
+    assert_eq!(p.final_check_at, Some(booked_at + 86_400));
+    // The live check after the window says the booking was cancelled: no payout.
+    ctx(accounts(1), booked_at + 90_000, vec![]);
+    let _ = r.finalize_claim(id, signed(&live_check_json(25_500, 26_000, "non_refundable", booked_at + 90_000)));
+    ctx("registry.test".parse().unwrap(), booked_at + 90_000, vec![PromiseResult::Successful(serde_json::to_vec(&json!({
+        "status": "cancelled", "refundable": "non_refundable", "verified_at": booked_at + 90_000, "lowest_price": null
+    })).unwrap())]);
+    let _ = r.on_final_check(id);
+    ctx("registry.test".parse().unwrap(), booked_at + 90_000, vec![PromiseResult::Successful(b"true".to_vec())]);
+    assert!(r.on_vault_resolved(id, PolicyState::Voided));
+    assert_eq!(r.get_policy(id).unwrap().state, PolicyState::Voided);
+}
+
+#[test]
+fn live_check_inside_the_free_cancel_window_is_held() {
+    let mut r = setup();
+    let id = buy(&mut r, T0 + 100);
+    activate(&mut r, id, T0 + 101);
+    let now = T0 + 100 + 2 * 86_400;
+    let booked_at = now - 3_600;
+    ctx("registry.test".parse().unwrap(), now, vec![PromiseResult::Successful(check_json_full(&fk(), 25_500, 26_000, "non_refundable", now, 1, "tls_page", booked_at))]);
+    let _ = r.on_cap_claim(id, fk());
+    let p = r.get_policy(id).unwrap();
+    assert_eq!(p.state, PolicyState::Claimed);
+    assert_eq!(p.final_check_at, Some(booked_at + 86_400));
 }
 
 #[test]
@@ -264,8 +315,8 @@ fn failed_payout_transfer_can_be_retried() {
     let mut r = setup();
     let id = buy(&mut r, T0 + 100);
     activate(&mut r, id, T0 + 101);
-    let now = T0 + 100 + 2 * 86_400;
-    ctx("registry.test".parse().unwrap(), now, vec![PromiseResult::Successful(check_json(25_500, 26_000, "non_refundable", now - 10))]);
+    let now = T0 + 100 + 3 * 86_400;
+    ctx("registry.test".parse().unwrap(), now, vec![PromiseResult::Successful(live_check_json(25_500, 26_000, "non_refundable", now - 10))]);
     let _ = r.on_cap_claim(id, fk());
     ctx("registry.test".parse().unwrap(), now, vec![PromiseResult::Successful(b"false".to_vec())]);
     assert!(!r.on_vault_resolved(id, PolicyState::PaidOut));
@@ -323,7 +374,7 @@ fn drop_purchase_failure_releases_nullifier_without_panicking() {
         PromiseResult::Successful(serde_json::to_vec(&check).unwrap()),
         PromiseResult::Successful(vault_json(10_000_000_000)),
     ]);
-    let r1 = r.on_drop_inputs(accounts(1), fk(), 5_000, None);
+    let r1 = r.on_drop_inputs(accounts(1), fk(), 5_000, None, None, None);
     assert!(matches!(r1, near_sdk::PromiseOrValue::Value(false)));
     assert_eq!(r.get_credit(accounts(1)).0, 50_000_000);
 }
@@ -338,7 +389,7 @@ fn drop_settlement_payout() {
         PromiseResult::Successful(serde_json::to_vec(&check).unwrap()),
         PromiseResult::Successful(vault_json(10_000_000_000)),
     ]);
-    let _ = r.on_drop_inputs(accounts(1), fk(), 5_000, None);
+    let _ = r.on_drop_inputs(accounts(1), fk(), 5_000, None, None, None);
     let id = r.next_policy_id - 1;
     activate(&mut r, id, now);
     let p = r.get_policy(id).unwrap();
@@ -377,7 +428,7 @@ fn drop_policy_takes_commitment_from_booking() {
         PromiseResult::Successful(serde_json::to_vec(&check).unwrap()),
         PromiseResult::Successful(vault_json(10_000_000_000)),
     ]);
-    let _ = r.on_drop_inputs(accounts(1), fk(), 5_000, None);
+    let _ = r.on_drop_inputs(accounts(1), fk(), 5_000, None, None, None);
     let p = r.get_policy(r.next_policy_id - 1).unwrap();
     assert_eq!(p.passenger_commitment, PC);
 }
@@ -387,7 +438,7 @@ fn back_fk() -> FlightKey {
 }
 
 fn route() -> RouteKey {
-    RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-01-24".into(), fare_class: "economy_light".into() }
+    RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-01-24".into(), date_window_days: 0, fare_class: "economy_light".into() }
 }
 
 fn buy_purchase(r: &mut PolicyRegistry, now: u64, p: CapPurchase, prices: &[u64]) {
@@ -434,7 +485,7 @@ fn seat_count_is_bounded() {
 fn return_trip_legs_share_a_trip_id() {
     let mut r = setup();
     let mut p = one_leg(fk(), 18_000, 5_000);
-    p.legs.push(CapLeg { coverage: Coverage::Flight(back_fk()), strike_minor: 16_000, max_premium_minor: 5_000 });
+    p.legs.push(CapLeg { coverage: Coverage::Flight(back_fk()), strike_minor: 16_000, max_premium_minor: 5_000, deductible_minor: None, validity_secs: None });
     p.seats = 2;
     let first = r.next_policy_id;
     buy_purchase(&mut r, T0 + 100, p, &[17_000, 15_000]);
@@ -454,7 +505,7 @@ fn return_trip_is_all_or_nothing() {
     let mut r = setup();
     let mut p = one_leg(fk(), 18_000, 5_000);
     // Return cap below the current return price: the second leg fails.
-    p.legs.push(CapLeg { coverage: Coverage::Flight(back_fk()), strike_minor: 14_000, max_premium_minor: 5_000 });
+    p.legs.push(CapLeg { coverage: Coverage::Flight(back_fk()), strike_minor: 14_000, max_premium_minor: 5_000, deductible_minor: None, validity_secs: None });
     let first = r.next_policy_id;
     let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| buy_purchase(&mut r, T0 + 100, p, &[17_000, 15_000])));
     assert!(res.is_err());
@@ -476,7 +527,7 @@ fn return_trip_legs_must_differ() {
 #[test]
 fn route_cap_pays_against_the_booked_flight_on_the_route() {
     let mut r = setup();
-    let p = CapPurchase { legs: vec![CapLeg { coverage: Coverage::Route(route()), strike_minor: 18_000, max_premium_minor: 5_000 }], ..one_leg(fk(), 0, 0) };
+    let p = CapPurchase { legs: vec![CapLeg { coverage: Coverage::Route(route()), strike_minor: 18_000, max_premium_minor: 5_000, deductible_minor: None, validity_secs: None }], ..one_leg(fk(), 0, 0) };
     buy_purchase(&mut r, T0 + 100, p, &[17_000]);
     let id = r.next_policy_id - 1;
     let pol = r.get_policy(id).unwrap();
@@ -500,7 +551,7 @@ fn route_cap_pays_against_the_booked_flight_on_the_route() {
 #[should_panic(expected = "not on the covered route")]
 fn route_cap_rejects_a_flight_on_another_day() {
     let mut r = setup();
-    let p = CapPurchase { legs: vec![CapLeg { coverage: Coverage::Route(route()), strike_minor: 18_000, max_premium_minor: 5_000 }], ..one_leg(fk(), 0, 0) };
+    let p = CapPurchase { legs: vec![CapLeg { coverage: Coverage::Route(route()), strike_minor: 18_000, max_premium_minor: 5_000, deductible_minor: None, validity_secs: None }], ..one_leg(fk(), 0, 0) };
     buy_purchase(&mut r, T0 + 100, p, &[17_000]);
     let id = r.next_policy_id - 1;
     activate(&mut r, id, T0 + 101);
@@ -514,7 +565,7 @@ fn route_cap_rejects_a_flight_on_another_day() {
 #[should_panic(expected = "say which flight you booked")]
 fn route_cap_needs_the_booked_flight() {
     let mut r = setup();
-    let p = CapPurchase { legs: vec![CapLeg { coverage: Coverage::Route(route()), strike_minor: 18_000, max_premium_minor: 5_000 }], ..one_leg(fk(), 0, 0) };
+    let p = CapPurchase { legs: vec![CapLeg { coverage: Coverage::Route(route()), strike_minor: 18_000, max_premium_minor: 5_000, deductible_minor: None, validity_secs: None }], ..one_leg(fk(), 0, 0) };
     buy_purchase(&mut r, T0 + 100, p, &[17_000]);
     let id = r.next_policy_id - 1;
     activate(&mut r, id, T0 + 101);
@@ -546,7 +597,7 @@ fn drop_after_claim_links_both_policies() {
     let check = check_json(25_500, 0, "non_refundable", now - 10);
     // Entry checks pass for the same booking.
     ctx(accounts(1), now, vec![]);
-    let _ = r.buy_drop(signed(&check), fk(), 4_000, Some(cap));
+    let _ = r.buy_drop(signed(&check), fk(), 4_000, Some(cap), None, None);
     // Callback: price still at what was paid.
     let mut c: serde_json::Value = serde_json::from_slice(&check).unwrap();
     c["latest"] = serde_json::from_slice(&snap_json(25_500, now - 60, true)).unwrap();
@@ -554,7 +605,7 @@ fn drop_after_claim_links_both_policies() {
         PromiseResult::Successful(serde_json::to_vec(&c).unwrap()),
         PromiseResult::Successful(vault_json(10_000_000_000)),
     ]);
-    let _ = r.on_drop_inputs(accounts(1), fk(), 4_000, Some(cap));
+    let _ = r.on_drop_inputs(accounts(1), fk(), 4_000, Some(cap), None, None);
     let drop_id = r.next_policy_id - 1;
     assert_eq!(r.get_policy(drop_id).unwrap().linked_policy, Some(cap));
     assert_eq!(r.get_policy(cap).unwrap().linked_policy, Some(drop_id));
@@ -573,7 +624,7 @@ fn drop_after_claim_needs_the_same_booking() {
     let mut a = signed(&check_json(25_500, 0, "non_refundable", now - 10));
     a.attestation.booking_ref_nullifier = Hash32([8; 32]);
     ctx(accounts(1), now, vec![]);
-    let _ = r.buy_drop(a, fk(), 4_000, Some(cap));
+    let _ = r.buy_drop(a, fk(), 4_000, Some(cap), None, None);
 }
 
 #[test]
@@ -610,4 +661,83 @@ fn paid_claims_cannot_be_voided() {
     let id = claimed_cap_with_drop_option(&mut r, now);
     ctx(accounts(4), now + 400 * 86_400, vec![]);
     let _ = r.void_unconfirmed_claim(id);
+}
+
+fn buy_with(r: &mut PolicyRegistry, now: u64, deductible: Option<u64>, validity: Option<u64>) -> u64 {
+    ctx("registry.test".parse().unwrap(), now, vec![
+        PromiseResult::Successful(snap_json(17_000, now - 60, true)),
+        PromiseResult::Successful(vault_json(10_000_000_000)),
+    ]);
+    let mut p = one_leg(fk(), 18_000, 5_000);
+    p.legs[0].deductible_minor = deductible;
+    p.legs[0].validity_secs = validity;
+    let _ = r.on_cap_inputs(accounts(1), p);
+    r.next_policy_id - 1
+}
+
+#[test]
+fn chosen_deductible_and_duration_are_priced_and_stored() {
+    let mut r = setup();
+    let id = buy(&mut r, T0 + 100);
+    let base = r.get_policy(id).unwrap();
+    let mut r = setup();
+    let id = buy_with(&mut r, T0 + 100, Some(5_000), None);
+    let high = r.get_policy(id).unwrap();
+    assert_eq!(high.deductible_minor, 5_000);
+    assert!(high.premium_minor < base.premium_minor, "a higher deductible costs less");
+    let mut r = setup();
+    let id = buy_with(&mut r, T0 + 100, None, Some(30 * 86_400));
+    let long = r.get_policy(id).unwrap();
+    assert_eq!(long.expires_at, T0 + 100 + 30 * 86_400);
+    assert!(long.premium_minor > base.premium_minor, "a longer lock costs more");
+}
+
+#[test]
+#[should_panic(expected = "choose one of the offered deductibles")]
+fn unknown_deductible_rejected() {
+    let mut r = setup();
+    buy_with(&mut r, T0 + 100, Some(1_234), None);
+}
+
+fn renew(r: &mut PolicyRegistry, id: u64, now: u64) -> u64 {
+    ctx("registry.test".parse().unwrap(), now, vec![
+        PromiseResult::Successful(snap_json(17_000, now - 60, true)),
+        PromiseResult::Successful(vault_json(10_000_000_000)),
+    ]);
+    let _ = r.on_renew_inputs(accounts(1), id, Some(14 * 86_400), 5_000);
+    r.next_policy_id - 1
+}
+
+#[test]
+fn renewal_starts_when_the_old_cover_ends() {
+    let mut r = setup();
+    let id = buy_with(&mut r, T0 + 100, Some(2_000), None);
+    activate(&mut r, id, T0 + 101);
+    let old = r.get_policy(id).unwrap();
+    // Two days before the end: more than one activation delay (one day) left.
+    ctx(accounts(1), old.expires_at - 2 * 86_400, vec![]);
+    let _ = r.renew_cap(id, Some(14 * 86_400), 5_000);
+    let new_id = renew(&mut r, id, old.expires_at - 2 * 86_400);
+    let n = r.get_policy(new_id).unwrap();
+    assert_eq!(n.active_from, old.expires_at, "no gap and no new activation delay");
+    assert_eq!(n.expires_at, old.expires_at + 14 * 86_400);
+    assert_eq!((n.strike_minor, n.deductible_minor, n.seats), (old.strike_minor, old.deductible_minor, old.seats));
+    assert_eq!(n.renewal_of, Some(id));
+    assert_eq!(r.get_policy(id).unwrap().renewed_by, Some(new_id));
+    // Funding failure undoes the link.
+    ctx("registry.test".parse().unwrap(), old.expires_at - 2 * 86_400, vec![PromiseResult::Successful(b"\"0\"".to_vec())]);
+    assert!(!r.on_policy_funded(new_id));
+    assert_eq!(r.get_policy(id).unwrap().renewed_by, None);
+}
+
+#[test]
+#[should_panic(expected = "renew at least one activation delay before the cover ends")]
+fn renewal_too_late_rejected() {
+    let mut r = setup();
+    let id = buy(&mut r, T0 + 100);
+    activate(&mut r, id, T0 + 101);
+    let old = r.get_policy(id).unwrap();
+    // Less than the activation delay left: renewing would skip the delay.
+    ctx(accounts(1), old.expires_at - 3_600, vec![]);
+    let _ = r.renew_cap(id, None, 5_000);
 }

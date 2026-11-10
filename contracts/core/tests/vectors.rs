@@ -32,8 +32,9 @@ fn build() -> Value {
         passenger_commitment: Hash32([0x22; 32]),
         seats: 3,
     };
-    let route = RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), fare_class: "economy_light".into() };
-    let coverages: Vec<Value> = [Coverage::Flight(keys[0].clone()), Coverage::Route(route.clone())]
+    let route = RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), date_window_days: 0, fare_class: "economy_light".into() };
+    let flex = RouteKey { origin: "@NL".into(), destination: "@LON".into(), departure_date: "2027-06-14".into(), date_window_days: 2, fare_class: "economy_standard".into() };
+    let coverages: Vec<Value> = [Coverage::Flight(keys[0].clone()), Coverage::Route(route.clone()), Coverage::Route(flex.clone())]
         .iter()
         .map(|c| json!({"coverage": c, "hash": coverage_hash(c)}))
         .collect();
@@ -58,7 +59,22 @@ fn build() -> Value {
             vault_reserved: U128((rng(&mut seed) % 100_000_000) as u128),
             new_lock: U128(108_000_000),
             flight_exposure: rng(&mut seed) % 1_500_000,
+            deductible: None,
+            validity_secs: None,
+            route_window_days: None,
+            airport_group: false,
         };
+        // Buyer options on most vectors (some keep the defaults).
+        let mut inputs = inputs;
+        let pp = params.product(product);
+        if i % 4 != 0 {
+            inputs.deductible = Some(pp.deductible_options[(rng(&mut seed) % pp.deductible_options.len() as u64) as usize]);
+            inputs.validity_secs = Some(pp.validity_options_secs[(rng(&mut seed) % pp.validity_options_secs.len() as u64) as usize]);
+        }
+        if product == Product::Cap && i % 5 == 1 {
+            inputs.route_window_days = Some((rng(&mut seed) % 4) as u8);
+            inputs.airport_group = rng(&mut seed) % 2 == 0;
+        }
         let out = compute_premium(params.product(product), &inputs).unwrap();
         premiums.push(json!({"inputs": inputs, "premium": out.premium, "unclamped": out.unclamped}));
     }
@@ -72,6 +88,7 @@ fn build() -> Value {
         "snapshot": {"value": snap, "borsh_hex": hex::encode(near_sdk::borsh::to_vec(&snap).unwrap()), "digest": hex::encode(snapshot_digest(&snap))},
         "attestation": {"value": att, "borsh_hex": hex::encode(near_sdk::borsh::to_vec(&att).unwrap()), "digest": hex::encode(attestation_digest(&att))},
         "route_key": {"value": route, "hash": route_key_hash(&route)},
+        "flex_route_key": {"value": flex, "hash": route_key_hash(&flex), "borsh_hex": hex::encode(near_sdk::borsh::to_vec(&flex).unwrap())},
         "coverages": coverages,
         "leg_nullifier": leg,
         "route_week": {"origin": "AMS", "destination": "BCN", "departure_ts": 1_812_700_000u64, "key": route_week_key("AMS", "BCN", 1_812_700_000)},

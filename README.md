@@ -29,7 +29,7 @@ the price passes their cap or something needs doing.
 | Booking verifier: DKIM/ARC checks, forwarded/modified mail rejection, template parsing, nullifiers, passenger binding, live booking-page checks, PII-free signed attestations | Fiat top-ups and IBAN payouts: `MockRampProvider` (no money moves) | Licensed ramp provider integration (skeleton only) |
 | NEP-366 relayer (gasless), named accounts, passkey (WebAuthn PRF) or device keys | Test USDC (mock NEP-141 token) on demo deployments | Optional lending-market yield on idle vault funds (D20) |
 | Web app (landing, quote, policies, claim, verify, credit, LP dashboard, transparency), Chrome extension that reads flights on any booking site (generic reader: structured data, address, page text; fixture-tested), Skyline Travel (demo) mock booking site with one-way and return trips | NEAR Intents: **dry-run quotes only** (Intents has no testnet) | Chrome Web Store listing |
-| Travellers per policy, return trips bought and claimed together, route cover (cheapest fare on a route and day), opt-in Drop Guarantee after a claim, held-claim timeout (D28–D32) | Route index in demos built from the demo fare model and scripted paths | Backtest of route cover and multi-traveller selection (D30) |
+| Travellers per policy, return trips bought and claimed together, route cover (cheapest fare on a route and day), opt-in Drop Guarantee after a claim, held-claim timeout (D28–D32); payouts after a live booking check once the 24-hour free-cancellation window has passed (D41); deductible and lock duration chosen by the buyer, gap-free renewals (D42, D43); flexible cover over ±3 days and airport groups (D44) | Route index in demos built from the demo fare model and scripted paths | Backtest of multi-traveller selection; flexible cover is backtested on synthetic data only (D44) |
 | Alerts: shared alert engine, in-app list, notifier service with web push (VAPID) and email (SMTP, double opt-in), account-key-signed settings (D33); free price watches without a policy (D36) with optional one-tap lock (D38); "Paste a link from any booking site" and phone share target (D37) | Demo deployments keep alert emails in an outbox instead of sending them | Push delivery is not covered by automated tests (needs a browser push service) |
 | Backtest: synthetic fare paths, buyer models, calibration, parameter export | **All backtest results are synthetic** (docs/PRICING.md) | Backtest on real historical fares |
 
@@ -122,11 +122,16 @@ a Rust toolchain.
   verified booking buys a Drop Guarantee (public formula, at most the premium you agreed to).
 * **Drop Guarantee payout** = what you paid minus the lowest airline price seen during the
   7-day window, minus the deductible — never below zero, never above the maximum payout.
-* **Timing** — non-refundable tickets are paid when the claim is verified; refundable or
-  unknown tickets after a **live** check of the booking one day before departure (cancelled ⇒
-  no payout). The email alone is not enough for refundable tickets. If nobody submits that
-  check by departure + grace, anyone can close the claim without payout, so the coverage goes
-  back to the vault.
+* **Timing** — a payout is released after a **live** check of the booking (the booking site
+  itself) made at least 24 hours after booking, because many bookings can be cancelled free in
+  that time (D41). Claim with such a check and you are paid at once; claim with the email and the
+  payout waits for one. Refundable or unknown tickets get their live check from one day before
+  departure (cancelled ⇒ no payout). If nobody submits the check by departure + grace, anyone can
+  close the claim without payout, so the coverage goes back to the vault.
+* **Your choices** — the deductible (a higher one costs less, D42), how long the lock lasts
+  (3, 7, 14 or 30 days, D43; a Price Cap can be renewed without a gap if renewed at least one
+  activation delay before it ends) and, for route cover, a date window of up to ±3 days and
+  nearby airports (D44). Each choice multiplies the premium by a public, backtest-calibrated factor.
 * **How bookings are checked** — the original confirmation email (DKIM-signed) or a live
   check: the user's own manage-booking link, which the checker loads straight from the
   booking site. Either way the booking must belong to the lead passenger named when buying.
@@ -196,7 +201,7 @@ booking checker (demo mode), the relayer, the alert service and the web app. Two
 
 ## 10. Decisions and deviations
 
-[docs/DECISIONS.md](docs/DECISIONS.md) lists every deviation from the brief and later decisions (D1–D40).
+[docs/DECISIONS.md](docs/DECISIONS.md) lists every deviation from the brief and later decisions (D1–D44).
 Landing design plan, review and revisions with screenshots: [docs/LANDING_DESIGN.md](docs/LANDING_DESIGN.md).
 Hosting: `deploy/Dockerfile` + `railway.json` run the whole demo stack in one container, on NEAR testnet or a local sandbox.
 

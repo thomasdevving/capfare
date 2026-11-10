@@ -45,7 +45,13 @@ fn test_params() -> Params {
     p.global.claim_grace_secs = 3_600;
     p.cap.activation_delay_secs = 4;
     p.cap.validity_secs = 3_600;
+    p.cap.validity_options_secs = vec![3_600, 7_200];
+    p.cap.validity_mult_bps = vec![10_000, 13_000];
     p.drop.validity_secs = 12;
+    p.drop.validity_options_secs = vec![12];
+    p.drop.validity_mult_bps = vec![10_000];
+    // The sandbox flows use live checks verified right after booking.
+    p.global.free_cancel_window_secs = 0;
     p.cap.min_secs_before_departure = 3_600;
     p.drop.min_secs_before_departure = 3_600;
     p
@@ -234,7 +240,7 @@ impl Env {
             refundable,
             booking_ref_nullifier: Hash32([nullifier; 32]),
             status,
-            method: VerificationMethod::DkimEml,
+            method: VerificationMethod::TlsPage,
             booked_at,
             verified_at,
             enclave_measurement: Hash32(M),
@@ -435,6 +441,8 @@ async fn full_lifecycles_and_forced_failures() -> R<()> {
     let owner: AccountId = "sandbox".parse()?;
     let mut np = test_params();
     np.cap.deductible = 1_500;
+    np.cap.deductible_options = vec![1_000, 1_500, 5_000];
+    np.cap.deductible_mult_bps = vec![10_000, 9_200, 6_200];
     e.ok(&owner, &e.reg, "propose_params", json!({"params": np})).await?;
     let r = e.call(&e.bob, &e.reg, "apply_params", json!({}), 0).await?;
     assert!(!r.is_success(), "apply before timelock must fail");
@@ -456,7 +464,7 @@ fn return_flight() -> FlightKey {
 }
 
 fn route() -> RouteKey {
-    RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), fare_class: "economy_light".into() }
+    RouteKey { origin: "AMS".into(), destination: "BCN".into(), departure_date: "2027-06-14".into(), date_window_days: 0, fare_class: "economy_light".into() }
 }
 
 #[tokio::test]
@@ -567,6 +575,10 @@ async fn ui_formula_matches_contract_view() -> R<()> {
             vault_reserved: near_sdk::json_types::U128(0),
             new_lock: near_sdk::json_types::U128(108_000_000),
             flight_exposure: 0,
+            deductible: Some(params.cap.deductible_options[locked as usize % params.cap.deductible_options.len()]),
+            validity_secs: Some(7_200),
+            route_window_days: if mom > 2 { Some(2) } else { None },
+            airport_group: mom > 2,
         };
         let onchain: Value = e.view(&e.reg, "preview_premium", json!({"inputs": inputs})).await?;
         let local = compute_premium(&params.cap, &inputs).unwrap();

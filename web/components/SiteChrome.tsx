@@ -7,10 +7,10 @@ export function Header({ locale, variant = "landing" }: { locale: Locale; varian
   const t = dict(locale);
   const net = networkLabel(serverConfig().network);
   return (
-    <header className="site-header on-dark">
+    <header className={`site-header${variant === "app" ? "" : " on-dark"}`}>
       <div className="wrap">
         <Link href="/" className="brand" aria-label="CapFare home">
-          <Logo size={26} />
+          <Logo size={26} inverse={variant !== "app"} />
         </Link>
         <nav className="nav" aria-label="Main">
           {variant === "landing" ? (
@@ -62,12 +62,5 @@ export function Footer({ locale }: { locale: Locale }) {
         </div>
       </div></div>
     </footer>
-  );
-}
-
-export function TestnetStrip({ locale }: { locale: Locale }) {
-  const t = dict(locale);
-  return (
-    <p className="testnet-pill" role="note">{t.footer.testnet}</p>
   );
 }

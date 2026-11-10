@@ -1,7 +1,10 @@
 //! Public premium formula (section 6 of the brief), integer-only.
 //!
-//! premium = clamp(ceil(base * mom * avail * season * util * moneyness / 10_000^5),
+//! premium = clamp(ceil(base * mom * avail * season * util * moneyness * options / 10_000^6),
 //!                 min_premium, max_premium)
+//!
+//! `options` combines the buyer's choices: deductible, cover duration and, for route cover,
+//! the date window and airport groups (floor(ded * dur / 10_000 * flex / 10_000)).
 
 use crate::math::BPS;
 use crate::params::ProductParams;
@@ -28,6 +31,18 @@ pub struct PremiumInputs {
     pub new_lock: U128,
     /// Outstanding max payouts on this flight before the sale, cents.
     pub flight_exposure: Cents,
+    /// Chosen deductible per traveller (cents); None = the product's default.
+    #[serde(default)]
+    pub deductible: Option<Cents>,
+    /// Chosen cover duration (seconds); None = the product's default.
+    #[serde(default)]
+    pub validity_secs: Option<u64>,
+    /// Route cover only: the date window in days either side (0..=3). None = one exact flight.
+    #[serde(default)]
+    pub route_window_days: Option<u8>,
+    /// Route cover only: either end is an airport group.
+    #[serde(default)]
+    pub airport_group: bool,
 }
 
 #[near(serializers = [json])]
@@ -46,7 +61,12 @@ pub struct PremiumBreakdown {
     pub moneyness_mult_bps: u32,
     pub utilization_bps: u32,
     pub flight_exposure_ratio_bps: u32,
+    pub deductible_mult_bps: u32,
+    pub validity_mult_bps: u32,
+    pub flex_mult_bps: u32,
+    pub options_mult_bps: u32,
     pub deductible: Cents,
+    pub validity_secs: u64,
     pub max_payout: Cents,
 }
 
@@ -57,6 +77,9 @@ pub enum PremiumError {
     StrikeBelowPrice,
     ZeroPrice,
     NoLiquidity,
+    UnknownDeductible,
+    UnknownDuration,
+    BadDateWindow,
 }
 
 impl PremiumError {
@@ -67,6 +90,9 @@ impl PremiumError {
             PremiumError::StrikeBelowPrice => "cap must be at or above the current price",
             PremiumError::ZeroPrice => "price must be positive",
             PremiumError::NoLiquidity => "vault has no assets",
+            PremiumError::UnknownDeductible => "choose one of the offered deductibles",
+            PremiumError::UnknownDuration => "choose one of the offered cover durations",
+            PremiumError::BadDateWindow => "date window must be 0 to 3 days",
         }
     }
 }
@@ -95,6 +121,26 @@ pub fn moneyness_mult_bps(p: &ProductParams, product: Product, price: Cents, str
             adj.max(p.moneyness_floor_bps as u128)
         }
     }
+}
+
+/// Premium multiplier for the buyer's choices (see the module docs).
+pub fn options_mult_bps(p: &ProductParams, i: &PremiumInputs) -> Result<(u128, u128, u128, u128, Cents, u64), PremiumError> {
+    let deductible = i.deductible.unwrap_or(p.deductible);
+    let validity = i.validity_secs.unwrap_or(p.validity_secs);
+    let di = p.deductible_options.iter().position(|d| *d == deductible).ok_or(PremiumError::UnknownDeductible)?;
+    let vi = p.validity_options_secs.iter().position(|v| *v == validity).ok_or(PremiumError::UnknownDuration)?;
+    let ded = p.deductible_mult_bps[di] as u128;
+    let dur = p.validity_mult_bps[vi] as u128;
+    let flex = match i.route_window_days {
+        None => BPS,
+        Some(w) if w as usize >= p.flex_window_mult_bps.len() => return Err(PremiumError::BadDateWindow),
+        Some(w) => {
+            let group = if i.airport_group { p.airport_group_mult_bps as u128 } else { BPS };
+            (p.flex_window_mult_bps[w as usize] as u128) * group / BPS
+        }
+    };
+    let opt = ded * dur / BPS * flex / BPS;
+    Ok((ded, dur, flex, opt, deductible, validity))
 }
 
 pub fn compute_premium(p: &ProductParams, i: &PremiumInputs) -> Result<PremiumBreakdown, PremiumError> {
@@ -130,9 +176,10 @@ pub fn compute_premium(p: &ProductParams, i: &PremiumInputs) -> Result<PremiumBr
         .min(1_000_000);
     let util = utilization_mult_bps(p, util_bps, flight_ratio_bps);
     let money = moneyness_mult_bps(p, i.product, i.current_price, i.strike);
+    let (ded, dur, flex, opt, deductible, validity) = options_mult_bps(p, i)?;
 
-    let num = (base as u128) * mom * avail * season * util * money;
-    let den = BPS.pow(5);
+    let num = (base as u128) * mom * avail * season * util * money * opt;
+    let den = BPS.pow(6);
     let unclamped = num / den + u128::from(num % den != 0);
     let unclamped = unclamped.min(u64::MAX as u128) as u64;
     let premium = crate::math::clamp_u64(unclamped, p.min_premium, p.max_premium);
@@ -151,7 +198,12 @@ pub fn compute_premium(p: &ProductParams, i: &PremiumInputs) -> Result<PremiumBr
         moneyness_mult_bps: money as u32,
         utilization_bps: util_bps as u32,
         flight_exposure_ratio_bps: flight_ratio_bps as u32,
-        deductible: p.deductible,
+        deductible_mult_bps: ded as u32,
+        validity_mult_bps: dur as u32,
+        flex_mult_bps: flex as u32,
+        options_mult_bps: opt as u32,
+        deductible,
+        validity_secs: validity,
         max_payout: p.max_payout,
     })
 }
@@ -175,7 +227,38 @@ mod tests {
             vault_reserved: U128(0),
             new_lock: U128(108_000_000),
             flight_exposure: 0,
+            deductible: None,
+            validity_secs: None,
+            route_window_days: None,
+            airport_group: false,
         }
+    }
+
+    #[test]
+    fn options_change_the_premium_as_expected() {
+        let p = Params::example();
+        let base = compute_premium(&p.cap, &inputs(17_000, 18_000)).unwrap().unclamped;
+        // A higher deductible costs less; a longer lock costs more; a date window costs more.
+        let mut i = inputs(17_000, 18_000);
+        i.deductible = Some(p.cap.deductible_options[2]);
+        assert!(compute_premium(&p.cap, &i).unwrap().unclamped < base);
+        let mut i = inputs(17_000, 18_000);
+        i.validity_secs = Some(30 * 86_400);
+        assert!(compute_premium(&p.cap, &i).unwrap().unclamped > base);
+        let mut i = inputs(17_000, 18_000);
+        i.route_window_days = Some(3);
+        i.airport_group = true;
+        assert!(compute_premium(&p.cap, &i).unwrap().unclamped > base);
+        // Only offered options are accepted.
+        let mut i = inputs(17_000, 18_000);
+        i.deductible = Some(123);
+        assert_eq!(compute_premium(&p.cap, &i), Err(PremiumError::UnknownDeductible));
+        let mut i = inputs(17_000, 18_000);
+        i.validity_secs = Some(86_400);
+        assert_eq!(compute_premium(&p.cap, &i), Err(PremiumError::UnknownDuration));
+        let mut i = inputs(17_000, 18_000);
+        i.route_window_days = Some(4);
+        assert_eq!(compute_premium(&p.cap, &i), Err(PremiumError::BadDateWindow));
     }
 
     #[test]
@@ -230,6 +313,30 @@ mod tests {
             let x = compute_premium(&p.cap, &inputs(price, price + lo)).unwrap().premium;
             let y = compute_premium(&p.cap, &inputs(price, price + hi)).unwrap().premium;
             prop_assert!(y <= x);
+        }
+
+        #[test]
+        fn premium_monotone_in_options(price in 1_000u64..100_000, otm in 0u64..20_000, mom in 0u8..5, days in 3u64..300) {
+            // A higher deductible never costs more; a longer cover never costs less.
+            let p = Params::example();
+            let mut i = inputs(price, price + otm);
+            i.signals.momentum_bucket = mom;
+            i.departure_ts = i.now + days * 86_400;
+            let mut last = u64::MAX;
+            for d in &p.cap.deductible_options {
+                i.deductible = Some(*d);
+                let x = compute_premium(&p.cap, &i).unwrap().unclamped;
+                prop_assert!(x <= last);
+                last = x;
+            }
+            i.deductible = None;
+            let mut last = 0;
+            for v in &p.cap.validity_options_secs {
+                i.validity_secs = Some(*v);
+                let x = compute_premium(&p.cap, &i).unwrap().unclamped;
+                prop_assert!(x >= last);
+                last = x;
+            }
         }
 
         #[test]

@@ -163,7 +163,6 @@ export const en = {
     links: { github: "GitHub", docs: "Docs", transparency: "Transparency", x: "X", legal: "Legal", lp: "LP dashboard" },
   },
   app: {
-    network: (n: string) => `Network: ${n}`,
   },
 };
 

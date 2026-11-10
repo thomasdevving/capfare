@@ -92,7 +92,6 @@ a:hover { text-decoration-thickness: 2px; }
 .nav a { color: #fff; text-decoration: none; }
 .nav a:hover { text-decoration: underline; }
 .nav a.btn-primary { color: var(--on-yellow); }
-.netbadge { font-size: var(--s1); border: 1px solid rgba(255, 255, 255, 0.35); padding: 4px 12px; border-radius: 999px; color: #ece8ff; }
 @media (max-width: 600px) {
   .nav .anchor { display: none; }
   .site-header .btn-sm { display: none; }
@@ -423,7 +422,6 @@ html:has(.app-shell) { background: #fff; }
 .app-shell .glass, .app-shell .card, .app-shell .figure { backdrop-filter: none; -webkit-backdrop-filter: none; }
 .app-shell .site-header { border-bottom: 1px solid var(--line); }
 .app-shell .brand, .app-shell .nav a { color: var(--text); }
-.app-shell .netbadge { border-color: var(--line); color: var(--muted); background: #f2f6fb; }
 .app-shell .btn { border-color: #c9d6e6; background: #fff; color: var(--text); }
 .app-shell .btn:hover { background: #f2f6fb; }
 .app-shell .btn-primary { background: var(--yellow); border-color: var(--yellow); color: var(--on-yellow); }

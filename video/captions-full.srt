@@ -1,0 +1,275 @@
+1
+00:00:00,450 --> 00:00:02,988
+You find a flight for 170 euros.
+
+2
+00:00:02,988 --> 00:00:05,888
+A day later, the same seat costs 260.
+
+3
+00:00:05,888 --> 00:00:09,150
+Or you book, and the next morning it's cheaper.
+
+4
+00:00:09,950 --> 00:00:13,307
+CapFare locks the price of your flight, wherever you book.
+
+5
+00:00:13,307 --> 00:00:14,650
+It runs on NEAR.
+
+6
+00:00:15,450 --> 00:00:19,177
+The CapFare extension recognises the flight on any booking site.
+
+7
+00:00:19,177 --> 00:00:21,041
+Here, on our demo site,
+
+8
+00:00:21,041 --> 00:00:23,650
+it offers to lock a maximum price.
+
+9
+00:00:24,450 --> 00:00:26,345
+No wallet, no seed phrase.
+
+10
+00:00:26,345 --> 00:00:28,997
+A passkey creates a readable NEAR account,
+
+11
+00:00:28,997 --> 00:00:31,650
+and the relayer pays every gas fee.
+
+12
+00:00:32,450 --> 00:00:34,617
+Premiums come from prepaid credit.
+
+13
+00:00:34,617 --> 00:00:37,650
+The iDEAL top-up is simulated on testnet.
+
+14
+00:00:38,450 --> 00:00:42,859
+The premium comes from a public formula on the contract.
+
+15
+00:00:42,859 --> 00:00:45,505
+Buying locks the full maximum payout
+
+16
+00:00:45,505 --> 00:00:48,150
+in the vault before you pay.
+
+17
+00:00:48,950 --> 00:00:53,266
+You choose the deductible and how long the lock lasts,
+
+18
+00:00:53,266 --> 00:00:57,150
+three to thirty days. A higher deductible costs less.
+
+19
+00:00:57,950 --> 00:01:01,088
+Prices here come from a scripted demo source.
+
+20
+00:01:01,088 --> 00:01:03,442
+When the price passes your cap,
+
+21
+00:01:03,442 --> 00:01:06,188
+you get an alert in the app,
+
+22
+00:01:06,188 --> 00:01:08,150
+by push or by email.
+
+23
+00:01:08,950 --> 00:01:12,056
+Book anywhere, then claim with the original email.
+
+24
+00:01:12,056 --> 00:01:15,550
+Bookings can often be cancelled free for a day,
+
+25
+00:01:15,550 --> 00:01:19,821
+so the payout waits for a live check of the booking.
+
+26
+00:01:19,821 --> 00:01:22,150
+Then it's paid from the vault.
+
+27
+00:01:22,950 --> 00:01:27,144
+Bookings are checked by a verifier built for a hardware enclave.
+
+28
+00:01:27,144 --> 00:01:30,575
+Only the flight, fare and price reach the chain.
+
+29
+00:01:30,575 --> 00:01:32,100
+Edited or forwarded emails,
+
+30
+00:01:32,100 --> 00:01:35,150
+reused bookings and someone else's booking are refused.
+
+31
+00:01:35,950 --> 00:01:39,197
+Just booked? The Drop Guarantee pays
+
+32
+00:01:39,197 --> 00:01:45,150
+the difference if the same flight gets cheaper during its window.
+
+33
+00:01:45,950 --> 00:01:48,304
+Not sure which flight or day?
+
+34
+00:01:48,304 --> 00:01:52,227
+Route cover pays against the cheapest fare on the route,
+
+35
+00:01:52,227 --> 00:01:56,150
+up to three days either side, and from nearby airports.
+
+36
+00:01:56,950 --> 00:01:59,995
+One policy covers up to nine travellers.
+
+37
+00:01:59,995 --> 00:02:03,040
+A return trip is bought as one,
+
+38
+00:02:03,040 --> 00:02:05,650
+and one booking claims both flights.
+
+39
+00:02:06,450 --> 00:02:10,571
+Refundable tickets get their final check just before departure.
+
+40
+00:02:10,571 --> 00:02:15,150
+And a Price Cap can be renewed without a gap.
+
+41
+00:02:15,950 --> 00:02:17,867
+Payouts arrive as test USDC.
+
+42
+00:02:17,867 --> 00:02:20,167
+Withdraw them, send them to a
+
+43
+00:02:20,167 --> 00:02:22,467
+bank account through a simulated ramp,
+
+44
+00:02:22,467 --> 00:02:25,150
+or quote another asset with NEAR Intents.
+
+45
+00:02:25,950 --> 00:02:29,893
+Liquidity providers fund two separate vaults, one per product.
+
+46
+00:02:29,893 --> 00:02:32,521
+Deposits and withdrawals settle per epoch,
+
+47
+00:02:32,521 --> 00:02:35,150
+and every policy is fully collateralised.
+
+48
+00:02:35,950 --> 00:02:39,714
+Everything is public: parameters, collateral, prices and service keys.
+
+49
+00:02:39,714 --> 00:02:43,059
+On testnet the services still use development keys,
+
+50
+00:02:43,059 --> 00:02:45,150
+and the page says so.
+
+51
+00:02:45,950 --> 00:02:48,645
+Paste a link from any booking site,
+
+52
+00:02:48,645 --> 00:02:50,955
+or watch a price for free
+
+53
+00:02:50,955 --> 00:02:53,650
+and get an alert when it moves.
+
+54
+00:02:54,450 --> 00:02:57,291
+Why NEAR? Users never touch gas.
+
+55
+00:02:57,291 --> 00:03:01,079
+They sign meta-transactions and our relayer submits them.
+
+56
+00:03:01,079 --> 00:03:04,868
+Accounts are readable names, created by the relayer.
+
+57
+00:03:04,868 --> 00:03:07,235
+Premiums, payouts and deposits move
+
+58
+00:03:07,235 --> 00:03:09,603
+as NEP-141 tokens with transfer-and-call.
+
+59
+00:03:09,603 --> 00:03:14,338
+Every step that moves money is an async cross-contract call,
+
+60
+00:03:14,338 --> 00:03:18,126
+with a callback that rolls back on failure.
+
+61
+00:03:18,126 --> 00:03:20,494
+Price snapshots and booking attestations
+
+62
+00:03:20,494 --> 00:03:23,335
+are verified on-chain with ed25519 signatures.
+
+63
+00:03:23,335 --> 00:03:26,650
+And everything is on the public explorer.
+
+64
+00:03:27,450 --> 00:03:29,577
+I built CapFare because a flight
+
+65
+00:03:29,577 --> 00:03:31,705
+price is the one thing on
+
+66
+00:03:31,705 --> 00:03:33,832
+a trip you can't plan for.
+
+67
+00:03:33,832 --> 00:03:36,668
+It's a testnet prototype: live contracts, demo prices,
+
+68
+00:03:36,668 --> 00:03:39,150
+and services not in an enclave yet.
+
+69
+00:03:39,950 --> 00:03:45,150
+CapFare. Built at the NEAR Hackathon.

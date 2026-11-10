@@ -1,0 +1,54 @@
+[
+ {
+  "beat": "intro",
+  "kind": "large",
+  "x": 96,
+  "y": 120,
+  "w": 860,
+  "h": 760,
+  "round": false,
+  "start": 0.017,
+  "end": 8.383,
+  "fullStart": 0.6,
+  "fullEnd": 7.95
+ },
+ {
+  "beat": "near",
+  "kind": "pip",
+  "x": 72,
+  "y": 812,
+  "w": 220,
+  "h": 220,
+  "round": true,
+  "start": 101.767,
+  "end": 110.067,
+  "fullStart": 102.25,
+  "fullEnd": 109.617
+ },
+ {
+  "beat": "status",
+  "kind": "pip",
+  "x": 1240,
+  "y": 300,
+  "w": 560,
+  "h": 560,
+  "round": false,
+  "start": 123.767,
+  "end": 131.383,
+  "fullStart": 124.25,
+  "fullEnd": 130.95
+ },
+ {
+  "beat": "end",
+  "kind": "pip",
+  "x": 1560,
+  "y": 760,
+  "w": 260,
+  "h": 260,
+  "round": true,
+  "start": 131.767,
+  "end": 136.383,
+  "fullStart": 132.25,
+  "fullEnd": 135.95
+ }
+]

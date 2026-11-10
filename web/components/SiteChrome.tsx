@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { dict, type Locale } from "@/lib/i18n";
-import { networkLabel, serverConfig } from "@/lib/config";
+import { serverConfig } from "@/lib/config";
 
 export function Header({ locale, variant = "landing" }: { locale: Locale; variant?: "landing" | "app" }) {
   const t = dict(locale);
-  const net = networkLabel(serverConfig().network);
   return (
     <header className={`site-header${variant === "app" ? "" : " on-dark"}`}>
       <div className="wrap">
@@ -31,7 +30,6 @@ export function Header({ locale, variant = "landing" }: { locale: Locale; varian
               <Link href="/account">Account</Link>
             </>
           )}
-          {variant === "app" ? <span className="netbadge">{t.app.network(net)}</span> : null}
           {variant === "landing" ? (
             <a className="btn btn-primary btn-sm" href={serverConfig().extensionUrl ?? `${serverConfig().githubUrl}/tree/main/extension#install`}>
               {t.hero.ctaChrome}

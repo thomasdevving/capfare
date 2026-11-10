@@ -1,0 +1,147 @@
+1
+00:00:00,450 --> 00:00:02,696
+You find a flight for 170 euros.
+
+2
+00:00:02,696 --> 00:00:05,263
+A day later, the same seat costs 260.
+
+3
+00:00:05,263 --> 00:00:08,150
+Or you book, and the next morning it's cheaper.
+
+4
+00:00:08,950 --> 00:00:11,950
+CapFare locks the price of your flight, wherever you book.
+
+5
+00:00:11,950 --> 00:00:13,150
+It runs on NEAR.
+
+6
+00:00:13,950 --> 00:00:16,275
+The extension recognises the flight on
+
+7
+00:00:16,275 --> 00:00:20,150
+any booking site and offers to lock a maximum price.
+
+8
+00:00:20,950 --> 00:00:24,050
+A passkey creates a readable NEAR account.
+
+9
+00:00:24,050 --> 00:00:27,150
+No seed phrase, no gas, prepaid credit.
+
+10
+00:00:27,950 --> 00:00:31,574
+The premium comes from a public formula on-chain.
+
+11
+00:00:31,574 --> 00:00:35,650
+The maximum payout is locked in the vault first.
+
+12
+00:00:36,450 --> 00:00:42,150
+Choose the deductible and a lock of three to thirty days.
+
+13
+00:00:42,950 --> 00:00:45,603
+When the demo price passes your cap,
+
+14
+00:00:45,603 --> 00:00:48,255
+you get an alert in the app,
+
+15
+00:00:48,255 --> 00:00:50,150
+by push or by email.
+
+16
+00:00:50,950 --> 00:00:53,283
+Claim with the original email.
+
+17
+00:00:53,283 --> 00:00:56,083
+The payout waits for a live
+
+18
+00:00:56,083 --> 00:00:59,350
+check of the booking after a day,
+
+19
+00:00:59,350 --> 00:01:02,150
+then it's paid from the vault.
+
+20
+00:01:02,950 --> 00:01:06,834
+Only the flight, fare and price reach the chain.
+
+21
+00:01:06,834 --> 00:01:11,150
+Edited emails, reused bookings and other people's bookings are refused.
+
+22
+00:01:11,950 --> 00:01:15,050
+Just booked? The Drop Guarantee pays
+
+23
+00:01:15,050 --> 00:01:18,150
+if the same flight gets cheaper.
+
+24
+00:01:18,950 --> 00:01:21,915
+Route cover pays against the cheapest fare,
+
+25
+00:01:21,915 --> 00:01:26,150
+up to three days either side and from nearby airports.
+
+26
+00:01:26,950 --> 00:01:30,050
+Up to nine travellers on one policy,
+
+27
+00:01:30,050 --> 00:01:33,150
+and a return trip bought as one.
+
+28
+00:01:33,950 --> 00:01:37,550
+Liquidity providers fund two vaults.
+
+29
+00:01:37,550 --> 00:01:41,150
+Every policy is fully collateralised.
+
+30
+00:01:41,950 --> 00:01:46,897
+Why NEAR? Gasless meta-transactions through our relayer,
+
+31
+00:01:46,897 --> 00:01:49,723
+and readable named accounts.
+
+32
+00:01:49,723 --> 00:01:56,790
+NEP-141 tokens, async cross-contract calls that roll back on failure,
+
+33
+00:01:56,790 --> 00:01:59,617
+and ed25519 checks on-chain.
+
+34
+00:01:59,617 --> 00:02:03,150
+All on the public explorer.
+
+35
+00:02:03,950 --> 00:02:08,064
+It's a testnet prototype: live contracts, demo prices,
+
+36
+00:02:08,064 --> 00:02:11,150
+services not in an enclave yet.
+
+37
+00:02:11,950 --> 00:02:16,150
+CapFare. Built at the NEAR Hackathon.

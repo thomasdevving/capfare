@@ -2,7 +2,7 @@
  * Recording helpers for the CapFare demo film.
  *
  * Each "take" records one browser tab with the Chrome DevTools screencast (not a screen recorder):
- * frames are saved as footage/<take>/NNNN.jpg with index.json [[secondsSinceStart, frameNo], ...]
+ * frames (1920x1200) are saved as footage/<take>/NNNNN.jpg with index.json [[secondsSinceStart, frameNo], ...]
  * and events.json [{t, type, label, x, y}] (clicks, typing, marks) so the film can sync
  * highlights and sound effects to what happens on screen.
  *
@@ -49,7 +49,9 @@ async function openBrowser(profileDir) {
     viewport: VIEW,
     deviceScaleFactor: 4 / 3,
     acceptDownloads: true,
-    args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, "--hide-scrollbars"],
+    // Headless screencast frames are in CSS pixels unless the device scale is forced at launch:
+    // with it, frames come out at 1920x1200 (sharper zooms in the film).
+    args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, "--hide-scrollbars", "--force-device-scale-factor=1.3333333"],
   });
   await ctx.addInitScript(CURSOR);
   return ctx;
@@ -238,4 +240,29 @@ async function findOverlayCta(page) {
   return [VIEW.width - 400 + (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2];
 }
 
-module.exports = { openBrowser, take, Take, sleep, APP, VIEW, FOOTAGE, ROOT, findOverlayCta };
+/**
+ * Top edge of the extension overlay (a fixed 360 px box, 20 px from the bottom right) found by its
+ * navy pixels, or null. Its close button sits 26 px below the top, 30 px in from the right edge.
+ */
+async function findOverlayTop(page) {
+  const shot = await page.screenshot({ clip: { x: VIEW.width - 380, y: 0, width: 360, height: VIEW.height }, scale: "css" });
+  return page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = "data:image/png;base64," + b64;
+    await img.decode();
+    const c = document.createElement("canvas");
+    c.width = img.width;
+    c.height = img.height;
+    const g = c.getContext("2d");
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    const navy = (x, y) => { const i = (y * c.width + x) * 4; return d[i] < 40 && d[i + 1] < 70 && d[i + 2] > 40 && d[i + 2] < 110; };
+    // Below the page header: the first row where the box starts (navy now, not navy just above).
+    for (let y = 160; y < c.height - 40; y++) {
+      if (navy(60, y + 6) && navy(180, y + 6) && navy(300, y + 6) && navy(180, y + 30) && !navy(180, y - 6)) return y;
+    }
+    return null;
+  }, shot.toString("base64"));
+}
+
+module.exports = { openBrowser, take, Take, sleep, APP, VIEW, FOOTAGE, ROOT, findOverlayCta, findOverlayTop };

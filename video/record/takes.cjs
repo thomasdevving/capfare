@@ -10,12 +10,13 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { openBrowser, take, sleep, APP, FOOTAGE, findOverlayCta } = require("./lib.cjs");
+const { openBrowser, take, sleep, APP, FOOTAGE, VIEW, findOverlayCta, findOverlayTop } = require("./lib.cjs");
 
 const STATE = path.join(FOOTAGE, "state.json");
 const state = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, "utf8")) : {};
 const save = () => fs.writeFileSync(STATE, JSON.stringify(state, null, 2));
-const PROFILE = path.join(__dirname, "..", ".profile-main");
+// REC_PROFILE switches to another browser profile (a second account, e.g. after per-flight limits).
+const PROFILE = path.join(__dirname, "..", process.env.REC_PROFILE ?? ".profile-main");
 const PK_PROFILE = path.join(__dirname, "..", ".profile-passkey");
 
 const OUT = { airline: "KL", flight_number: "KL1695", departure_date: "2027-06-14", origin: "AMS", destination: "BCN", fare_class: "economy_light" };
@@ -93,6 +94,8 @@ async function skylineBook(tk, page, { fn, fareName, pax = [["Ms", "Anna", "de V
   await page.waitForLoadState("networkidle").catch(() => {});
   await sleep(700);
   if (retFn) {
+    await page.locator(".sk-flight").first().waitFor({ timeout: 30_000 });
+    await sleep(400);
     const rc = page.locator(".sk-flight").filter({ hasText: retFn });
     if (await rc.count()) {
       await tk.click(rc.first().getByRole("link", { name: "See fares" }), `see fares ${retFn}`);
@@ -112,7 +115,19 @@ async function skylineBook(tk, page, { fn, fareName, pax = [["Ms", "Anna", "de V
   await tk.type(page.locator("#card"), "4242 4242 4242 4242", "card", 25);
   await tk.type(page.locator("#exp"), "12/29", "expiry", 40);
   await tk.type(page.locator("#cvc"), "123", "cvc", 40);
-  await tk.click(page.getByRole("button", { name: /^Pay / }), "pay");
+  // With more travellers the Pay button can sit under the extension overlay: close it first.
+  const pay = page.getByRole("button", { name: /^Pay / });
+  await tk.ensureVisible(pay);
+  const pb = await pay.boundingBox();
+  if (pb && pb.x + pb.width > VIEW.width - 380 && (await page.locator("capfare-overlay").count())) {
+    const top = await findOverlayTop(page);
+    if (top != null && pb.y + pb.height > top) {
+      await tk.clickAt(VIEW.width - 20 - 30, top + 26, "close overlay");
+      await sleep(600);
+      if ((await findOverlayTop(page)) != null) throw new Error("overlay did not close");
+    }
+  }
+  await tk.click(pay, "pay");
   await tk.idle(() => page.waitForURL(/confirmation/, { timeout: 60_000 }), "booking");
   await page.waitForLoadState("networkidle").catch(() => {});
   await sleep(600);
@@ -482,15 +497,44 @@ const TAKES = {
       await tk.click(page.getByRole("button", { name: "Verify booking" }), "verify booking");
       await tk.idle(() => page.getByText("Booking verified").first().waitFor({ timeout: 180_000 }), "verify");
       await sleep(1500);
-      const claim = page.getByRole("button", { name: /^Claim Price Cap #/ }).first();
-      await tk.click(claim, "claim both");
-      await tk.idle(() => page.getByText(/Payout: €\d+ \(2 travellers/).nth(1).waitFor({ timeout: 300_000 }), "claim");
-      await sleep(1500);
-      await tk.ensureVisible(page.getByText(/Payout: €\d+ \(2 travellers/).first());
-      await sleep(2500);
-      await tk.scrollTo(await page.evaluate(() => document.body.scrollHeight), 1400);
+      // One booking check verifies both flights; each leg's Price Cap is claimed from it.
+      for (let i = 0; i < 2; i++) {
+        const claim = page.getByRole("button", { name: /^Claim Price Cap #/ }).first();
+        if (!(await claim.count())) break;
+        await tk.click(claim, `claim leg ${i + 1}`);
+        await tk.idle(() => page.getByText(/Claim #\d+: done/).last().waitFor({ timeout: 300_000 }), "claim");
+        await sleep(2000);
+      }
+      await go(page, "/policies", 1500);
+      await tk.ensureVisible(page.getByText(/Price Cap #\d+: IB1131/).first());
+      await sleep(3000);
       await tk.idle(() => page.getByText(/Drop Guarantee/).last().waitFor({ timeout: 120_000 }).catch(() => {}), "drops");
       await sleep(3500);
+    });
+  },
+
+  /** Continuation of return-claim when its first run stopped after the first leg: claim the other leg, show both paid. */
+  async returnpaid(ctx) {
+    await take(ctx, "return-paid", async (tk, page) => {
+      await page.goto(state.returnBooking.replace(/^https?:\/\/[^/]+/, APP), { waitUntil: "load" });
+      await page.waitForLoadState("networkidle").catch(() => {});
+      await sleep(800);
+      await tk.click(page.getByRole("link", { name: "Manage booking" }), "manage booking");
+      await page.waitForLoadState("networkidle").catch(() => {});
+      await clickOverlay(tk, page, "verify with capfare");
+      await tk.click(page.getByRole("button", { name: "Verify booking" }), "verify booking");
+      await tk.idle(() => page.getByText("Booking verified").first().waitFor({ timeout: 180_000 }), "verify");
+      await sleep(1500);
+      const claim = page.getByRole("button", { name: /^Claim Price Cap #/ }).first();
+      await tk.click(claim, "claim other leg");
+      await tk.idle(() => page.getByText(/Claim #\d+: done/).last().waitFor({ timeout: 300_000 }), "claim");
+      await sleep(1500);
+      await tk.ensureVisible(page.getByText(/Claim #\d+: done/).last());
+      await sleep(2500);
+      await go(page, "/policies", 1500);
+      await sleep(2500);
+      await tk.scrollTo(700, 1400);
+      await sleep(3000);
     });
   },
 
@@ -678,6 +722,9 @@ const TAKES = {
 
   /** Renew an active Price Cap: the new cover starts the moment the old one ends. */
   async renew(ctx) {
+    // A cap can only be renewed while the price is at or below it: back to the first scripted price.
+    await advance(OUT, 0);
+    await sleep(3000);
     await take(ctx, "renew", async (tk, page) => {
       await go(page, `/policies#p${state.cap2}`, 1500);
       const card = page.locator(`#p${state.cap2}`);

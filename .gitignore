@@ -39,3 +39,4 @@ video/frames/
 video/out/
 video/.profile*/
 video/audio/*.wav
+video/audio/*/

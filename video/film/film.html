@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CapFare: demo film</title>
+<!--
+  The film is a pure function of time: window.renderFrame(t) draws the frame at t seconds.
+  No CSS transitions, no requestAnimationFrame: render/render.cjs screenshots it frame by frame.
+  ?cut=x renders the 2:20 cut for X. ?t=12.5 shows one frame (for checking a layout by hand).
+-->
+<style>
+@font-face { font-family: "Outfit"; src: url("fonts/outfit-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+@font-face { font-family: "Atkinson Hyperlegible Next"; src: url("fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-display: block; }
+
+:root {
+  --navy: #0b2447; --ink: #0b1024; --yellow: #FFD100; --on-yellow: #14132e; --blue: #0f5fc2; --link: #173f73;
+  --light: #f2f6fb; --light2: #e3edfc; --line: #dfe7f0; --lav: #d9cfff; --green: #246c42; --muted: #50627a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #000; }
+body { font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--navy); }
+#stage > *, .abs, .beat > *, .browser > *, .browser .bar > *, .browser .view > *, #cam > *, .sec > *, .card > * { position: absolute; }
+.beat { inset: 0; overflow: hidden; visibility: hidden; }
+.beat.navy { background: var(--navy); color: #fff; }
+.beat.ink { background: var(--ink); color: #fff; }
+.beat.light { background: var(--light); color: var(--ink); }
+.beat.yellow { background: var(--yellow); color: var(--on-yellow); }
+
+/* Slow background motif: the logo's slanted bars, drifting. */
+.motif { width: 520px; height: 1500px; top: -200px; transform-origin: 50% 50%; }
+.navy .motif, .ink .motif { background: rgba(255, 255, 255, 0.028); }
+.light .motif { background: rgba(15, 95, 194, 0.045); }
+.yellow .motif { background: rgba(20, 19, 46, 0.045); }
+
+.kicker { left: 96px; top: 84px; font: 600 22px/1 "Outfit"; letter-spacing: 0.16em; text-transform: uppercase; white-space: nowrap; }
+.navy .kicker, .ink .kicker { color: var(--yellow); }
+.light .kicker { color: var(--blue); }
+.title { left: 92px; top: 118px; margin: 0; font: 650 62px/1.12 "Outfit"; letter-spacing: -0.01em; white-space: nowrap; }
+.title .mask, .mask { position: relative; display: inline-block; overflow: hidden; vertical-align: top; padding: 0 0.12em 0.08em 0; margin-right: 0.12em; }
+.title .w, .mask .w { position: relative; display: inline-block; }
+
+/* Browser frame around real app footage. */
+.browser { border-radius: 18px; background: #fff; overflow: hidden; }
+.navy .browser, .ink .browser { box-shadow: 0 40px 90px rgba(3, 10, 30, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.light .browser { box-shadow: 0 34px 70px rgba(11, 36, 71, 0.16), 0 0 0 1px var(--line); }
+.browser .bar { left: 0; top: 0; right: 0; height: 50px; background: #f7f9fc; border-bottom: 1px solid var(--line); }
+.browser .dot { top: 19px; width: 12px; height: 12px; border-radius: 50%; background: #d5dde8; }
+.browser .url { top: 10px; height: 30px; left: 50%; transform: translateX(-50%); padding: 0 22px; border-radius: 15px; background: #fff; border: 1px solid var(--line); font: 500 15px/28px "Atkinson Hyperlegible Next"; color: var(--muted); white-space: nowrap; }
+.browser .url b { font-weight: 500; color: var(--ink); }
+.browser .view { left: 0; top: 50px; right: 0; bottom: 0; overflow: hidden; background: #fff; }
+.browser img.fr { left: 0; top: 0; transform-origin: 0 0; will-change: transform, opacity; }
+.ring { width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; border: 4px solid var(--yellow); box-shadow: 0 0 0 2px rgba(11, 16, 36, 0.25); }
+
+/* Graphic primitives */
+.txt { white-space: nowrap; }
+.h-big { font: 700 150px/1 "Outfit"; letter-spacing: -0.02em; }
+.h-mid { font: 650 64px/1.05 "Outfit"; letter-spacing: -0.01em; }
+.h-sm { font: 600 40px/1.15 "Outfit"; }
+.lab { font: 500 26px/1.25 "Atkinson Hyperlegible Next"; }
+.lab-sm { font: 500 21px/1.3 "Atkinson Hyperlegible Next"; }
+.mono { font: 500 21px/1.45 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+.navy .dim, .ink .dim { color: rgba(217, 207, 255, 0.82); }
+.light .dim { color: var(--muted); }
+.yellow .dim { color: rgba(20, 19, 46, 0.7); }
+.row { display: flex; align-items: center; gap: 20px; white-space: nowrap; }
+.row .badge { position: relative; flex: none; }
+.row .rtext { position: relative; font: 500 32px/1.2 "Atkinson Hyperlegible Next"; }
+.row .rsub { display: block; font-size: 21px; margin-top: 4px; }
+.card { border-radius: 22px; }
+.navy .card, .ink .card { background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.14); }
+.light .card { background: #fff; box-shadow: 0 18px 40px rgba(11, 36, 71, 0.09), 0 0 0 1px var(--line); }
+.yellow .card { background: rgba(255, 255, 255, 0.55); }
+.card.solid { background: #fff !important; color: var(--ink); box-shadow: 0 24px 50px rgba(3, 10, 30, 0.35); }
+.rule { height: 2px; }
+.navy .rule, .ink .rule { background: rgba(255, 255, 255, 0.16); }
+.light .rule { background: var(--line); }
+.code { border-radius: 18px; background: #070b1a; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.1); padding: 24px 30px; color: #e6e9f5; }
+.code .k { color: var(--lav); } .code .f { color: var(--yellow); } .code .c { color: #8d97b5; } .code .s { color: #a8e0bd; }
+.pill-free { white-space: nowrap; }
+
+/* Captions and webcam placeholder (on top of everything). */
+#cap { left: 50%; top: 966px; transform: translateX(-50%); padding: 12px 28px 14px; border-radius: 14px; background: rgba(11, 16, 36, 0.84); color: #fff; font: 500 35px/1.25 "Atkinson Hyperlegible Next"; white-space: nowrap; z-index: 50; }
+#cam { z-index: 40; overflow: hidden; border: 2.5px dashed rgba(217, 207, 255, 0.85); background: rgba(11, 16, 36, 0.72); color: var(--lav); }
+#cam .lbl { left: 0; right: 0; text-align: center; font: 600 22px/1 "Outfit"; letter-spacing: 0.22em; }
+#cam .sub { left: 0; right: 0; text-align: center; font: 500 16px/1 "Atkinson Hyperlegible Next"; letter-spacing: 0.04em; color: rgba(217, 207, 255, 0.7); }
+#cam svg { left: 50%; transform: translateX(-50%); }
+
+/* Transitions */
+.band { top: -300px; height: 1680px; width: 2700px; z-index: 30; visibility: hidden; }
+#iris-ring { z-index: 31; border-radius: 50%; border: 12px solid var(--yellow); visibility: hidden; }
+#fade { inset: 0; background: #000; z-index: 60; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="timeline.js"></script>
+<script src="evidence.js"></script>
+<script src="shots.js"></script>
+<script src="film.js"></script>
+</body>
+</html>

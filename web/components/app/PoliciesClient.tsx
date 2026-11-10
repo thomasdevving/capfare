@@ -6,6 +6,7 @@ import { dateTime, duration, eur, usdc } from "@/lib/format";
 import { errText, getJson, Msg, postJson, SignInFirst, useSession } from "./ui";
 import { AlertList } from "./Alerts";
 import NotifySettings from "./NotifySettings";
+import Addr from "./Addr";
 import WatchList from "./WatchList";
 
 interface Data {
@@ -71,6 +72,7 @@ export default function PoliciesClient({ registry, demo }: { registry: string; d
     <div>
       <p>
         Credit: <strong className="num">{d ? usdc(d.credit) : "…"} tUSDC</strong> · Wallet: <strong className="num">{d ? usdc(d.wallet) : "…"} tUSDC</strong> · <a href="/credit">Manage credit</a>
+        <Addr id={s.accountId} linkOnly><> · Your account&apos;s transactions on NearBlocks ↗</></Addr>
       </p>
       {err ? <Msg kind="error">{err}</Msg> : null}
       {msg ? <Msg kind="ok">{msg}</Msg> : null}

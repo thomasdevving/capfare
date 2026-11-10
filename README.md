@@ -6,11 +6,16 @@ books, for **up to 9 travellers on one booking** and for **both flights of a ret
 difference if the airline's price for that flight rises above your cap before you book. A
 **Drop Guarantee** (bought right after booking) pays the difference if the price of the same
 flight drops within 7 days. Payouts come from two independent, fully collateralised vaults on
-NEAR funded by liquidity providers. Prices and bookings are checked by services built to run
-in TEEs, so no personal data reaches CapFare's servers or the chain. Users get gasless named
+NEAR funded by liquidity providers. Prices and bookings are checked by services designed to
+run in TEEs (on the testnet deployment they still run with development keys; see section 1),
+and no personal data reaches the chain. Users get gasless named
 accounts with a passkey and prepaid credit, and alerts in the app, by web push or by email when
 the price passes their cap or something needs doing.
 
+> **Live on NEAR testnet** under [`capfare.testnet`](https://testnet.nearblocks.io/address/capfare.testnet):
+> contracts, vault balances, policy purchases, claims and payouts are all on the public
+> explorer ([docs/TESTNET.md](docs/TESTNET.md)).
+>
 > **Testnet prototype.** No real money. CapFare is price protection, not insurance; a
 > commercial launch would require a licensed insurer or other licensed partner (docs/LEGAL.md).
 
@@ -28,9 +33,12 @@ the price passes their cap or something needs doing.
 | Alerts: shared alert engine, in-app list, notifier service with web push (VAPID) and email (SMTP, double opt-in), account-key-signed settings (D33); free price watches without a policy (D36) with optional one-tap lock (D38); "Paste a link from any booking site" and phone share target (D37) | Demo deployments keep alert emails in an outbox instead of sending them | Push delivery is not covered by automated tests (needs a browser push service) |
 | Backtest: synthetic fare paths, buyer models, calibration, parameter export | **All backtest results are synthetic** (docs/PRICING.md) | Backtest on real historical fares |
 
-Deployment: from the build environment the testnet faucet was not reachable, so the
-reproducible demo runs on a **local NEAR sandbox** (every page shows "Network: Local
-sandbox"). `scripts/src/deploy.ts` deploys the same code to testnet with a funded account.
+Deployment: **NEAR testnet**, under `capfare.testnet` (registry, two vaults, attestation
+registry, test USDC; addresses in [`deployments/testnet.json`](deployments/testnet.json),
+explorer links in [docs/TESTNET.md](docs/TESTNET.md)). The hosted demo runs against it, so
+accounts and policies survive redeploys. A **local NEAR sandbox** mode remains for
+development and tests (`pnpm --filter @capfare/scripts stack`; pages then show "Network: Local
+sandbox").
 
 ## 2. Architecture and NEAR technologies
 
@@ -45,9 +53,12 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). In short:
 * **NEP-366 meta-transactions** via `relayer/` — users never hold NEAR or pay gas.
 * **Named accounts** — `alice.<relayer>` created by the relayer.
 * **`env::ed25519_verify`** — on-chain verification of enclave-signed snapshots/attestations.
-* **NEAR Intents (1Click API)** — dry quotes for paying out in another asset.
-* **TEE** — dstack (TDX) key provider, attestation report binding, off-chain quote check and
-  timelocked on-chain key registration (Shade-Agent-style approved measurements).
+* **TEE design (not running on TEE hardware yet)** — dstack (TDX) key provider, attestation
+  report binding, off-chain quote check and timelocked on-chain key registration
+  (Shade-Agent-style approved measurements). The deployed services use development keys,
+  registered through the same timelocked process and shown as such on the Transparency page.
+* **NEAR Intents (1Click API), minor** — only dry-run quotes for paying out in another asset,
+  because Intents has no testnet. It is an option on the payout screen, not part of the core.
 
 ## 3. Prerequisites and setup
 

@@ -27,7 +27,7 @@ export function serverConfig(): ServerConfig {
   if (network !== "testnet" && network !== "sandbox") throw new Error("CapFare web runs against testnet or sandbox only");
   return {
     network,
-    rpcUrl: e.NEAR_RPC_URL ?? "https://rpc.testnet.near.org",
+    rpcUrl: e.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com",
     registry: e.REGISTRY_ID ?? "",
     attestation: e.ATTESTATION_ID ?? "",
     capVault: e.CAP_VAULT_ID ?? "",
@@ -53,5 +53,10 @@ export function configured(c: ServerConfig = serverConfig()): boolean {
 }
 
 export function networkLabel(n: ServerConfig["network"]): string {
-  return n === "sandbox" ? "Local sandbox" : "Testnet";
+  return n === "sandbox" ? "Local sandbox" : "NEAR testnet";
+}
+
+/** Public block explorer for the network (none for a local sandbox). */
+export function explorerUrl(n: ServerConfig["network"]): string | undefined {
+  return n === "testnet" ? process.env.EXPLORER_URL ?? "https://testnet.nearblocks.io" : undefined;
 }

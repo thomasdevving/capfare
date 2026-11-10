@@ -5,6 +5,7 @@ import type { Params, ProductParams } from "@capfare/shared";
 import { dateTime, duration, eur, short, usdc } from "@/lib/format";
 import type { Overview } from "@/lib/chain";
 import { errText, getJson, Msg } from "./ui";
+import Addr from "./Addr";
 
 export default function TransparencyClient() {
   const [o, setO] = useState<(Overview & { networkLabel: string }) | null>(null);
@@ -19,7 +20,8 @@ export default function TransparencyClient() {
   return (
     <div>
       <p className="small muted">
-        Network: {o.networkLabel}. Read from the contracts at {dateTime(o.updatedAt)}. Registry <span className="mono-wrap">{o.contracts.registry}</span>, vaults <span className="mono-wrap">{o.contracts.capVault}</span> and <span className="mono-wrap">{o.contracts.dropVault}</span>, attestations <span className="mono-wrap">{o.contracts.attestation}</span>, token <span className="mono-wrap">{o.contracts.token}</span>.
+        Network: {o.networkLabel}. Read from the contracts at {dateTime(o.updatedAt)}. Registry <Addr id={o.contracts.registry} />, vaults <Addr id={o.contracts.capVault} /> and <Addr id={o.contracts.dropVault} />, attestations <Addr id={o.contracts.attestation} />, token <Addr id={o.contracts.token} />.
+        {o.networkLabel === "NEAR testnet" ? " Each address opens on NearBlocks, the public NEAR explorer, with every purchase, claim and payout." : ""}
       </p>
 
       <section className="card" aria-labelledby="coll">
@@ -71,12 +73,17 @@ export default function TransparencyClient() {
       <GlobalTable g={o.params.global} />
 
       <section className="card" aria-labelledby="keys">
-        <h2 id="keys" style={{ fontSize: "var(--s4)" }}>Registered enclave keys</h2>
+        <h2 id="keys" style={{ fontSize: "var(--s4)" }}>Registered service keys</h2>
+        {o.keys.some(([, v]) => v.dev && !v.revoked) ? (
+          <Msg kind="info">
+            <strong>Not running in a TEE yet.</strong> The price oracle and booking verifier on this deployment sign with development keys: the same code that is built to run in an Intel TDX confidential VM (dstack), but here it runs on CapFare&apos;s server, so you trust that server. Their keys went through the same timelocked registration an enclave key would; a hardware deployment would show a TDX measurement below instead.
+          </Msg>
+        ) : null}
         <p className="small muted">
           Demo price sources {o.attestationConfig.allow_demo_sources ? "ARE accepted on this deployment (demo)" : "are rejected on this deployment"}. New keys wait {duration(o.attestationConfig.key_timelock_secs)} after being published.
         </p>
         <table className="data">
-          <thead><tr><th>Service</th><th>Signing key</th><th>Measurement</th><th>Report hash</th><th>Registered</th><th>Status</th></tr></thead>
+          <thead><tr><th>Service</th><th>Signing key</th><th>Measurement</th><th>Report hash</th><th>Registered</th><th>Runs in</th><th>Status</th></tr></thead>
           <tbody>
             {o.keys.map(([k, v]) => (
               <tr key={k}>
@@ -85,6 +92,7 @@ export default function TransparencyClient() {
                 <td className="mono-wrap" title={v.measurement}>{short(v.measurement)}</td>
                 <td className="mono-wrap" title={v.report_hash}>{short(v.report_hash)}</td>
                 <td>{dateTime(v.registered_at)}</td>
+                <td>{v.dev ? "Development key (no TEE)" : "TEE measurement"}</td>
                 <td className={v.revoked ? "fail" : "pass"}>{v.revoked ? "revoked" : "active"}</td>
               </tr>
             ))}

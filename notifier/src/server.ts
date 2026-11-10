@@ -27,7 +27,7 @@ export async function main() {
   // Push services require an https: or mailto: contact.
   const subject = process.env.VAPID_SUBJECT ?? (appUrl.startsWith("https://") ? appUrl : "mailto:alerts@capfare.invalid");
   const channels = realChannels(store, { demo, subject, smtpUrl: process.env.SMTP_URL, mailFrom: process.env.MAIL_FROM });
-  const rpc = new NearViewClient({ rpcUrl: process.env.NEAR_RPC_URL ?? "https://rpc.testnet.near.org" });
+  const rpc = new NearViewClient({ rpcUrl: process.env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com" });
   // Watched prices: a fresh signed price from the oracle (not submitted on-chain), else the chain.
   const oracleUrl = process.env.ORACLE_URL?.replace(/\/$/, "");
   const prices = oracleUrl

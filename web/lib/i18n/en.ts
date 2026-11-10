@@ -58,7 +58,7 @@ export const en = {
         ],
       },
       {
-        body: "Upload your booking confirmation email, or open your booking page with the CapFare extension and press Verify with CapFare. The booking is checked inside a secure enclave and only the flight, fare class and price come back. For non-refundable tickets the payout leaves the vault straight away.",
+        body: "Upload your booking confirmation email, or open your booking page with the CapFare extension and press Verify with CapFare. The booking checker, built to run in a hardware enclave, reads it and only the flight, fare class and price come back (on this testnet demo the checker runs with development keys, as the Transparency page shows). For non-refundable tickets the payout leaves the vault straight away.",
         points: (d: number): string[] => [
           "Example: airline price €260, you paid €255, cap €180, deductible €" + (d / 100).toFixed(0) + ": you get €" + ((25500 - 18000 - d) / 100).toFixed(0) + ".",
           "Refundable tickets need one more live check of the booking before departure, because an email can't show a cancellation.",

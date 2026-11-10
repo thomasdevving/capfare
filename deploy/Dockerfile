@@ -1,7 +1,19 @@
-# CapFare all-in-one demo container (Railway, Fly, any Docker host).
-# Runs: local NEAR sandbox node -> contract deployment (prebuilt wasm in contracts/res) ->
-# price_oracle + booking_verifier (demo mode, development keys) -> relayer -> web app.
-# Every page shows "Network: Local sandbox". State resets on each restart.
+# CapFare all-in-one demo container (Railway, Fly, any Docker host). Two modes:
+#
+#   CAPFARE_NETWORK=testnet  (recommended for a public demo; docs/TESTNET.md)
+#     Uses the fixed NEAR testnet deployment in deployments/testnet.json (capfare.testnet).
+#     Nothing is deployed at start, so accounts, policies and payouts survive redeploys and
+#     anyone can check them on https://testnet.nearblocks.io. Needs the variables
+#     CAPFARE_ACCOUNT_KEY, ORACLE_DEV_SEED, VERIFIER_DEV_SEED (secrets) and, to keep alert
+#     settings across restarts, NOTIFIER_DATA_FILE on a volume (e.g. /data/notifier.json).
+#     Set CAPFARE_NETWORK as a build variable too, so prebuilt pages show the right network.
+#
+#   CAPFARE_NETWORK=sandbox  (default; no secrets)
+#     Local NEAR sandbox node -> contract deployment (prebuilt wasm in contracts/res) ->
+#     services -> web app. Every page shows "Network: Local sandbox". State resets on restart.
+#
+# Price oracle and booking verifier run in demo mode with development keys in both modes
+# (not inside a TEE); the Transparency page says so.
 # Full Debian trixie image: ships gcc and curl (no apt step), and glibc ≥ 2.39 for near-sandbox.
 ARG BASE_IMAGE=node:22-trixie
 FROM ${BASE_IMAGE}
@@ -12,7 +24,9 @@ RUN pnpm install --frozen-lockfile
 # Railway passes service variables as build arguments. Use the public URL for
 # prerendered metadata and label this all-in-one demo as a sandbox from first load.
 ARG SITE_URL=http://localhost:3000
-RUN SITE_URL=$SITE_URL CAPFARE_NETWORK=sandbox pnpm --filter web build
+ARG CAPFARE_NETWORK=sandbox
+RUN SITE_URL=$SITE_URL CAPFARE_NETWORK=$CAPFARE_NETWORK pnpm --filter web build
+ENV CAPFARE_NETWORK=$CAPFARE_NETWORK
 RUN gcc -shared -fPIC -o scripts/dev/librlimit_shim.so scripts/dev/rlimit_shim.c -ldl
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 STACK_QUIET=1
 EXPOSE 3000

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Sky from "@/components/Sky";
-import { serverConfig } from "@/lib/config";
+import { explorerUrl, serverConfig } from "@/lib/config";
 
 const site = serverConfig().siteUrl;
 
@@ -23,7 +23,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // The explorer base is read by client components (lib/explorer.ts) to link transactions and accounts.
+    <html lang="en" data-explorer={explorerUrl(serverConfig().network)}>
       <body>
         <Sky />
         {children}

@@ -8,6 +8,7 @@
  * All transactions are NEP-366 delegate actions submitted by the relayer (gasless).
  */
 import { Account, actions, encodeSignedDelegate, JsonRpcProvider, KeyPair, KeyPairSigner, teraToGas, type KeyPairString } from "near-api-js";
+import { TX_EVENT, type TxEventDetail } from "./explorer";
 import { baseEncode } from "near-api-js";
 import { accountRequestMessage, bytesToHex, passengerCommitment, SALT_MESSAGE, saltFromSignature, type SignedAccountRequest } from "@capfare/shared";
 
@@ -162,6 +163,7 @@ export async function gasless(receiverId: string, method: string, args: Record<s
   if (failed) throw new Error(String((failed.data as { reason?: string })?.reason ?? failed.event));
   if (!j.ok) throw new Error(friendly(j.error ?? "transaction failed"));
   if (j.receipt_failures?.length && !(j.events ?? []).length) throw new Error(friendly(j.receipt_failures[0]));
+  if (j.tx_hash) window.dispatchEvent(new CustomEvent<TxEventDetail>(TX_EVENT, { detail: { hash: j.tx_hash, method, receiver: receiverId } }));
   return j;
 }
 

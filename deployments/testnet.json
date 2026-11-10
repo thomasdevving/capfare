@@ -1,0 +1,16 @@
+{
+  "network": "testnet",
+  "rpcUrl": "https://test.rpc.fastnear.com",
+  "root": "capfare.testnet",
+  "relayer": "capfare.testnet",
+  "fee": "capfare.testnet",
+  "token": "usdc.capfare.testnet",
+  "tokenIsMock": true,
+  "attestation": "att.capfare.testnet",
+  "registry": "registry.capfare.testnet",
+  "capVault": "cap.capfare.testnet",
+  "dropVault": "drop.capfare.testnet",
+  "demo": true,
+  "deployedAt": "2026-11-10T10:43:08.200Z",
+  "explorer": "https://testnet.nearblocks.io"
+}

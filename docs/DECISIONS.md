@@ -96,7 +96,8 @@ that the signer is a registered oracle key, so gas is never spent on junk.
 quotes with `dry: true` to show what a payout or top-up in another asset would return, and
 never moves funds.
 
-**D19. Hosted demo on a sandbox chain if testnet accounts are unavailable.** From the build
+**D19. Hosted demo on a sandbox chain if testnet accounts are unavailable** (superseded by
+D39: CapFare now runs on testnet). From the build
 environment we could not reach the testnet faucet, so the container image can run a local
 NEAR sandbox with the whole stack (`deploy/Dockerfile`). Every page then shows
 "Network: local sandbox". `scripts/src/deploy.ts NETWORK=testnet` deploys the same code to
@@ -266,3 +267,27 @@ apply as always. The option is a per-account notifier setting (`set_quick_lock`,
 other settings). With it off, alerts, emails and push notifications are exactly as before, and
 the normal link and full form always work. Push notifications show the two actions as buttons
 where the browser supports them; tapping the notification itself opens the normal link.
+
+**D39. Testnet deployment and hosted demo on testnet.** A sandbox cannot be inspected by anyone
+else and the hosted sandbox reset on every redeploy, so judges and users could lose their
+account halfway through. CapFare is deployed on NEAR testnet under `capfare.testnet`
+(`registry.`, `cap.`, `drop.`, `att.`, `usdc.capfare.testnet`; `deployments/testnet.json`),
+funded from the public faucet (`scripts/src/testnet-fund.ts`) and deployed with
+`scripts/src/testnet-deploy.ts`. The hosted container runs in testnet mode
+(`CAPFARE_NETWORK=testnet`): it deploys nothing at start, reads the fixed addresses, and takes
+the relayer key and the services' development seeds from environment secrets; a separate
+full-access key on the root lets the hosted copy be revoked without touching the deployer key.
+On start it checks that the services sign with the keys registered on-chain. The web app links
+every transaction, contract and user account to NearBlocks. Demo settings stay visible on-chain
+(demo price source allowed, 30 s epochs, 5 s key timelock, mock test USDC). The default RPC is
+FastNear's testnet endpoint: `rpc.testnet.near.org` is deprecated and answers with rate-limit
+errors. The local sandbox mode remains for development and tests.
+
+**D40. Say plainly that the services are not in a TEE yet.** The oracle and verifier are built
+for Intel TDX (dstack key provider, report binding, timelocked key registration) but run with
+development keys. The Transparency page labels each registered key "Development key (no TEE)"
+when its measurement is the development measurement, and explains what that means; the landing
+copy and README no longer say a booking "is checked inside a secure enclave". Moving to real
+hardware means deploying the two services as dstack apps (e.g. Phala Cloud) with
+`CAPFARE_KEY_PROVIDER=dstack`, verifying the TDX quote, and registering the new keys through the
+same timelock; the label then changes by itself.

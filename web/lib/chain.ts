@@ -1,5 +1,6 @@
 /** Server-side cached reads of CapFare contracts. */
 import { NearViewClient, type Params, type Policy, type SnapshotRecord, type VaultState } from "@capfare/shared";
+import { createHash } from "node:crypto";
 import { configured, serverConfig } from "./config";
 
 const cache = new Map<string, { at: number; value: unknown }>();
@@ -22,7 +23,13 @@ export interface KeyInfo {
   report_hash: string;
   registered_at: number;
   revoked: boolean;
+  /** Added here, not on-chain: true if the measurement is the development-key measurement
+   *  (tee/common/src/keys.ts devKeys), i.e. the service does not run in a TEE. */
+  dev?: boolean;
 }
+
+/** Measurement that development keys report (sha256 of a fixed label per service). */
+const devMeasurement = (service: string) => createHash("sha256").update(`capfare-dev-measurement:${service}:v1`).digest("hex");
 
 export interface Overview {
   network: string;
@@ -64,7 +71,7 @@ export async function overview(): Promise<Overview> {
       stats,
       params,
       pendingParams,
-      keys,
+      keys: keys.map(([k, v]) => [k, { ...v, dev: v.measurement === devMeasurement(v.service) }] as [string, KeyInfo]),
       pendingKeys,
       attestationConfig: attCfg,
       activePolicies: active,

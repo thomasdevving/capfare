@@ -25,6 +25,8 @@ scripts/dev/*.so
 backtest/.venv/
 deployments/*.json
 !deployments/README.md
+# The public testnet record (contract addresses) is committed; keys and secrets never are.
+!deployments/testnet.json
 web/.env.local
 web/test-results/
 web/playwright-report/

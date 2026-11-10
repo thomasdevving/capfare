@@ -77,8 +77,9 @@ test("return trip for two travellers: one booking claims both flights, Drop opti
   await page.getByRole("button", { name: "Check my booking" }).click();
   // Outbound: (min(260, 260) - 180 - deductible) x 2 travellers; return leg paid too.
   await expect(page.getByText(/Payout: €\d+ \(2 travellers × €\d+\)/).first()).toBeVisible({ timeout: 120_000 });
-  await expect(page.getByText(/Payout: €\d+ \(2 travellers × €\d+\)/)).toHaveCount(2);
-  await expect(page.locator(".claim-result caption")).toHaveCount(2);
+  // Each flight's claim is its own transaction: on testnet the second takes a few seconds more.
+  await expect(page.getByText(/Payout: €\d+ \(2 travellers × €\d+\)/)).toHaveCount(2, { timeout: 120_000 });
+  await expect(page.locator(".claim-result caption")).toHaveCount(2, { timeout: 60_000 });
   // Drop option chosen at purchase: Drop Guarantees are added with the same booking.
   await expect(page.getByText(/Drop Guarantees? #\d+( and #\d+)? active/)).toBeVisible({ timeout: 120_000 });
 

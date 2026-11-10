@@ -15,7 +15,7 @@ export function main() {
   if ((process.env.NEAR_NETWORK ?? "testnet") !== "testnet" && process.env.NEAR_NETWORK !== "sandbox") {
     throw new Error("CapFare relayer only runs on testnet or sandbox");
   }
-  const rpc = process.env.NEAR_RPC_URL ?? "https://rpc.testnet.near.org";
+  const rpc = process.env.NEAR_RPC_URL ?? "https://test.rpc.fastnear.com";
   const cfg = {
     relayerId: req("RELAYER_ACCOUNT_ID"),
     registry: req("REGISTRY_ID"),

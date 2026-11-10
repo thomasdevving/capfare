@@ -106,7 +106,7 @@ export async function deploy(o: DeployOptions): Promise<Deployment> {
   return d;
 }
 
-if (process.argv[1]?.endsWith("deploy.ts")) {
+if (process.argv[1] && /(^|[\\/])deploy\.ts$/.test(process.argv[1])) {
   const env = process.env;
   const network = (env.NETWORK ?? "sandbox") as "sandbox" | "testnet";
   if (network !== "sandbox" && network !== "testnet") throw new Error("NETWORK must be sandbox or testnet");
@@ -114,7 +114,7 @@ if (process.argv[1]?.endsWith("deploy.ts")) {
   if (!existsSync(paramsFile)) throw new Error(`missing ${paramsFile}`);
   deploy({
     network,
-    rpcUrl: env.RPC_URL ?? "https://rpc.testnet.near.org",
+    rpcUrl: env.RPC_URL ?? "https://test.rpc.fastnear.com",
     root: env.ROOT_ACCOUNT!,
     rootKey: env.ROOT_KEY as KeyPairString,
     paramsFile,

@@ -47,7 +47,12 @@ export async function stack(opts: { web: boolean; webPort: number }) {
   const site = process.env.SITE_URL ?? `http://localhost:${opts.webPort}`;
   const common = { CAPFARE_DEPLOYMENT: "demo", CORS_ORIGINS: `${site},http://localhost:${opts.webPort}` };
   const tsx = join(ROOT_DIR, "scripts", "node_modules", ".bin", "tsx");
-  run("verifier", [tsx, "tee/booking_verifier/src/server.ts"], { ...common, PORT: "8082", DEMO_BOOKER_ORIGIN: `http://localhost:${opts.webPort}` });
+  run("verifier", [tsx, "tee/booking_verifier/src/server.ts"], {
+    ...common,
+    PORT: "8082",
+    DEMO_BOOKER_ORIGIN: `http://localhost:${opts.webPort}`,
+    DEMO_BOOKER_PUBLIC_ORIGIN: site,
+  });
   run("oracle", [tsx, "tee/price_oracle/src/server.ts"], { ...common, PORT: "8081", RELAYER_URL: "http://localhost:8083" });
   await waitFor("http://localhost:8081/health");
   await waitFor("http://localhost:8082/health");

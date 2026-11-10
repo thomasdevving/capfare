@@ -159,6 +159,21 @@ provider. See [docs/LEGAL.md](docs/LEGAL.md).
   supplied by the project owner and redrawn as SVG.
 * No pre-existing project code; everything was written during the hackathon window.
 
+## Hosting (Railway)
+
+`railway.json` + `deploy/Dockerfile` run the whole demo in one container: a local NEAR
+sandbox, the contracts, the price oracle and booking checker (demo mode), the relayer and the
+web app. No secrets are required for it to start. Recommended variables:
+
+| Variable | Why |
+|---|---|
+| `SITE_URL` | Your public address (e.g. `https://capfare.up.railway.app`). Used in page metadata, in booking links inside Skyline's emails, and so the booking checker accepts live checks of those links. |
+| `ORACLE_DEV_SEED`, `VERIFIER_DEV_SEED` (secrets) | 32-byte hex each (`openssl rand -hex 32`). Without them the demo enclave keys are derived from a public string in the source, so anyone could sign fake prices or bookings for your demo chain. |
+| `EXTENSION_URL`, `X_URL`, `GITHUB_URL` | Optional links on the landing page. |
+| `ONECLICK_API_KEY` (secret) | Optional; NEAR Intents dry quotes work without it. |
+
+State (sandbox chain, accounts, bookings) resets on every redeploy or restart.
+
 ## 10. Decisions and deviations
 
 [docs/DECISIONS.md](docs/DECISIONS.md) lists every deviation from the brief and later decisions (D1–D34).

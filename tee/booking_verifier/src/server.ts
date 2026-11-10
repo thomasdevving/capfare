@@ -31,14 +31,19 @@ export async function main() {
   const demoKeys = demo ? new DemoKeys() : undefined;
   const demoAirline = demo ? new DemoAirline() : undefined;
   const realDns = (n: string, rr: string) => dns.resolve(n, rr as "TXT");
-  const bookerOrigin = process.env.DEMO_BOOKER_ORIGIN; // e.g. http://localhost:3000 (demo only)
+  const bookerOrigin = process.env.DEMO_BOOKER_ORIGIN; // where the checker fetches from, e.g. http://localhost:3000 (demo only)
+  // The address visitors see (e.g. https://capfare.up.railway.app); its booking links are accepted
+  // and fetched from bookerOrigin inside the same container.
+  const bookerPublic = process.env.DEMO_BOOKER_PUBLIC_ORIGIN ? new URL(process.env.DEMO_BOOKER_PUBLIC_ORIGIN).origin : undefined;
+  const demoOrigins = bookerOrigin ? [...new Set([new URL(bookerOrigin).origin, ...(bookerPublic ? [bookerPublic] : [])])] : [];
   const baseResolver = demoKeys ? demoResolver(demoKeys, realDns) : realDns;
   const verifier = new Verifier({
     keys,
     airlines: demo && bookerOrigin ? [klm, skyline] : [klm],
     resolver: demo && bookerOrigin ? skylineResolver(`${bookerOrigin}/api/booker/dkim`, baseResolver) : baseResolver,
     statusCheckers: demoAirline ? { KL: (r, l) => demoAirline.checkStatus(r, l) } : undefined,
-    pageOrigins: demo && bookerOrigin ? [new URL(bookerOrigin).origin] : (process.env.LIVE_CHECK_ORIGINS ?? "").split(",").filter(Boolean),
+    pageOrigins: demo && bookerOrigin ? demoOrigins : (process.env.LIVE_CHECK_ORIGINS ?? "").split(",").filter(Boolean),
+    pageFetchOrigins: demo && bookerOrigin && bookerPublic ? { [bookerPublic]: new URL(bookerOrigin).origin } : undefined,
   });
   const limiter = new RateLimiter(10, 0.2);
   const guard = (req: { socket: { remoteAddress?: string } }) => {
@@ -67,7 +72,7 @@ export async function main() {
         measurement: keys.measurement,
         report: keys.report,
         airlines: [{ code: klm.code, name: klm.name, eml: true, status_check: demo ? "demo" : klm.statusAccess }],
-        live_check_origins: demo && bookerOrigin ? [new URL(bookerOrigin).origin] : (process.env.LIVE_CHECK_ORIGINS ?? "").split(",").filter(Boolean),
+        live_check_origins: demo && bookerOrigin ? demoOrigins : (process.env.LIVE_CHECK_ORIGINS ?? "").split(",").filter(Boolean),
       }),
       "POST /v1/verify/eml": (body: { sealed: SealedBox }, req) =>
         wrap(async () => {

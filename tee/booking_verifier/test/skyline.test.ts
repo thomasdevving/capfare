@@ -81,3 +81,22 @@ describe("live check of the manage-booking page", () => {
     await expect(v.verifyPage(`${ORIGIN}/booker/manage?t=missing`, SALT)).rejects.toThrow(/answered 404/);
   });
 });
+
+describe("hosted demo: public booking links", () => {
+  it("accepts the public address and fetches the same page inside the container", async () => {
+    const seen: string[] = [];
+    const hosted = new Verifier({
+      keys: devKeys("booking_verifier"),
+      airlines: [skyline],
+      pageOrigins: ["http://localhost:3000", "https://capfare.example.app"],
+      pageFetchOrigins: { "https://capfare.example.app": "http://localhost:3000" },
+      fetchImpl: (async (u: string) => {
+        seen.push(u);
+        return new Response(fx("skyline-manage.html"), { status: 200 });
+      }) as typeof fetch,
+    });
+    const r = await hosted.verifyPage("https://capfare.example.app/booker/manage?ref=X&t=abc", SALT);
+    expect(r.attestation.attestation.method).toBe("tls_page");
+    expect(seen[0]).toBe("http://localhost:3000/booker/manage?ref=X&t=abc");
+  });
+});

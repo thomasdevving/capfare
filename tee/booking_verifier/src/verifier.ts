@@ -20,6 +20,8 @@ export interface VerifierOptions {
   now?: () => number;
   /** Origins whose manage-booking pages the enclave may fetch for live checks (https in production). */
   pageOrigins?: string[];
+  /** Public origin -> origin to fetch from (e.g. the demo site's public URL -> localhost in the same container). */
+  pageFetchOrigins?: Record<string, string>;
   fetchImpl?: typeof fetch;
 }
 
@@ -148,7 +150,8 @@ export class Verifier {
     if (u.protocol !== "https:" && !demo) throw new VerifyError("the booking page must be served over HTTPS");
     if (!u.pathname.startsWith("/booker/manage")) throw new VerifyError("open your booking's manage page first");
     const f = this.o.fetchImpl ?? fetch;
-    const res = await f(u.toString(), { redirect: "error", headers: { accept: "text/html" } }).catch(() => {
+    const target = `${this.o.pageFetchOrigins?.[u.origin] ?? u.origin}${u.pathname}${u.search}`;
+    const res = await f(target, { redirect: "error", headers: { accept: "text/html" } }).catch(() => {
       throw new VerifyError("the booking site did not respond");
     });
     if (!res.ok) throw new VerifyError(`the booking site answered ${res.status}`);

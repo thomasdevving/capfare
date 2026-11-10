@@ -6,4 +6,5 @@ backtest/.venv
 **/playwright-report
 extension/build
 deployments/*.json
+!deployments/testnet.json
 .git

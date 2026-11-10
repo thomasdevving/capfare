@@ -169,9 +169,11 @@ web app. No secrets are required for it to start. Recommended variables:
 |---|---|
 | `SITE_URL` | Your public address (e.g. `https://capfare.up.railway.app`). Used in page metadata, in booking links inside Skyline's emails, and so the booking checker accepts live checks of those links. |
 | `ORACLE_DEV_SEED`, `VERIFIER_DEV_SEED` (secrets) | 32-byte hex each (`openssl rand -hex 32`). Without them the demo enclave keys are derived from a public string in the source, so anyone could sign fake prices or bookings for your demo chain. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (secret), `VAPID_SUBJECT` | Web-push keys for alerts (`npx web-push generate-vapid-keys`). Without them a new pair is generated on every redeploy and existing push subscriptions stop working. |
 | `EXTENSION_URL`, `X_URL`, `GITHUB_URL` | Optional links on the landing page. |
 | `ONECLICK_API_KEY` (secret) | Optional; NEAR Intents dry quotes work without it. |
 
+`SMTP_URL`/`MAIL_FROM` are not needed: demo deployments keep alert emails in the demo outbox.
 State (sandbox chain, accounts, bookings) resets on every redeploy or restart.
 
 ## 10. Decisions and deviations

@@ -34,4 +34,11 @@ describe("booking links", () => {
     });
     expect(parseBookingUrl("not a url")).toEqual({});
   });
+  it("reads searches from other sites, including share-sheet text and Google Flights", () => {
+    expect(parseBookingUrl("Flights to Barcelona https://www.google.com/travel/flights?tfs=CBwQAhoeEgoyMDI3LTA2LTE0agcIARIDQU1TcgcIARIDQkNOGh4SCjIwMjctMDYtMjFqBwgBEgNCQ05yBwgBEgNBTVNAAUgBcAE")).toEqual({
+      origin: "AMS", destination: "BCN", departure_date: "2027-06-14", ret: "2027-06-21",
+    });
+    expect(parseBookingUrl("https://www.skyscanner.example/transport/flights/ams/bcn/270614/?adultsv2=2")).toEqual({ origin: "AMS", destination: "BCN", departure_date: "2027-06-14", pax: 2 });
+    expect(parseBookingUrl("https://www.kayak.example/flights/AMS-BCN/2027-06-14")).not.toHaveProperty("flight_number");
+  });
 });

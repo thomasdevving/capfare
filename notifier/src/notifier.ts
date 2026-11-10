@@ -3,9 +3,28 @@
  * state per account, computes the alerts, and sends each new alert id once per account.
  */
 import { randomBytes } from "node:crypto";
-import { accountAlerts, type Alert, type GlobalParams, type NearViewClient, type Params, type Policy, type SnapshotRecord, type SignedAccountRequest, verifyAccountRequest } from "@capfare/shared";
+import {
+  accountAlerts,
+  coverageHash,
+  coverageLabel,
+  coverageRoute,
+  MAX_SEATS,
+  quoteHref,
+  validateCoverage,
+  verifyAccountRequest,
+  watchAlerts,
+  type Alert,
+  type Coverage,
+  type GlobalParams,
+  type NearViewClient,
+  type Params,
+  type Policy,
+  type SignedAccountRequest,
+  type SnapshotRecord,
+  type WatchPrice,
+} from "@capfare/shared";
 import { alertMail, type Channels } from "./channels.ts";
-import { maskEmail, MAX_PUSH, type PushSub, type Store } from "./store.ts";
+import { maskEmail, MAX_PUSH, MAX_WATCHES, type PushSub, type Store, type WatchRecord } from "./store.ts";
 
 export const SCOPE = "notify";
 const MAX_PER_TICK = 5;
@@ -20,6 +39,10 @@ export interface NotifierOptions {
   appUrl: string;
   log?: (m: string, d?: Record<string, unknown>) => void;
   now?: () => number;
+  /** Verified price for a watched coverage now (oracle, else the latest on-chain snapshot). */
+  prices?: (c: Coverage) => Promise<WatchPrice | null>;
+  /** How often a watched price is checked (default hourly). */
+  watchRefreshSecs?: number;
 }
 
 export type SettingsAction =
@@ -28,12 +51,28 @@ export type SettingsAction =
   | { action: "unsubscribe_push"; endpoint: string }
   | { action: "set_email"; email: string }
   | { action: "remove_email" }
-  | { action: "test" };
+  | { action: "test" }
+  | { action: "watch_add"; coverage: Coverage; seats?: number; target_minor?: number }
+  | { action: "watch_remove"; id: string };
+
+export interface WatchView {
+  id: string;
+  label: string;
+  coverage: Coverage;
+  seats: number;
+  baseline_minor: number;
+  target_minor?: number;
+  price_minor?: number;
+  available?: boolean;
+  checked_at?: number;
+  href: string;
+}
 
 export interface SettingsView {
   push_devices: number;
   email: { address: string; verified: boolean } | null;
   email_mode: Channels["emailMode"];
+  watches: WatchView[];
 }
 
 export class NotifyError extends Error {
@@ -46,11 +85,47 @@ const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[a-z]{2,}$/i;
 
 export class Notifier {
   private now: () => number;
+  private priceCache = new Map<string, { at: number; p: WatchPrice | null }>();
   constructor(private o: NotifierOptions) {
     this.now = o.now ?? (() => Math.floor(Date.now() / 1000));
   }
 
+  /** Latest on-chain snapshot: the fallback price source (and the only one in tests without an oracle). */
+  private async chainPrice(c: Coverage): Promise<WatchPrice | null> {
+    const s = await this.o.rpc.view<SnapshotRecord | null>(this.o.attestationId, "get_latest_snapshot", { flight_key_hash: coverageHash(c) });
+    return s ? { price_minor: s.price_minor, available: s.available } : null;
+  }
+
+  private async price(c: Coverage, fresh = false): Promise<WatchPrice | null> {
+    const key = coverageHash(c);
+    const hit = this.priceCache.get(key);
+    if (!fresh && hit && this.now() - hit.at < (this.o.watchRefreshSecs ?? 3600)) return hit.p;
+    const p = (this.o.prices ? await this.o.prices(c).catch(() => null) : null) ?? (await this.chainPrice(c).catch(() => null));
+    this.priceCache.set(key, { at: this.now(), p });
+    return p;
+  }
+
+  /** Watch alerts; refreshes prices that are due and forgets watches whose day has passed. */
+  private async watchState(account: string): Promise<Alert[]> {
+    const a = this.o.store.account(account);
+    if (!a.watches?.length) return [];
+    const today = new Date(this.now() * 1000).toISOString().slice(0, 10);
+    a.watches = a.watches.filter((w) => coverageRoute(w.coverage).departure_date >= today);
+    const out: Alert[] = [];
+    for (const w of a.watches) {
+      const p = await this.price(w.coverage);
+      if (p) Object.assign(w, { last_price_minor: p.price_minor, last_available: p.available, last_checked: this.priceCache.get(w.id)?.at });
+      out.push(...watchAlerts(w, p));
+    }
+    return out;
+  }
+
   private async state(account: string): Promise<{ alerts: Alert[] }> {
+    const watch = await this.watchState(account);
+    return { alerts: [...(await this.policyAlerts(account)), ...watch] };
+  }
+
+  private async policyAlerts(account: string): Promise<Alert[]> {
     const [policies, params, now] = await Promise.all([
       this.o.rpc.view<Policy[]>(this.o.registryId, "get_policies_by_owner", { account_id: account, from_index: 0, limit: 100 }),
       this.o.rpc.view<Params>(this.o.registryId, "get_params"),
@@ -61,7 +136,7 @@ export class Notifier {
     for (const h of new Set(live.map((p) => p.flight_key_hash))) {
       snaps[h] = await this.o.rpc.view<SnapshotRecord | null>(this.o.attestationId, "get_latest_snapshot", { flight_key_hash: h });
     }
-    return { alerts: accountAlerts(live, snaps, now, params.global as GlobalParams) };
+    return accountAlerts(live, snaps, now, params.global as GlobalParams);
   }
 
   private view(account: string): SettingsView {
@@ -70,6 +145,18 @@ export class Notifier {
       push_devices: a.push.length,
       email: a.email ? { address: maskEmail(a.email.address), verified: a.email.verified } : null,
       email_mode: this.o.channels.emailMode,
+      watches: (a.watches ?? []).map((w) => ({
+        id: w.id,
+        label: coverageLabel(w.coverage),
+        coverage: w.coverage,
+        seats: w.seats,
+        baseline_minor: w.baseline_minor,
+        target_minor: w.target_minor,
+        price_minor: w.last_price_minor,
+        available: w.last_available,
+        checked_at: w.last_checked,
+        href: quoteHref(w.coverage, w.seats),
+      })),
     };
   }
 
@@ -83,6 +170,7 @@ export class Notifier {
     const p = req.payload;
     switch (p?.action) {
       case "get":
+        await this.watchState(id); // current prices for the list
         break;
       case "subscribe_push": {
         const s = p.subscription;
@@ -116,6 +204,31 @@ export class Notifier {
         await this.deliver(id, [
           { id: `test:${this.now()}`, policy_id: 0, kind: "paid_out", urgency: "info", title: "CapFare alerts are on", body: "This is a test. You'll hear from us when a price moves past your cap or something needs doing.", href: "/policies", action: "Open CapFare" },
         ]);
+        break;
+      case "watch_add": {
+        const c = p.coverage;
+        const bad = c ? validateCoverage(c) : "coverage required";
+        if (bad) throw new NotifyError(400, bad);
+        if (coverageRoute(c).departure_date < new Date(this.now() * 1000).toISOString().slice(0, 10)) throw new NotifyError(400, "that flight has already left");
+        const seats = Math.min(MAX_SEATS, Math.max(1, Math.floor(Number(p.seats ?? 1)) || 1));
+        const target = p.target_minor === undefined || p.target_minor === null ? undefined : Math.round(Number(p.target_minor));
+        if (target !== undefined && !(target > 0)) throw new NotifyError(400, "enter a target price above €0");
+        const now = await this.price(c, true);
+        if (!now) throw new NotifyError(404, "We don't have a verified price for this yet, so there's nothing to watch.");
+        const id = coverageHash(c);
+        const list = (a.watches ?? []).filter((w) => w.id !== id);
+        if (list.length >= MAX_WATCHES) throw new NotifyError(400, `you can watch up to ${MAX_WATCHES} prices; remove one first`);
+        // Watching again starts from today's price.
+        const w: WatchRecord = { id, coverage: c, seats, baseline_minor: now.price_minor, created_at: this.now(), last_price_minor: now.price_minor, last_available: now.available, last_checked: this.now(), ...(target !== undefined ? { target_minor: target } : {}) };
+        a.watches = [...list, w];
+        a.sent = a.sent.filter((x) => !x.startsWith(`w:${id}:`));
+        // A target that is already met is said in the app right away, not pushed as news.
+        this.o.store.markSent(req.account_id, watchAlerts(w, now).map((x) => x.id));
+        break;
+      }
+      case "watch_remove":
+        a.watches = (a.watches ?? []).filter((w) => w.id !== p.id);
+        a.sent = a.sent.filter((x) => !x.startsWith(`w:${p.id}:`));
         break;
       default:
         throw new NotifyError(400, "unknown action");

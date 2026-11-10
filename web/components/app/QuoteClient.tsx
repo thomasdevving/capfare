@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  coverageLabel, FARE_CLASSES, MAX_SEATS, validateCoverage, validateFlightKey,
+  coverageLabel, FARE_CLASSES, MAX_SEATS, parseBookingLink, validateCoverage, validateFlightKey,
   type Coverage, type FlightKey, type Params, type RouteKey, type SnapshotRecord, type VaultState,
 } from "@capfare/shared";
 import { commitmentFor, gasless, rememberedLastName, rememberLastName } from "@/lib/wallet";
@@ -10,6 +10,7 @@ import { dateTime, duration, eur, usdc } from "@/lib/format";
 import { maxPremium, premiumFor } from "@/lib/premium";
 import { errText, getJson, Msg, postJson, SignInFirst, useSession } from "./ui";
 import BookingProof, { type ProofResult } from "./BookingProof";
+import WatchButton from "./WatchButton";
 
 interface QuoteData {
   flight_key_hash: string;
@@ -38,27 +39,38 @@ export const FARE_LABEL: Record<string, string> = {
 
 const addDays = (d: string, n: number) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(Date.parse(`${d}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10) : d);
 
-/** Reads flight details from a pasted booking link (demo site, or common query names). */
-export function parseBookingUrl(s: string): Partial<FlightKey> & { hint?: number; pax?: number; ret?: string } {
+export type LinkRead = Partial<FlightKey> & { hint?: number; pax?: number; ret?: string };
+
+/**
+ * Reads the trip from a pasted or shared booking link: CapFare's own query names (fn, fare,
+ * price) plus whatever the shared reader finds in links from any airline, agency or comparison
+ * site (query, hash, path, Google Flights' encoded search). Share sheets add text around the link.
+ */
+export function parseBookingUrl(s: string): LinkRead {
+  const any = parseBookingLink(s);
+  let q: URLSearchParams;
   try {
-    const u = new URL(s);
-    const q = u.searchParams;
-    const fn = q.get("fn") ?? q.get("flight") ?? q.get("flightNumber") ?? "";
-    return {
-      flight_number: fn.toUpperCase(),
-      airline: fn.slice(0, 2).toUpperCase(),
-      departure_date: q.get("date") ?? q.get("departureDate") ?? "",
-      origin: (q.get("from") ?? q.get("origin") ?? "").toUpperCase(),
-      destination: (q.get("to") ?? q.get("destination") ?? "").toUpperCase(),
-      fare_class: q.get("fare") ?? "economy_light",
-      hint: q.get("price") ? Math.round(Number(q.get("price")) * 100) : undefined,
-      pax: q.get("pax") ? Number(q.get("pax")) : undefined,
-      ret: q.get("ret") ?? undefined,
-    };
+    q = new URL(any?.url ?? s.trim()).searchParams;
   } catch {
     return {};
   }
+  const fn = (q.get("fn") ?? q.get("flight") ?? q.get("flightNumber") ?? any?.flight_number ?? "").replace(/\s/g, "").toUpperCase();
+  const out: LinkRead = {
+    flight_number: fn || undefined,
+    airline: fn ? fn.slice(0, 2) : undefined,
+    departure_date: any?.date ?? q.get("date") ?? undefined,
+    origin: any?.origin ?? (q.get("from") ?? q.get("origin") ?? "").toUpperCase(),
+    destination: any?.destination ?? (q.get("to") ?? q.get("destination") ?? "").toUpperCase(),
+    fare_class: q.get("fare") && (FARE_CLASSES as readonly string[]).includes(q.get("fare")!) ? q.get("fare")! : undefined,
+    hint: q.get("price") ? Math.round(Number(q.get("price")) * 100) : undefined,
+    pax: q.get("pax") ? Number(q.get("pax")) : any?.travellers,
+    ret: q.get("ret") ?? any?.return_date,
+  };
+  for (const k of Object.keys(out) as (keyof LinkRead)[]) if (out[k] === undefined || out[k] === "") delete out[k];
+  return out;
 }
+
+const dayLabel = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 const routeOf = (f: FlightKey): RouteKey => ({ origin: f.origin, destination: f.destination, departure_date: f.departure_date, fare_class: f.fare_class });
 const travellers = (n: number) => (n > 1 ? ` for ${n} travellers` : "");
@@ -88,6 +100,7 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
   });
   const [hint, setHint] = useState<number | undefined>(sp.get("hint") ? Number(sp.get("hint")) : undefined);
   const [link, setLink] = useState("");
+  const [linkNote, setLinkNote] = useState<string | null>(null);
   const [quotes, setQuotes] = useState<QuoteData[] | null>(null);
   const [caps, setCaps] = useState<number[]>([]);
   const [autoDrop, setAutoDrop] = useState(false);
@@ -103,6 +116,42 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
     if (!s) return;
     getJson<{ credit: string }>(`/api/policies?account=${s.accountId}`).then((j) => setCredit(j.credit)).catch(() => {});
   }, [s, done]);
+
+  /** Fill the form from a pasted or shared link and say what was found. */
+  function applyLink(v: string) {
+    setLink(v);
+    if (!v.trim()) return setLinkNote(null);
+    const p = parseBookingUrl(v);
+    const { hint: h, pax, ret, ...k } = p;
+    if (!k.flight_number && !k.origin && !k.departure_date) {
+      return setLinkNote("We couldn't read a flight from that link. Some sites keep the search out of the address; enter the trip below.");
+    }
+    reset();
+    setFk((f) => ({ ...f, ...k }) as FlightKey);
+    // No flight number in the link: cover any flight on the route and day.
+    if (!k.flight_number && k.origin && k.destination) setScope("route");
+    else if (k.flight_number) setScope("flight");
+    setHint(h);
+    if (pax) setSeats(Math.min(MAX_SEATS, Math.max(1, pax)));
+    if (ret) {
+      setTrip("return");
+      setRfk((r) => ({ ...r, departure_date: ret, origin: k.destination ?? r.origin, destination: k.origin ?? r.destination }));
+    }
+    const found = [k.flight_number, k.origin && k.destination ? `${k.origin} → ${k.destination}` : null, k.departure_date ? dayLabel(k.departure_date) : null, ret ? `return ${dayLabel(ret)}` : null, pax ? `${pax} traveller${pax > 1 ? "s" : ""}` : null].filter(Boolean);
+    const missing = [!k.departure_date ? "the date" : null, !(k.origin && k.destination) ? "the airports" : null].filter(Boolean);
+    setLinkNote(
+      `Found ${found.join(" · ")}.` +
+        (!k.flight_number && k.origin && k.destination ? " No flight number in the link, so we chose any flight on this route and day." : "") +
+        (missing.length ? ` Add ${missing.join(" and ")} below.` : ""),
+    );
+  }
+
+  // Shared to CapFare from another app (installed web app share target): ?link=… or ?text=….
+  useEffect(() => {
+    const shared = sp.get("link") ?? sp.get("text") ?? sp.get("title");
+    if (shared && /https?:\/\//.test(shared)) applyLink(shared);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** What each leg covers. A Drop Guarantee always covers the booked flight. */
   const coverages: Coverage[] = useMemo(() => {
@@ -234,27 +283,10 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
             getQuote();
           }}
         >
-          <label htmlFor="link">Paste a booking link</label>
-          <input
-            id="link"
-            value={link}
-            placeholder="https://…"
-            onChange={(e) => {
-              setLink(e.target.value);
-              const p = parseBookingUrl(e.target.value);
-              if (p.flight_number) {
-                const { hint: h, pax, ret, ...k } = p;
-                setFk((f) => ({ ...f, ...Object.fromEntries(Object.entries(k).filter(([, v]) => v)) }) as FlightKey);
-                setHint(h);
-                if (pax) setSeats(Math.min(MAX_SEATS, Math.max(1, pax)));
-                if (ret) {
-                  setTrip("return");
-                  setRfk((r) => ({ ...r, departure_date: ret, origin: k.destination ?? r.origin, destination: k.origin ?? r.destination }));
-                }
-              }
-            }}
-          />
-          <p className="hint">Or enter your trip below.</p>
+          <label htmlFor="link">Paste a link from any booking site</label>
+          <input id="link" value={link} placeholder="https://… (airline, travel agency, Google Flights, Skyscanner, …)" inputMode="url" autoComplete="off" onChange={(e) => applyLink(e.target.value)} />
+          {linkNote ? <p className="hint" role="status">{linkNote}</p> : null}
+          <p className="hint">Copy the address of the search results or the flight you&apos;re looking at. Or enter your trip below.</p>
 
           <fieldset className="choice-row">
             <legend>Which flights?</legend>
@@ -362,6 +394,8 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
               {scope === "route" ? " For route cover the airline price is the cheapest fare on the route at the time you book." : ""}
             </p>
           ) : null}
+
+          {product === "cap" && allAvailable ? <WatchButton coverages={coverages} seats={seats} prices={quotes.map((q) => q.snapshot.price_minor)} highlight={sp.get("watch") === "1"} /> : null}
 
           {done ? (
             <Msg kind="ok">

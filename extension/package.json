@@ -8,6 +8,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@capfare/shared": "workspace:*"
+  },
   "devDependencies": {
     "@types/chrome": "^0.0.300",
     "@types/node": "^22",

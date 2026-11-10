@@ -9,6 +9,10 @@ importers:
   .: {}
 
   extension:
+    dependencies:
+      '@capfare/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/chrome':
         specifier: ^0.0.300

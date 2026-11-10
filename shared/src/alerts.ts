@@ -4,8 +4,8 @@
  * in-app; the notifier service delivers new ones by web push and email. Pure and deterministic,
  * so both always agree. Alert ids are stable: a channel sends each id at most once.
  */
-import { coverageLabel } from "./encoding.ts";
-import type { Policy, SnapshotRecord } from "./types.ts";
+import { coverageLabel, coverageRoute } from "./encoding.ts";
+import type { Coverage, Policy, SnapshotRecord } from "./types.ts";
 
 export type AlertKind =
   | "cap_active"
@@ -20,13 +20,18 @@ export type AlertKind =
   | "final_check_due"
   | "final_check_missed"
   | "payout_failed"
-  | "paid_out";
+  | "paid_out"
+  | "watch_rise"
+  | "watch_drop"
+  | "watch_target"
+  | "watch_sold_out";
 
 /** urgent: money is lost if ignored; action: worth doing now; info: good to know. */
 export type Urgency = "urgent" | "action" | "info";
 
 export interface Alert {
   id: string;
+  /** 0 for alerts about a watched price (no policy). */
   policy_id: number;
   kind: AlertKind;
   urgency: Urgency;
@@ -159,4 +164,71 @@ export function accountAlerts(
   return policies
     .flatMap((p) => policyAlerts(p, { now, snapshot: snapshots[p.flight_key_hash], claim_grace_secs: g.claim_grace_secs, sold_out_premium_refund: g.sold_out_premium_refund }))
     .sort((a, b) => RANK[a.urgency] - RANK[b.urgency] || b.policy_id - a.policy_id);
+}
+
+/* ------------------------------------------------------------ watched prices */
+
+/**
+ * A free price watch: no policy, nothing on-chain. The notifier keeps it and checks the verified
+ * price; the traveller hears when it moves. Turns "I'll check again tomorrow" into a reason to come
+ * back, and tells them when a Price Cap is worth buying.
+ */
+export interface Watch {
+  /** coverageHash(coverage): one watch per flight (or route and day) per account. */
+  id: string;
+  coverage: Coverage;
+  seats: number;
+  /** Verified price when the watch started (per person, cents). */
+  baseline_minor: number;
+  /** Optional: tell me when it is at or below this (per person, cents). */
+  target_minor?: number;
+  created_at: number;
+}
+
+export interface WatchPrice {
+  price_minor: number;
+  available: boolean;
+}
+
+/** Path in the web app to quote this coverage again. */
+export function quoteHref(c: Coverage, seats = 1, product: "cap" | "drop" = "cap"): string {
+  const r = coverageRoute(c);
+  const q = new URLSearchParams({
+    ...("flight" in c ? { fn: c.flight.flight_number } : { scope: "route" }),
+    date: r.departure_date,
+    from: r.origin,
+    to: r.destination,
+    fare: r.fare_class,
+    product,
+    ...(seats > 1 ? { pax: String(seats) } : {}),
+  });
+  return `/quote?${q}`;
+}
+
+/** Price moves are reported per band: 10% of the starting price, at least €10. */
+export const watchBand = (baseline: number) => Math.max(1000, Math.round(baseline / 10));
+
+/** Alerts for one watched price. Ids carry the band, so each further move alerts once. */
+export function watchAlerts(w: Watch, p: WatchPrice | null | undefined): Alert[] {
+  if (!p) return [];
+  const label = coverageLabel(w.coverage);
+  const href = quoteHref(w.coverage, w.seats);
+  const out: Alert[] = [];
+  const add = (kind: AlertKind, urgency: Urgency, suffix: string, title: string, body: string, action: string) =>
+    out.push({ id: `w:${w.id}:${kind}${suffix}`, policy_id: 0, kind, urgency, title, body, action, href });
+  if (!p.available) {
+    add("watch_sold_out", "info", "", `${label}: sold out`, "The fare you're watching is sold out for now. We'll tell you if it comes back cheaper.", "View");
+    return out;
+  }
+  const diff = p.price_minor - w.baseline_minor;
+  const band = Math.trunc(diff / watchBand(w.baseline_minor));
+  const pct = Math.round((Math.abs(diff) / w.baseline_minor) * 100);
+  if (w.target_minor !== undefined && p.price_minor <= w.target_minor) {
+    add("watch_target", "action", "", `${label}: ${eurText(p.price_minor)}, at or below your ${eurText(w.target_minor)}`, `The price you were waiting for${travellers(w.seats)}. Book it on any site, then add a Drop Guarantee in case it falls further.`, "See the price");
+  } else if (band >= 1) {
+    add("watch_rise", "action", `:${band}`, `${label}: up ${eurText(diff)} to ${eurText(p.price_minor)}`, `${pct}% more than when you started watching. A Price Cap locks a maximum price${travellers(w.seats)} before it climbs further.`, "Lock a max price");
+  } else if (band <= -1) {
+    add("watch_drop", "action", `:${-band}`, `${label}: down ${eurText(-diff)} to ${eurText(p.price_minor)}`, `${pct}% less than when you started watching. A good moment to book; a Drop Guarantee pays you back if it falls further within a week.`, "See the price");
+  }
+  return out;
 }

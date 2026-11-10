@@ -84,6 +84,7 @@ export async function stack(opts: { web: boolean; webPort: number }) {
     REGISTRY_ID: d.registry,
     ATTESTATION_ID: d.attestation,
     SITE_URL: site,
+    ORACLE_URL: "http://localhost:8081",
   });
   await waitFor("http://localhost:8084/health");
   // Scheduler for the oracle needs registry info: restart-free, the demo pushes snapshots on demand.

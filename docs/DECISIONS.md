@@ -233,3 +233,25 @@ address. On sites without a live-check origin (D26), the manage-page overlay poi
 email upload instead of "Verify with CapFare". Coverage is still limited by the price oracle:
 on testnet only demo routes have prices, so elsewhere the extension stays quiet unless the user
 asked ("Check this page"), in which case it says what it found.
+
+**D36. Free price watches.** Most visitors are not ready to buy cover the first time they see a
+flight. "Watch the price" (Check a flight, the extension's "Watch the price for free" link) keeps a
+watch with the notifier: coverage (flight, or route and day), travellers, the verified price when
+it started and an optional target. Nothing goes on-chain and nothing is paid. The notifier asks
+the oracle for a fresh signed price without submitting it (`submit: false`; hourly, every tick on
+demo deployments), falling back to the latest on-chain snapshot. The shared alert engine
+(`watchAlerts`) alerts once per 10% band (at least €10) up or down, once when the target is met,
+and when the fare sells out; each alert links back to a quote. Watches are removed after the
+departure day and capped at 20 per account. Which flights someone watches is personal: it is
+kept only in the notifier's file, read and changed only with requests signed by the account key
+(D33), and deleted with the watch. Watches also show which routes people want, so they say
+which prices to source first once real price sources exist.
+
+**D37. Paste a link, or share one.** The address reader of the extension's generic adapter
+(D35) lives in `shared/src/booking-link.ts`, so "Paste a link from any booking site" on Check a
+flight reads the same things: origin, destination, dates, return date, travellers and flight
+number from query, hash and path, and Google Flights' `tfs` search token (a base64 protobuf in
+which dates and airport codes are plain strings). A link without a flight number selects route
+cover. The web app manifest declares a Web Share Target, so on phones that support it "Share"
+in any booking app or browser offers CapFare and opens Check a flight with the link already
+read: the extension's main benefit, without an extension.

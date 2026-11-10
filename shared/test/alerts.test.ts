@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accountAlerts, policyAlerts, type Policy, type SnapshotRecord } from "../src/index.ts";
+import { accountAlerts, policyAlerts, watchAlerts, type Policy, type SnapshotRecord, type Watch } from "../src/index.ts";
 
 const T = 1_900_000_000;
 const flight = { airline: "KL", flight_number: "KL1695", departure_date: "2030-03-14", origin: "AMS", destination: "BCN", fare_class: "economy_light" };
@@ -82,5 +82,34 @@ describe("alerts", () => {
       { claim_grace_secs: 3 * 86_400, sold_out_premium_refund: true },
     );
     expect(list.map((x) => x.kind)).toEqual(["final_check_due", "paid_out"]);
+  });
+});
+
+describe("watched prices", () => {
+  const w: Watch = {
+    id: "ab",
+    coverage: { flight: { airline: "KL", flight_number: "KL1695", departure_date: "2027-06-14", origin: "AMS", destination: "BCN", fare_class: "economy_light" } },
+    seats: 2,
+    baseline_minor: 17_000,
+    created_at: 0,
+  };
+  const at = (price: number, available = true) => watchAlerts(w, { price_minor: price, available });
+  it("stays quiet for small moves, then alerts once per 10% band", () => {
+    expect(at(18_000)).toEqual([]);
+    const up = at(19_000);
+    expect(up.map((a) => [a.id, a.kind, a.title])).toEqual([["w:ab:watch_rise:1", "watch_rise", "KL1695 AMS→BCN, 2027-06-14: up €20 to €190"]]);
+    expect(up[0].href).toBe("/quote?fn=KL1695&date=2027-06-14&from=AMS&to=BCN&fare=economy_light&product=cap&pax=2");
+    expect(at(19_500)[0].id).toBe("w:ab:watch_rise:1");
+    expect(at(21_000)[0].id).toBe("w:ab:watch_rise:2");
+    expect(at(15_000)[0].id).toBe("w:ab:watch_drop:1");
+  });
+  it("target price and sold out", () => {
+    expect(watchAlerts({ ...w, target_minor: 16_000 }, { price_minor: 15_500, available: true }).map((a) => a.kind)).toEqual(["watch_target"]);
+    expect(at(17_000, false).map((a) => a.kind)).toEqual(["watch_sold_out"]);
+    expect(watchAlerts(w, null)).toEqual([]);
+  });
+  it("route watches link to route cover", () => {
+    const r = watchAlerts({ ...w, coverage: { route: { origin: "AMS", destination: "BCN", departure_date: "2027-06-14", fare_class: "economy_light" } } }, { price_minor: 20_000, available: true });
+    expect(r[0].href).toContain("scope=route");
   });
 });

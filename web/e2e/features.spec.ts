@@ -165,3 +165,51 @@ test("alerts by email: double opt-in, then alerts arrive (demo outbox)", async (
     .poll(async () => ((await (await request.get(`/api/notify/outbox?account=${accountId}`)).json()) as { subject: string }[]).map((m) => m.subject).join("\n"), { timeout: 60_000, intervals: [3000] })
     .toMatch(/above your cap/);
 });
+
+test("paste a link from another booking site: the trip is filled in", async ({ page }) => {
+  await page.goto("/quote");
+  await page.getByLabel("Paste a link from any booking site").fill("Flights https://www.kayak.example/flights/AMS-BCN/2027-06-14/2027-06-21?adults=2");
+  await expect(page.getByRole("status").filter({ hasText: "Found AMS → BCN · 14 Jun 2027 · return 21 Jun 2027 · 2 travellers." })).toBeVisible();
+  await expect(page.getByLabel("Any flight on this route and day")).toBeChecked();
+  await expect(page.getByLabel("Return", { exact: true })).toBeChecked();
+  await expect(page.locator("#date")).toHaveValue("2027-06-14");
+  // Shared to the installed web app: ?link=…
+  await page.goto(`/quote?link=${encodeURIComponent("https://www.airline.example/search?flight=KL1695&outboundDate=2027-06-14&origin=AMS&destination=BCN")}`);
+  await expect(page.locator("#fn")).toHaveValue("KL1695");
+  await expect(page.getByLabel("This exact flight")).toBeChecked();
+});
+
+test("watch a price for free: alert by email when it rises (demo outbox)", async ({ page, request }) => {
+  test.setTimeout(150_000);
+  await signUp(page, "e2ew", 0);
+  await advance(request, { flight_key: OUT, to: 0 });
+  await page.goto("/quote?fn=KL1695&date=2027-06-14&from=AMS&to=BCN&fare=economy_light&watch=1");
+  await page.getByRole("button", { name: "Get a quote" }).click();
+  await expect(page.getByText("Verified airline price")).toBeVisible({ timeout: 30_000 });
+  await page.getByLabel(/Also tell me at or below/).fill("150");
+  await page.getByRole("button", { name: "Watch the price" }).click();
+  await expect(page.getByText(/Watching this price\. We'll tell you when it moves 10% or more or reaches €150/)).toBeVisible({ timeout: 30_000 });
+
+  await page.goto("/policies");
+  await page.getByText("Get alerts").click();
+  await page.getByLabel("Email address").fill(`watch${Date.now()}@example.org`);
+  await page.getByRole("button", { name: "Send confirmation" }).click();
+  await expect(page.getByText("Confirm your CapFare alerts")).toBeVisible({ timeout: 20_000 });
+  const accountId = await page.evaluate(() => JSON.parse(localStorage.getItem("capfare.wallet.v1")!).accountId as string);
+  const mails = await (await request.get(`/api/notify/outbox?account=${accountId}`)).json();
+  await page.goto(`/notify/confirm?token=${/token=([\w-]+)/.exec(mails[0].text)![1]}`);
+  await expect(page.getByText("Your email address is confirmed")).toBeVisible({ timeout: 20_000 });
+
+  await page.goto("/policies");
+  await page.getByText("Watched prices").click();
+  const row = page.getByRole("row", { name: /KL1695 AMS→BCN/ });
+  await expect(row).toContainText("€170");
+  await expect(row).toContainText("target €150");
+
+  await advance(request, { flight_key: OUT, to: 3 });
+  await expect
+    .poll(async () => ((await (await request.get(`/api/notify/outbox?account=${accountId}`)).json()) as { subject: string }[]).map((m) => m.subject).join("\n"), { timeout: 60_000, intervals: [3000] })
+    .toMatch(/KL1695 AMS→BCN, 2027-06-14: up €\d+ to €\d+/);
+  await page.getByRole("button", { name: "Stop" }).click();
+  await expect(page.getByText("Nothing watched yet")).toBeVisible({ timeout: 20_000 });
+});

@@ -1,9 +1,11 @@
 /**
  * Notification subscriptions. This is the only CapFare component that stores personal data
- * (an email address, if the user adds one): kept in one JSON file next to the service, never
- * logged, removed on request. Push subscriptions are opaque browser endpoints.
+ * (an email address, if the user adds one, and the prices someone watches): kept in one JSON
+ * file next to the service, never logged, removed on request. Push subscriptions are opaque
+ * browser endpoints.
  */
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import type { Watch } from "@capfare/shared";
 
 export interface PushSub {
   endpoint: string;
@@ -22,6 +24,14 @@ export interface AccountSubs {
   email?: EmailSub;
   /** Alert ids already delivered (bounded). */
   sent: string[];
+  /** Watched prices (free alerts, no policy). Which flights someone watches is personal: kept here only. */
+  watches?: WatchRecord[];
+}
+
+export interface WatchRecord extends Watch {
+  last_price_minor?: number;
+  last_available?: boolean;
+  last_checked?: number;
 }
 
 export interface OutboxMail {
@@ -42,6 +52,7 @@ export interface State {
 
 export const MAX_SENT = 500;
 export const MAX_PUSH = 5;
+export const MAX_WATCHES = 20;
 
 export class Store {
   state: State;

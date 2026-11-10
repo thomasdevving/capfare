@@ -48,6 +48,8 @@ dt { color: #c7d5e8; white-space: nowrap; } dd { margin: 0; text-align: right; f
 .cta:focus-visible, .close:focus-visible, a:focus-visible { outline: 3px solid #ffd100; outline-offset: 2px; }
 .small { font-size: 12px; color: #c7d5e8; margin: 10px 0 0; }
 .small a { color: #e3edfc; }
+.watch { display: block; text-align: center; margin: 10px 0 0; color: #e3edfc; font-size: 13px; font-weight: 600; }
+.watch:hover { color: #fff; }
 `;
 
 export function renderOverlay(kind: "cap" | "drop", q: QuoteView, appUrl: string, href: string): HTMLElement {
@@ -76,6 +78,7 @@ export function renderOverlay(kind: "cap" | "drop", q: QuoteView, appUrl: string
         ${kind === "cap" ? `<dt>Starts after</dt><dd class="a"></dd>` : ""}
       </dl>
       <a class="cta" target="_blank" rel="noopener"></a>
+      ${kind === "cap" ? `<a class="watch" target="_blank" rel="noopener">Not ready? Watch the price for free</a>` : ""}
       <p class="small">Premium from the public on-chain formula (${q.network}). <a class="t" target="_blank" rel="noopener">How we price</a>${q.demo_price ? ". Demo price source." : "."}</p>
     </div>
   </section>`;
@@ -93,6 +96,7 @@ export function renderOverlay(kind: "cap" | "drop", q: QuoteView, appUrl: string
   const cta = $(".cta") as HTMLAnchorElement;
   cta.textContent = kind === "cap" ? "Lock this price" : "Add Drop Guarantee";
   cta.href = href;
+  if (kind === "cap") ($(".watch") as HTMLAnchorElement).href = `${href}&watch=1`;
   ($(".t") as HTMLAnchorElement).href = `${appUrl}/transparency`;
   $(".close").addEventListener("click", () => host.remove());
   return host;

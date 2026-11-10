@@ -6,6 +6,7 @@ import { dateTime, duration, eur, usdc } from "@/lib/format";
 import { errText, getJson, Msg, postJson, SignInFirst, useSession } from "./ui";
 import { AlertList } from "./Alerts";
 import NotifySettings from "./NotifySettings";
+import WatchList from "./WatchList";
 
 interface Data {
   policies: Policy[];
@@ -84,6 +85,7 @@ export default function PoliciesClient({ registry, demo }: { registry: string; d
         </section>
       ) : null}
       {s ? <NotifySettings accountId={s.accountId} /> : null}
+      {s ? <WatchList /> : null}
 
       {d && d.policies.length === 0 ? (
         <Msg kind="info">

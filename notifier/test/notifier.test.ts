@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { accountRequestMessage, base58Encode, bytesToHex, type Policy, type SnapshotRecord } from "@capfare/shared";
-import { Notifier, Store, type Channels, type SettingsAction } from "../src/index.ts";
+import { Notifier, Store, type Channels, type NotifierOptions, type SettingsAction } from "../src/index.ts";
 
 const T = 1_900_000_000;
 const seed = new Uint8Array(32).fill(5);
@@ -19,8 +19,8 @@ function policy(over: Partial<Policy>): Policy {
 }
 const snap = (price: number): SnapshotRecord => ({ price_minor: price, available: true, signals: { momentum_bucket: 2, availability_bucket: 1, season_flag: false }, departure_ts: T + 30 * 86_400, observed_at: T, demo: true });
 
-function harness() {
-  const chain = { policies: [policy({}), policy({ id: 2, state: "paid_out", payout_minor: 7_000 })], price: 17_000, keys: new Set([`alice.test|${PK}`]) };
+function harness(extra: Partial<NotifierOptions> = {}) {
+  const chain = { policies: [policy({}), policy({ id: 2, state: "paid_out", payout_minor: 7_000 })], price: 17_000 as number | null, keys: new Set([`alice.test|${PK}`]) };
   const pushes: { endpoint: string; title: string }[] = [];
   const mails: { to: string; subject: string; text: string }[] = [];
   const gone = new Set<string>();
@@ -41,7 +41,7 @@ function harness() {
     async view<R>(_c: string, method: string): Promise<R> {
       if (method === "get_policies_by_owner") return chain.policies as R;
       if (method === "get_params") return { global: { claim_grace_secs: 3 * 86_400, sold_out_premium_refund: true } } as R;
-      return snap(chain.price) as R;
+      return (chain.price === null ? null : snap(chain.price)) as R;
     },
     async blockTimeSecs() {
       return T;
@@ -51,7 +51,7 @@ function harness() {
     },
   };
   const store = new Store();
-  const n = new Notifier({ store, channels, rpc: rpc as never, registryId: "reg", attestationId: "att", appUrl: "https://app.example", now: () => T });
+  const n = new Notifier({ store, channels, rpc: rpc as never, registryId: "reg", attestationId: "att", appUrl: "https://app.example", now: () => T, ...extra });
   const req = (payload: SettingsAction, account = "alice.test", ts = T) => ({
     account_id: account, public_key: PK, ts, payload,
     signature: bytesToHex(ed25519.sign(accountRequestMessage("notify", account, ts, payload), seed)),
@@ -112,6 +112,48 @@ describe("notifier", () => {
     const h = harness();
     await expect(h.n.settings(h.req({ action: "set_email", email: "nope" }))).rejects.toThrow(/valid email/);
     await expect(h.n.settings(h.req({ action: "subscribe_push", subscription: { endpoint: "http://x", keys: { p256dh: "", auth: "" } } }))).rejects.toThrow(/invalid push/);
+  });
+});
+
+describe("watched prices", () => {
+  const cov = { flight: { ...flight, flight_number: "VY8306", airline: "VY", departure_date: "2030-04-14" } };
+  it("needs a verified price, alerts once per band, and can be removed", async () => {
+    const h = harness({ watchRefreshSecs: 0 });
+    await h.n.settings(h.req({ action: "subscribe_push", subscription: SUB }));
+    h.chain.price = 17_000; // the harness answers every snapshot with this price
+    const v = await h.n.settings(h.req({ action: "watch_add", coverage: cov, seats: 2 }));
+    expect(v.watches).toHaveLength(1);
+    expect(v.watches[0]).toMatchObject({ label: "VY8306 AMS→BCN, 2030-04-14", seats: 2, baseline_minor: 17_000, price_minor: 17_000 });
+    expect(v.watches[0].href).toContain("fn=VY8306");
+    // Same price: nothing to say. (Cap #1 is under its cap at €170 too.)
+    expect(await h.n.tick()).toBe(0);
+    h.chain.price = 19_000;
+    expect(await h.n.tick()).toBe(2); // the cap alert for policy #1 and the watch
+    expect(h.pushes.map((p) => p.title)).toContain("VY8306 AMS→BCN, 2030-04-14: up €20 to €190");
+    expect(await h.n.tick()).toBe(0);
+    const after = await h.n.settings(h.req({ action: "watch_remove", id: v.watches[0].id }));
+    expect(after.watches).toEqual([]);
+  });
+
+  it("rejects what it cannot watch", async () => {
+    const h = harness();
+    await expect(h.n.settings(h.req({ action: "watch_add", coverage: { flight: { ...flight, origin: "AM" } } }))).rejects.toThrow(/IATA/);
+    await expect(h.n.settings(h.req({ action: "watch_add", coverage: { flight: { ...flight, departure_date: "2020-01-01" } } }))).rejects.toThrow(/already left/);
+    const unpriced = harness({ prices: async () => null });
+    unpriced.chain.price = null;
+    await expect(unpriced.n.settings(unpriced.req({ action: "watch_add", coverage: cov }))).rejects.toThrow(/verified price/);
+  });
+
+  it("uses the oracle price when there is one, and forgets watches once the day has passed", async () => {
+    let oracle = 15_000;
+    let now = T;
+    const h = harness({ now: () => now, prices: async () => ({ price_minor: oracle, available: true }), watchRefreshSecs: 0 });
+    const v = await h.n.settings(h.req({ action: "watch_add", coverage: cov, target_minor: 14_000 }));
+    expect(v.watches[0]).toMatchObject({ baseline_minor: 15_000, target_minor: 14_000 });
+    oracle = 13_900;
+    expect((await h.n.settings(h.req({ action: "get" }))).watches[0].price_minor).toBe(13_900);
+    now = Date.parse("2030-04-15T12:00:00Z") / 1000;
+    expect((await h.n.settings(h.req({ action: "get" }, "alice.test", now))).watches).toEqual([]);
   });
 });
 

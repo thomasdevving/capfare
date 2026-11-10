@@ -11,14 +11,25 @@
   .cta { display: block; text-align: center; background: #ffd100; color: #0b2447; font-weight: 700; text-decoration: none; padding: 11px; border-radius: 12px; margin: 14px 0 12px; }
   .cta:hover { background: #ffdc3d; }
   .cta:focus-visible { outline: 3px solid #ffd100; outline-offset: 2px; }
+  .check { width: 100%; border: 0; cursor: pointer; font: inherit; }
+  .toggle { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; cursor: pointer; }
+  .toggle input { accent-color: #ffd100; width: 18px; height: 18px; margin: 1px 0 0; flex: none; }
+  .toggle small { display: block; color: #c7d5e8; font-size: 12px; }
+  .seen { font-size: 13px; padding: 8px 10px; border-left: 3px solid #ffd100; background: rgba(211, 227, 249, 0.09); border-radius: 6px; }
+  .status { font-size: 12px; color: #ffe27a; min-height: 0; }
+  .open { display: inline-block; color: #e3edfc; font-size: 13px; margin: 0 0 12px; }
   .t { font-size: 12px; color: #c7d5e8; padding: 10px 12px; background: rgba(211, 227, 249, 0.09); border: 1px solid rgba(211, 227, 249, 0.14); border-radius: 12px; margin: 0; }
 </style></head>
 <body><div class="in">
 <h1><svg width="26" height="20" viewBox="0 0 104 80" aria-hidden="true"><g fill="#FFD100" stroke="#FFD100" stroke-width="9" stroke-linejoin="round"><path d="M9 74 L41 16 L60 16 L28 74 Z"/><path d="M45 74 L67 34 L86 34 L64 74 Z"/></g><g transform="translate(70 -2) rotate(45 15 15) scale(1.25)" fill="#FFD100"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg>CapFare</h1>
 <span class="tag">Testnet</span>
-<p>On supported booking pages, CapFare shows what it costs to lock a maximum price for that flight (or protect a booking against a drop), for everyone travelling.</p>
-<a class="cta" id="app" target="_blank" rel="noopener">Open CapFare</a>
-<p class="t">Supported now: Skyline Travel, the CapFare demo booking site. The extension reads only those pages, sends no analytics and never sees your bookings.</p>
+<p>On any airline or travel site, CapFare shows what it costs to lock a maximum price for the flight on the page (or protect a booking against a drop), for everyone travelling.</p>
+<p class="seen" id="seen" hidden></p>
+<button class="cta check" id="check">Check this page</button>
+<label class="toggle"><input type="checkbox" id="auto"><span>Check booking pages automatically<small>Chrome asks once for access to websites. Without it, CapFare reads a page only when you press Check this page.</small></span></label>
+<p class="status" id="status" role="status"></p>
+<a class="open" id="app" target="_blank" rel="noopener">Open CapFare →</a>
+<p class="t">The extension reads the flight number, airports, date, fare and price on the page. Only those go to CapFare, never the page address or your details. No analytics. Prices on the testnet come from the demo price source, so cover is offered on demo routes.</p>
 </div>
 <script src="popup.js"></script>
 </body></html>

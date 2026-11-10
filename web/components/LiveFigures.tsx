@@ -80,8 +80,8 @@ export default function LiveFigures({ locale, compact = false }: { locale: Local
       ) : null}
       <p className={`status-line ${status === "error" ? "error" : ""}`} role="status">
         {status === "loading" && !data ? t.loading : null}
-        {status === "error" ? t.error(data ? clock(data.updatedAt, locale) : null) : null}
-        {status === "ok" && data ? (stale ? t.stale(clock(data.updatedAt, locale)) : `${t.updated(clock(data.updatedAt, locale))}. ${t.sumNote}`) : null}
+        {status === "error" ? t.error(data ? clock(data.updatedAt) : null) : null}
+        {status === "ok" && data ? (stale ? t.stale(clock(data.updatedAt)) : `${t.updated(clock(data.updatedAt))}. ${t.sumNote}`) : null}
       </p>
       <p>
         <Link href="/transparency">{t.link}</Link>

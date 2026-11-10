@@ -1,7 +1,7 @@
-export function eur(cents: number, locale: "en" | "nl" = "en"): string {
+export function eur(cents: number): string {
   const v = cents / 100;
   const digits = cents % 100 === 0 ? 0 : 2;
-  return new Intl.NumberFormat(locale === "nl" ? "nl-NL" : "en-IE", { style: "currency", currency: "EUR", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
+  return new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
 }
 
 export function usdc(micro: string | bigint, digits = 2): string {
@@ -13,20 +13,19 @@ export function usdc(micro: string | bigint, digits = 2): string {
   return `${neg ? "−" : ""}${whole}${digits ? "." + frac : ""}`;
 }
 
-export function duration(secs: number, locale: "en" | "nl" = "en"): string {
-  const nl = locale === "nl";
-  if (secs < 120) return nl ? `${secs} seconden` : `${secs} seconds`;
-  if (secs < 7200) return nl ? `${Math.round(secs / 60)} minuten` : `${Math.round(secs / 60)} minutes`;
-  if (secs < 172800) return nl ? `${Math.round(secs / 3600)} uur` : `${Math.round(secs / 3600)} hours`;
-  return nl ? `${Math.round(secs / 86400)} dagen` : `${Math.round(secs / 86400)} days`;
+export function duration(secs: number): string {
+  if (secs < 120) return `${secs} seconds`;
+  if (secs < 7200) return `${Math.round(secs / 60)} minutes`;
+  if (secs < 172800) return `${Math.round(secs / 3600)} hours`;
+  return `${Math.round(secs / 86400)} days`;
 }
 
-export function clock(unixSecs: number, locale: "en" | "nl" = "en"): string {
-  return new Date(unixSecs * 1000).toLocaleTimeString(locale === "nl" ? "nl-NL" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+export function clock(unixSecs: number): string {
+  return new Date(unixSecs * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function dateTime(unixSecs: number, locale: "en" | "nl" = "en"): string {
-  return new Date(unixSecs * 1000).toLocaleString(locale === "nl" ? "nl-NL" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+export function dateTime(unixSecs: number): string {
+  return new Date(unixSecs * 1000).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 export function short(hex: string, n = 8): string {

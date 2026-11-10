@@ -209,3 +209,13 @@ motion bypasses them. No animation dependency was added.
 The hero photograph has a CapFare livery edit: yellow winglet/fairings and a
 perspective-matched wing logo positioned below the hero copy. Asset provenance is recorded
 in `web/public/images/README.md`.
+
+### Revision 8 — gliding section links, English only
+
+The header links (How it works, Protection, Your payout, FAQ) glide to their section with an
+eased scroll (450–1100 ms, scaled by distance) instead of jumping, then a yellow bar sweeps
+under the section heading (`web/components/AnchorScroll.tsx`). The address bar gets the
+`#section`, focus moves to the section, a wheel, touch or key press takes over immediately,
+and reduced motion gets the plain jump. Without JavaScript the links work as before.
+
+The Dutch landing page (`/nl`) and its dictionary were removed; the site is English only.

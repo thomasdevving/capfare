@@ -26,6 +26,7 @@ const paxOf = (url: URL, facts?: Element | null): number | undefined => {
 
 export const skylineSite: SiteAdapter = {
   id: "skyline-travel-demo",
+  liveCheck: true,
   matches: (u) => u.pathname.startsWith("/booker"),
   extract(doc, url) {
     const manage = doc.querySelector(".manage-booking");

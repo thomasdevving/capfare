@@ -39,7 +39,7 @@ describe("Skyline Travel (demo) adapter, saved HTML snapshots", () => {
     const url = u("/booker/manage");
     expect(adapterFor(url)!.extract(load("manage.html"), url)!.kind).toBe("manage");
   });
-  it("ignores unsupported sites", () => {
+  it("other sites have no site adapter (the generic reader takes them)", () => {
     expect(adapterFor(new URL("https://www.example.com/flights"))).toBeUndefined();
   });
   it("parses euro formats", () => {
@@ -50,11 +50,14 @@ describe("Skyline Travel (demo) adapter, saved HTML snapshots", () => {
 });
 
 describe("manifest", () => {
-  it("requests only the CapFare origin and runs only on the booker", () => {
+  it("requires only the CapFare origin; other sites on click (activeTab) or after opt-in (optional)", () => {
     const m = JSON.parse(readFileSync(new URL("../build/manifest.json", import.meta.url), "utf8"));
     expect(m.manifest_version).toBe(3);
-    expect(m.permissions).toEqual([]);
+    // None of these show an install warning; reading other sites is asked for when switched on.
+    expect(m.permissions.sort()).toEqual(["activeTab", "scripting", "storage"]);
     expect(m.host_permissions).toHaveLength(1);
+    expect(m.optional_host_permissions).toEqual(["https://*/*"]);
+    expect(m.content_scripts).toHaveLength(1);
     expect(m.content_scripts[0].matches[0]).toMatch(/\/booker\*$/);
     expect(JSON.stringify(m)).not.toContain("<all_urls>");
   });

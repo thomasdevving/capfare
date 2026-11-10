@@ -7,7 +7,7 @@ export const en = {
     title: "CapFare — lock the price of your flight",
     description: "Lock a maximum price on one specific flight, book anywhere, and get the difference back. Testnet prototype on NEAR.",
   },
-  nav: { how: "How it works", protection: "Protection", payout: "Your payout", faq: "FAQ", app: "Check a flight", switchTo: "Nederlands", switchHref: "/nl" },
+  nav: { how: "How it works", protection: "Protection", payout: "Your payout", faq: "FAQ", app: "Check a flight" },
   hero: {
     h1a: "Protect your flight price.",
     h1b: "Before and after booking.",
@@ -99,7 +99,7 @@ export const en = {
     title: "Book where you want",
     body: [
       "Protection follows the flight, date and fare class on your verified booking.",
-      "Try the extension on Skyline Travel, our demo booking site. Airline integrations are in progress.",
+      "The extension recognises the flight on any airline, travel agency or comparison site: from the flight number, or from the route and day where a site shows no flight numbers. On testnet, prices come from our demo price source, so offers appear for demo routes; try it on Skyline Travel, our demo booking site.",
     ],
   },
   payout: {

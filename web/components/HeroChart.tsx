@@ -155,7 +155,7 @@ export default function HeroChart({ locale }: { locale: Locale }) {
           <g key={p}>
             <line x1={L} x2={W - R} y1={y(p)} y2={y(p)} stroke="var(--line)" strokeWidth="1" />
             <text className="axis num" x={L - 8} y={y(p) + 4} textAnchor="end">
-              {eur(p, locale)}
+              {eur(p)}
             </text>
           </g>
         ))}
@@ -177,7 +177,7 @@ export default function HeroChart({ locale }: { locale: Locale }) {
         <g className="reveal-label">
           <rect className="end-pill" x={W - R + 6} y={y(HERO.path[last]) - 14} width="62" height="28" rx="14" />
           <text className="end-pill-text num" x={W - R + 37} y={y(HERO.path[last]) + 5} textAnchor="middle">
-            {eur(HERO.path[last], locale)}
+            {eur(HERO.path[last])}
           </text>
         </g>
 
@@ -189,14 +189,14 @@ export default function HeroChart({ locale }: { locale: Locale }) {
           aria-valuemin={HERO.minCap / 100}
           aria-valuemax={HERO.maxCap / 100}
           aria-valuenow={cap / 100}
-          aria-valuetext={`${eur(cap, locale)}. ${t.youGetBack} ${eur(q.payout, locale)}. ${t.premium} ${eur(q.premium, locale)}.`}
+          aria-valuetext={`${eur(cap)}. ${t.youGetBack} ${eur(q.payout)}. ${t.premium} ${eur(q.premium)}.`}
           onKeyDown={onKey}
         >
           <line className="cap-line" x1={L} x2={W - R} y1={y(cap)} y2={y(cap)} />
           <circle className="cap-handle" cx={W - R} cy={y(cap)} r="7" />
           <rect className="cap-pill" x={L + 70} y={y(cap) - 34} width="132" height="26" rx="13" />
           <text className="cap-pill-text num" x={L + 136} y={y(cap) - 16} textAnchor="middle">
-            {t.yourCap}: {eur(cap, locale)}
+            {t.yourCap}: {eur(cap)}
           </text>
           <rect className="cap-hit" x={L} width={W - L - R + 20} y={y(cap) - 36} height="58" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} />
         </g>
@@ -205,23 +205,23 @@ export default function HeroChart({ locale }: { locale: Locale }) {
       <dl className="readout" aria-live="polite">
         <div className="payout reveal-figure">
           <dt>{t.youGetBack}</dt>
-          <dd>{eur(q.payout, locale)}</dd>
+          <dd>{eur(q.payout)}</dd>
         </div>
         <div>
           <dt>{t.premium}</dt>
-          <dd>{eur(q.premium, locale)}</dd>
+          <dd>{eur(q.premium)}</dd>
         </div>
         <div>
           <dt>{t.deductible}</dt>
-          <dd>{eur(q.deductible, locale)}</dd>
+          <dd>{eur(q.deductible)}</dd>
         </div>
         <div>
           <dt>{t.maxPayout}</dt>
-          <dd>{eur(q.maxPayout, locale)}</dd>
+          <dd>{eur(q.maxPayout)}</dd>
         </div>
       </dl>
       <p className="params-note">
-        {t.activeAfter} {duration(q.activationDelaySecs, locale)}. {t.dragHint}{" "}
+        {t.activeAfter} {duration(q.activationDelaySecs)}. {t.dragHint}{" "}
         {loaded ? (state.live ? t.liveParams(state.network) : t.exampleParams) : null}
       </p>
       <figcaption id="hero-caption">{t.caption}</figcaption>

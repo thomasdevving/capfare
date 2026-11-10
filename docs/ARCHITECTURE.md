@@ -85,7 +85,7 @@ step of the sandbox lifecycle test.
 | `notifier` | Alerts: computes them with the shared alert engine (`shared/src/alerts.ts`) from public chain state and delivers new ones by web push (VAPID) and email (SMTP, double opt-in; demo outbox). Settings are signed with the account's own key, checked on-chain. |
 | `relayer` | Wraps users' NEP-366 delegate actions (allowlisted contracts/methods, bounded deposits/gas, per-account and per-IP limits), creates named accounts, submits pre-verified snapshots. |
 | `web` | Next.js app: landing, quote/buy, policies, claim, credit (mock ramp, Intents dry quotes), LP dashboard, transparency, legal/FAQ. Cached read-only API routes. |
-| `extension` | Chrome MV3: site adapters extract flight + price hints and show an overlay; purchases hand off to the web app. |
+| `extension` | Chrome MV3: a generic reader (any booking site) and site adapters extract flight + price hints and show an overlay; purchases hand off to the web app. |
 | `backtest` | Synthetic/real fare paths, buyer models, calibration and parameter search, `premium_params.json`, `docs/PRICING.md`. |
 | `scripts` | Sandbox, deploy (sandbox/testnet), enclave-key registration, scripted demo, full local stack. |
 

@@ -6,11 +6,10 @@ import { networkLabel, serverConfig } from "@/lib/config";
 export function Header({ locale, variant = "landing" }: { locale: Locale; variant?: "landing" | "app" }) {
   const t = dict(locale);
   const net = networkLabel(serverConfig().network);
-  const base = locale === "nl" ? "/nl" : "/";
   return (
     <header className="site-header on-dark">
       <div className="wrap">
-        <Link href={base} className="brand" aria-label="CapFare home">
+        <Link href="/" className="brand" aria-label="CapFare home">
           <Logo size={26} />
         </Link>
         <nav className="nav" aria-label="Main">

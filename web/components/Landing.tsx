@@ -7,6 +7,7 @@ import HeroChart from "./HeroChart";
 import LiveFigures from "./LiveFigures";
 import { Footer, Header } from "./SiteChrome";
 import ScrollFocus from "./ScrollFocus";
+import AnchorScroll from "./AnchorScroll";
 
 const HOW_SHOTS = ["/how/1-lock.png", "/how/2-book.png", "/how/4-verify.png"];
 
@@ -17,6 +18,7 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
   return (
     <div className="landing">
       <ScrollFocus />
+      <AnchorScroll />
       <main id="main">
       <div className="landing-masthead">
         <Image className="landing-flight" src="/images/hero-flight-capfare.webp" alt="" fill priority sizes="100vw" />
@@ -35,7 +37,7 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
                 <a className="btn btn-primary" href={extensionUrl}>
                   {t.hero.ctaChrome}
                 </a>
-                <Link className="btn btn-ghost" href={locale === "nl" ? "/quote?lang=nl" : "/quote"}>
+                <Link className="btn btn-ghost" href="/quote">
                   {t.hero.ctaCheck}
                 </Link>
               </div>
@@ -81,8 +83,8 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
               <h3>{t.products.cap.name}</h3>
               <p>{t.products.cap.body}</p>
               <dl className="product-terms">
-                <div><dt>{t.chart.deductible}</dt><dd>{eur(params.cap.deductible, locale)}</dd></div>
-                <div><dt>{t.chart.maxPayout}</dt><dd>{eur(params.cap.max_payout, locale)}</dd></div>
+                <div><dt>{t.chart.deductible}</dt><dd>{eur(params.cap.deductible)}</dd></div>
+                <div><dt>{t.chart.maxPayout}</dt><dd>{eur(params.cap.max_payout)}</dd></div>
               </dl>
               <p className="example num">{t.products.cap.example(params.cap.deductible, params.cap.max_payout)}</p>
             </article>
@@ -91,8 +93,8 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
               <h3>{t.products.drop.name}</h3>
               <p>{t.products.drop.body}</p>
               <dl className="product-terms">
-                <div><dt>{t.chart.deductible}</dt><dd>{eur(params.drop.deductible, locale)}</dd></div>
-                <div><dt>{t.chart.maxPayout}</dt><dd>{eur(params.drop.max_payout, locale)}</dd></div>
+                <div><dt>{t.chart.deductible}</dt><dd>{eur(params.drop.deductible)}</dd></div>
+                <div><dt>{t.chart.maxPayout}</dt><dd>{eur(params.drop.max_payout)}</dd></div>
               </dl>
               <p className="example num">{t.products.drop.example(params.drop.deductible, params.drop.max_payout)}</p>
             </article>
@@ -139,7 +141,7 @@ export default function Landing({ locale, params, live, extensionUrl }: { locale
                   : i === 1
                     ? (it as (h: number) => string)(delayText || hours)
                     : (it as (r: boolean) => string)(params.global.sold_out_premium_refund);
-              return <li key={i}>{i === 1 && !delayText ? text.replace(/\d+ (hours?|uur)/, duration(params.cap.activation_delay_secs, locale)) : text}</li>;
+              return <li key={i}>{i === 1 && !delayText ? text.replace(/\d+ hours?/, duration(params.cap.activation_delay_secs)) : text}</li>;
             })}
           </ul>
           </details>

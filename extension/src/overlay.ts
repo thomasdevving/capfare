@@ -11,6 +11,8 @@ export interface QuoteView {
   demo_price: boolean;
   network: string;
   travellers?: number;
+  /** "route": any non-stop flight on the route and day (pages without flight numbers). */
+  scope?: "flight" | "route";
 }
 
 const eur = (c: number) => `€${(c / 100).toFixed(c % 100 ? 2 : 0)}`;
@@ -56,7 +58,9 @@ export function renderOverlay(kind: "cap" | "drop", q: QuoteView, appUrl: string
   // Text only (no page data is ever inserted as HTML): [plain, highlighted, plain].
   const lead: [string, string, string] =
     kind === "cap"
-      ? ["Lock a max price of ", eur(q.cap_minor!), ` per person${who} for ${eur(q.premium_minor)}, valid ${q.validity_days} days.`]
+      ? q.scope === "route"
+        ? ["Lock a max price of ", eur(q.cap_minor!), ` per person${who} on any non-stop flight on this route that day, for ${eur(q.premium_minor)}, valid ${q.validity_days} days.`]
+        : ["Lock a max price of ", eur(q.cap_minor!), ` per person${who} for ${eur(q.premium_minor)}, valid ${q.validity_days} days.`]
       : ["Booked at ", eur(q.price_minor), `${n > 1 ? " per person" : ""}. If the price drops within the week, get the difference${who} for ${eur(q.premium_minor)}.`];
   root.innerHTML = `<style>${CSS}</style>
   <section class="box" role="dialog" aria-label="CapFare price protection">
@@ -66,7 +70,7 @@ export function renderOverlay(kind: "cap" | "drop", q: QuoteView, appUrl: string
       <p class="lead"><span></span><em></em><span></span></p>
       <p class="f"></p>
       <dl>
-        <dt>Airline price now</dt><dd class="p"></dd>
+        <dt>${q.scope === "route" ? "Cheapest fare now" : "Airline price now"}</dt><dd class="p"></dd>
         <dt>Deductible</dt><dd class="d"></dd>
         <dt>Max payout${n > 1 ? " (all travellers)" : ""}</dt><dd class="m"></dd>
         ${kind === "cap" ? `<dt>Starts after</dt><dd class="a"></dd>` : ""}
@@ -94,8 +98,9 @@ export function renderOverlay(kind: "cap" | "drop", q: QuoteView, appUrl: string
   return host;
 }
 
-/** Manage-booking page: hand the booking link to CapFare for a live check (no data is read here). */
-export function renderVerifyOverlay(appUrl: string, pageUrl: string): HTMLElement {
+/** Manage-booking page. Where CapFare's checker can load the site's booking pages, hand it the
+ *  link for a live check (no data is read here); elsewhere, point to the email upload. */
+export function renderVerifyOverlay(appUrl: string, pageUrl: string | null): HTMLElement {
   const host = document.createElement("capfare-overlay");
   const root = host.attachShadow({ mode: "closed" });
   root.innerHTML = `<style>${CSS}</style>
@@ -103,13 +108,43 @@ export function renderVerifyOverlay(appUrl: string, pageUrl: string): HTMLElemen
     <div class="head"><span class="brand">${MARK}CapFare</span><button class="close" aria-label="Close">×</button></div>
     <div class="body">
       <span class="when">Booked with CapFare?</span>
-      <p class="lead">Verify this booking straight from the page.</p>
-      <p class="small" style="margin:0 0 12px">CapFare's checker loads this booking page from the booking site and reads only the flight, fare, price and status. Works for claims and for the final check of refundable tickets.</p>
+      <p class="lead"></p>
+      <p class="small" style="margin:0 0 12px"></p>
       <a class="cta" target="_blank" rel="noopener">Verify with CapFare</a>
     </div>
   </section>`;
-  const cta = root.querySelector(".cta") as HTMLAnchorElement;
-  cta.href = `${appUrl}/verify#u=${encodeURIComponent(pageUrl)}`;
-  (root.querySelector(".close") as HTMLElement).addEventListener("click", () => host.remove());
+  const $ = (q: string) => root.querySelector(q) as HTMLElement;
+  if (pageUrl) {
+    $(".lead").textContent = "Verify this booking straight from the page.";
+    $(".small").textContent = "CapFare's checker loads this booking page from the booking site and reads only the flight, fare, price and status. Works for claims and for the final check of refundable tickets.";
+    ($(".cta") as HTMLAnchorElement).href = `${appUrl}/verify#u=${encodeURIComponent(pageUrl)}`;
+  } else {
+    $(".lead").textContent = "Verify this booking with its confirmation email.";
+    $(".small").textContent = "Upload the original confirmation email from this booking site. Its digital signature shows it wasn't changed; only the flight, fare and price come back. Live checks straight from the page work on supported sites.";
+    ($(".cta") as HTMLAnchorElement).href = `${appUrl}/verify`;
+  }
+  $(".close").addEventListener("click", () => host.remove());
+  return host;
+}
+
+/** Manual check ("Check this page") that found nothing to offer: say what was seen and what to do. */
+export function renderNotice(appUrl: string, n: { title: string; body: string; cta: string; href?: string }): HTMLElement {
+  const host = document.createElement("capfare-overlay");
+  const root = host.attachShadow({ mode: "closed" });
+  root.innerHTML = `<style>${CSS}</style>
+  <section class="box" role="dialog" aria-label="CapFare">
+    <div class="head"><span class="brand">${MARK}CapFare</span><button class="close" aria-label="Close">×</button></div>
+    <div class="body">
+      <p class="lead"></p>
+      <p class="small" style="margin:0 0 12px"></p>
+      <a class="cta" target="_blank" rel="noopener"></a>
+    </div>
+  </section>`;
+  const $ = (q: string) => root.querySelector(q) as HTMLElement;
+  $(".lead").textContent = n.title;
+  $(".small").textContent = n.body;
+  $(".cta").textContent = n.cta;
+  ($(".cta") as HTMLAnchorElement).href = n.href ?? `${appUrl}/quote`;
+  $(".close").addEventListener("click", () => host.remove());
   return host;
 }

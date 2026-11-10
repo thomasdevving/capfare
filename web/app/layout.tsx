@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(site),
   title: "CapFare — lock the price of your flight",
   description: "Lock a maximum price on one specific flight, book anywhere, and get the difference back. Testnet prototype on NEAR.",
-  alternates: { canonical: "/", languages: { en: "/", nl: "/nl" } },
+  alternates: { canonical: "/" },
   openGraph: { type: "website", siteName: "CapFare", title: "Lock the price of your flight. Book wherever you want.", description: "If the price goes up before you book, you get the difference back." },
   twitter: { card: "summary_large_image", title: "CapFare — lock the price of your flight", description: "If the price goes up before you book, you get the difference back." },
 };

@@ -128,9 +128,12 @@ agree; where CapFare already has an on-chain price for a flight, the site shows 
 Every page carries a "demo booking site" banner. It is the only site with a working extension
 adapter, so it is the only one named on the landing page.
 
-**D24. Extension permissions.** The manifest requests no API permissions and a single host
-permission: the CapFare app origin (API and demo site). Content scripts run only on
-`/booker*` there. Adding a real site means adding its origin, an adapter and fixtures.
+**D24. Extension permissions.** The only required host permission is the CapFare app origin
+(API and demo site), where a static content script runs on `/booker*`. Other sites are read in
+two ways, both chosen by the user (superseded in part by D35): `activeTab` + `scripting` for
+"Check this page" in the popup, and the optional host permission `https://*/*`, asked for only
+when the user turns on automatic checks. None of the required permissions shows an install
+warning. `storage` keeps per-tab state for the popup in session storage.
 
 **D25. Passenger binding.** A Price Cap stores a commitment
 `sha256("capfare/passenger/v1" ‖ borsh(normalised last name) ‖ salt)`; the salt is
@@ -213,3 +216,20 @@ unconfirmed claims) are not automated by the notifier yet.
 **D34. Account-creation quota is configurable.** The relayer's new-accounts-per-IP-per-day limit
 (default 5) is read from `RELAYER_ACCOUNTS_PER_IP_DAY`, so the e2e suite (one account per test)
 can run on one IP; production keeps the default.
+
+**D35. The extension works on any booking site.** Site-specific adapters cannot keep up with
+hundreds of airline and travel sites whose markup changes weekly, so a generic reader
+(`extension/src/adapters/generic.ts`) handles every site without an adapter. In order of trust
+it uses schema.org `FlightReservation`/`Flight` structured data (JSON-LD or microdata, which
+airlines publish for confirmations), the page address (origin, destination, date, travellers in
+the query, hash or path), and the visible text: flight numbers of known airlines and known
+airport codes only (`iata.ts`; codes that are everyday words are left out), dates in seven
+languages, and prices grouped per result card by walking up from each flight number to its
+price. Itinerary prices (connections) and add-ons are not read as a flight's price. Comparison
+sites that show no flight numbers fall back to route cover (D30) on the route and day; a route
+from the address alone also needs the page to mention the route or flights. The page price stays
+a hint (premiums use oracle snapshots) and only the flight key goes to CapFare, never the page
+address. On sites without a live-check origin (D26), the manage-page overlay points to the
+email upload instead of "Verify with CapFare". Coverage is still limited by the price oracle:
+on testnet only demo routes have prices, so elsewhere the extension stays quiet unless the user
+asked ("Check this page"), in which case it says what it found.

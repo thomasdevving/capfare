@@ -9,7 +9,7 @@ export type PushResult = "ok" | "gone" | "error";
 export interface Channels {
   push(sub: PushSub, a: { title: string; body: string; url: string; tag: string }): Promise<PushResult>;
   /** Returns false if email is not configured. */
-  mail(to: string, subject: string, text: string): Promise<boolean>;
+  mail(to: string, subject: string, text: string, account: string): Promise<boolean>;
   emailMode: "smtp" | "demo-outbox" | "off";
   vapidPublicKey: string;
 }
@@ -40,13 +40,13 @@ export function realChannels(store: Store, opts: { demo: boolean; subject: strin
         return code === 404 || code === 410 ? "gone" : "error";
       }
     },
-    async mail(to, subject, text) {
+    async mail(to, subject, text, account) {
       if (transport) {
         await transport.sendMail({ from: opts.mailFrom ?? "CapFare <alerts@capfare.invalid>", to, subject, text });
         return true;
       }
       if (opts.demo) {
-        store.state.outbox = [{ to, subject, text, at: Math.floor(Date.now() / 1000) }, ...store.state.outbox].slice(0, 100);
+        store.state.outbox = [{ account, to, subject, text, at: Math.floor(Date.now() / 1000) }, ...store.state.outbox].slice(0, 100);
         store.save();
         return true;
       }

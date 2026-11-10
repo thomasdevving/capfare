@@ -157,3 +157,59 @@ that it wasn't cancelled. For refundable or unknown fares, `finalize_claim` and
 `settle_drop` only accept live attestations (`status_check` or `tls_page`); the attestation
 registry enforces this (`require_live`). Non-refundable tickets can be settled with the email
 alone, because cancelling one returns nothing.
+
+**D28. Travellers per policy.** One policy covers 1–9 travellers on one booking
+(`Policy.seats`, `MAX_SEATS = 9`). Cap, deductible and maximum payout stay per traveller, so the
+public formula and the backtest parameters are unchanged; the premium is the per-traveller
+premium × seats, priced with the whole policy's lock in the utilisation term and the other seats
+counted as flight exposure. Locked coverage, exposure caps and payouts scale with seats. The
+booking checker attests the number of travellers (`BookingAttestation.seats`, `paid_price_minor`
+per traveller) and a claim pays min(policy seats, booking seats). Group pricing (a discount for
+more travellers) is not offered: we have no data that seats on one booking are less risky.
+
+**D29. Return trips: two legs bought together, nullifiers per flight.** `buy_caps` takes one or
+two legs; both are priced and checked first (credit, per-day limit, combined route-week exposure)
+and only then recorded, so a failing leg leaves nothing behind. Each leg is funded separately;
+legs share `trip_id`. One booking holds both flights, so nullifiers are now spent per flight:
+`leg_nullifier = H(booking nullifier ‖ flight key hash)`. A leg can still be claimed only once per
+product. Claims stay one transaction per leg (each has its own index and payout, and a two-claim
+delegate would exceed the gas limit). The checker refuses to attest a flight when the booking only
+shows a total for several flights — it previously used the trip total as the price of one flight,
+which would have overpaid a Drop Guarantee.
+
+**D30. Route cover (option).** `Coverage::Route` covers every non-stop flight the oracle tracks on
+a route and day in one fare class. The oracle publishes a route snapshot keyed by the route key
+hash: the cheapest available fare, the earliest departure (so expiry and the final check are
+never later than any covered flight) and the least constrained availability bucket, plus one
+snapshot per flight. The cap index at booking is the route snapshot; the claim names the booked
+flight, which must match route, day and fare class. Route caps use the cap parameters unchanged:
+the index is a minimum over flights, so it rises no faster than any single flight, and payout
+still uses min(index, paid). We have not backtested route cover separately (PRICING.md
+limitations). Drop Guarantees always cover the booked flight.
+
+**D31. Drop Guarantee after a claim (option).** Chosen when buying a cap
+(`auto_drop_max_premium_minor`). After the claim the app buys a Drop Guarantee with the same
+verified booking (`buy_drop(…, from_cap)`); the contract checks that the booking is the one the
+cap was claimed with and links both policies. It is a separate purchase at the public formula, not
+a discount (no data supports one), and it is still subject to the 24-hour purchase window and to
+"price already below what you paid". Users who did not opt in get a one-tap offer instead.
+
+**D32. Held claims time out.** A refundable/unknown-fare claim waits for a live final check. If
+none is submitted by departure + `claim_grace_secs`, anyone may call `void_unconfirmed_claim`:
+the claim closes without payout and the coverage returns to the vault. Before this, the locked
+coverage stayed out of LPs' reach indefinitely. Alerts remind the traveller first (D33).
+
+**D33. Alerts and the notifier service.** One pure alert engine (`shared/src/alerts.ts`) derives
+what a policy holder should know or do from public chain state; the web app shows it in-app and
+`notifier/` delivers new alerts by web push (VAPID) and email. Settings changes are signed with
+the account's own ed25519 access key and the key is checked on-chain (`view_access_key`), so only
+the account holder can add channels. Email needs double opt-in. The notifier is the only CapFare
+component that stores personal data (an email address, if given); it is kept in one file, masked
+in responses, never logged, and deleted on request. It is a normal service, not an enclave:
+alerts are built from public data, and the email address is not needed by any enclave. Demo
+deployments keep mail in an outbox. Housekeeping calls (expire, sold-out refund, closing
+unconfirmed claims) are not automated by the notifier yet.
+
+**D34. Account-creation quota is configurable.** The relayer's new-accounts-per-IP-per-day limit
+(default 5) is read from `RELAYER_ACCOUNTS_PER_IP_DAY`, so the e2e suite (one account per test)
+can run on one IP; production keeps the default.

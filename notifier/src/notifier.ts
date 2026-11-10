@@ -105,6 +105,7 @@ export class Notifier {
           email,
           "Confirm your CapFare alerts",
           [`Someone (hopefully you) asked to get CapFare alerts for ${id} at this address.`, "", `Confirm: ${this.o.appUrl}/notify/confirm?token=${token}`, "", "Ignore this email if it wasn't you; nothing else will be sent."].join("\n"),
+          id,
         );
         break;
       }
@@ -160,7 +161,7 @@ export class Notifier {
       if (gone.size) a.push = a.push.filter((s) => !gone.has(s.endpoint));
       if (a.email?.verified) {
         const m = alertMail(al, this.o.appUrl);
-        await this.o.channels.mail(a.email.address, m.subject, m.text).catch((e) => this.o.log?.("mail_failed", { error: String(e) }));
+        await this.o.channels.mail(a.email.address, m.subject, m.text, account).catch((e) => this.o.log?.("mail_failed", { error: String(e) }));
       }
       n++;
     }
@@ -186,9 +187,8 @@ export class Notifier {
     return total;
   }
 
-  /** Demo only: mail "sent" to this account's address. */
+  /** Demo only: mail "sent" for this account (not other accounts using the same address). */
   outbox(account: string) {
-    const addr = this.o.store.account(account).email?.address;
-    return addr ? this.o.store.state.outbox.filter((m) => m.to === addr) : [];
+    return this.o.store.state.outbox.filter((m) => m.account === account).map(({ subject, text, at }) => ({ subject, text, at }));
   }
 }

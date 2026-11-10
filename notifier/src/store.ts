@@ -25,6 +25,8 @@ export interface AccountSubs {
 }
 
 export interface OutboxMail {
+  /** The account the mail was sent for (demo outbox is shown per account). */
+  account: string;
   to: string;
   subject: string;
   text: string;

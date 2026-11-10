@@ -21,7 +21,7 @@ const snap = (price: number): SnapshotRecord => ({ price_minor: price, available
 
 function harness(extra: Partial<NotifierOptions> = {}) {
   const chain = { policies: [policy({}), policy({ id: 2, state: "paid_out", payout_minor: 7_000 })], price: 17_000 as number | null, keys: new Set([`alice.test|${PK}`]) };
-  const pushes: { endpoint: string; title: string }[] = [];
+  const pushes: { endpoint: string; title: string; quick_url?: string; quick_action?: string }[] = [];
   const mails: { to: string; subject: string; text: string }[] = [];
   const gone = new Set<string>();
   const channels: Channels = {
@@ -29,7 +29,7 @@ function harness(extra: Partial<NotifierOptions> = {}) {
     emailMode: "demo-outbox",
     async push(sub, a) {
       if (gone.has(sub.endpoint)) return "gone";
-      pushes.push({ endpoint: sub.endpoint, title: a.title });
+      pushes.push({ endpoint: sub.endpoint, title: a.title, quick_url: a.quick_url, quick_action: a.quick_action });
       return "ok";
     },
     async mail(to, subject, text, _account) {
@@ -130,9 +130,26 @@ describe("watched prices", () => {
     h.chain.price = 19_000;
     expect(await h.n.tick()).toBe(2); // the cap alert for policy #1 and the watch
     expect(h.pushes.map((p) => p.title)).toContain("VY8306 AMS→BCN, 2030-04-14: up €20 to €190");
+    // One-tap lock is off by default: alerts are exactly as before.
+    expect(h.pushes.every((p) => p.quick_url === undefined)).toBe(true);
     expect(await h.n.tick()).toBe(0);
     const after = await h.n.settings(h.req({ action: "watch_remove", id: v.watches[0].id }));
     expect(after.watches).toEqual([]);
+  });
+
+  it("one-tap lock is an option: when on, rise alerts carry a second action", async () => {
+    const h = harness({ watchRefreshSecs: 0 });
+    await h.n.settings(h.req({ action: "subscribe_push", subscription: SUB }));
+    expect((await h.n.settings(h.req({ action: "get" }))).quick_lock).toBe(false);
+    expect((await h.n.settings(h.req({ action: "set_quick_lock", on: true }))).quick_lock).toBe(true);
+    await h.n.settings(h.req({ action: "watch_add", coverage: cov }));
+    h.chain.price = 19_000;
+    await h.n.tick();
+    const p = h.pushes.find((x) => x.title.startsWith("VY8306"))!;
+    expect(p.quick_action).toBe("Lock at €205");
+    expect(p.quick_url).toBe("https://app.example/quote?fn=VY8306&date=2030-04-14&from=AMS&to=BCN&fare=economy_light&product=cap&quick=1&cap=20500");
+    // The cap alert of policy #1 has no quick action (nothing to lock).
+    expect(h.pushes.find((x) => x.title.includes("above your cap"))!.quick_url).toBeUndefined();
   });
 
   it("rejects what it cannot watch", async () => {
@@ -154,6 +171,17 @@ describe("watched prices", () => {
     expect((await h.n.settings(h.req({ action: "get" }))).watches[0].price_minor).toBe(13_900);
     now = Date.parse("2030-04-15T12:00:00Z") / 1000;
     expect((await h.n.settings(h.req({ action: "get" }, "alice.test", now))).watches).toEqual([]);
+  });
+});
+
+describe("alert email", () => {
+  it("adds the one-tap link only when the account turned it on", async () => {
+    const { alertMail } = await import("../src/channels.ts");
+    const al = { id: "w:x:watch_rise:1", policy_id: 0, kind: "watch_rise" as const, urgency: "action" as const, title: "t", body: "b", action: "Lock a max price", href: "/quote?fn=KL1695", quick: { href: "/quote?fn=KL1695&quick=1&cap=20500", action: "Lock at €205" } };
+    expect(alertMail(al, "https://app.example").text).not.toContain("quick=1");
+    const on = alertMail(al, "https://app.example", true).text;
+    expect(on).toContain("Lock a max price: https://app.example/quote?fn=KL1695\n");
+    expect(on).toContain("Lock at €205 (one tap, you confirm on the page): https://app.example/quote?fn=KL1695&quick=1&cap=20500");
   });
 });
 

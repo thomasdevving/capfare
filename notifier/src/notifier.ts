@@ -52,6 +52,7 @@ export type SettingsAction =
   | { action: "set_email"; email: string }
   | { action: "remove_email" }
   | { action: "test" }
+  | { action: "set_quick_lock"; on: boolean }
   | { action: "watch_add"; coverage: Coverage; seats?: number; target_minor?: number }
   | { action: "watch_remove"; id: string };
 
@@ -72,6 +73,8 @@ export interface SettingsView {
   push_devices: number;
   email: { address: string; verified: boolean } | null;
   email_mode: Channels["emailMode"];
+  /** One-tap lock in price alerts (off unless turned on). */
+  quick_lock: boolean;
   watches: WatchView[];
 }
 
@@ -145,6 +148,7 @@ export class Notifier {
       push_devices: a.push.length,
       email: a.email ? { address: maskEmail(a.email.address), verified: a.email.verified } : null,
       email_mode: this.o.channels.emailMode,
+      quick_lock: a.quick_lock === true,
       watches: (a.watches ?? []).map((w) => ({
         id: w.id,
         label: coverageLabel(w.coverage),
@@ -226,6 +230,9 @@ export class Notifier {
         this.o.store.markSent(req.account_id, watchAlerts(w, now).map((x) => x.id));
         break;
       }
+      case "set_quick_lock":
+        a.quick_lock = p.on === true;
+        break;
       case "watch_remove":
         a.watches = (a.watches ?? []).filter((w) => w.id !== p.id);
         a.sent = a.sent.filter((x) => !x.startsWith(`w:${p.id}:`));
@@ -268,12 +275,13 @@ export class Notifier {
     const a = this.o.store.account(account);
     let n = 0;
     for (const al of alerts) {
-      const msg = { title: al.title, body: al.body, url: `${this.o.appUrl}${al.href}`, tag: al.id };
+      const quick = a.quick_lock === true && al.quick ? { quick_url: `${this.o.appUrl}${al.quick.href}`, quick_action: al.quick.action } : {};
+      const msg = { title: al.title, body: al.body, url: `${this.o.appUrl}${al.href}`, tag: al.id, action: al.action, ...quick };
       const results = await Promise.all(a.push.map(async (s) => [s, await this.o.channels.push(s, msg)] as const));
       const gone = new Set(results.filter(([, r]) => r === "gone").map(([s]) => s.endpoint));
       if (gone.size) a.push = a.push.filter((s) => !gone.has(s.endpoint));
       if (a.email?.verified) {
-        const m = alertMail(al, this.o.appUrl);
+        const m = alertMail(al, this.o.appUrl, a.quick_lock === true);
         await this.o.channels.mail(a.email.address, m.subject, m.text, account).catch((e) => this.o.log?.("mail_failed", { error: String(e) }));
       }
       n++;

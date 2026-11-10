@@ -406,3 +406,5 @@ label.check input { margin-top: 4px; flex: 0 0 auto; width: auto; }
 .watch-box.is-highlighted { border: 1.5px solid var(--yellow); animation: watch-glow 1.6s ease-out 1; }
 @keyframes watch-glow { from { box-shadow: 0 0 0 0 rgba(255, 209, 0, 0.55); } to { box-shadow: 0 0 0 14px rgba(255, 209, 0, 0); } }
 @media (prefers-reduced-motion: reduce) { .watch-box.is-highlighted { animation: none; } }
+/* One-tap lock from a price alert (optional) */
+.quick-ready { margin: 16px 0; padding: 12px 16px; border-left: 4px solid var(--yellow); border-radius: 10px; background: var(--glass-soft); }

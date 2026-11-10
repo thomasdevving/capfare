@@ -6,8 +6,19 @@ import type { PushSub, Store } from "./store.ts";
 
 export type PushResult = "ok" | "gone" | "error";
 
+/** What the service worker (web/public/sw.js) shows. `quick_*`: optional second button. */
+export interface PushMessage {
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+  action?: string;
+  quick_url?: string;
+  quick_action?: string;
+}
+
 export interface Channels {
-  push(sub: PushSub, a: { title: string; body: string; url: string; tag: string }): Promise<PushResult>;
+  push(sub: PushSub, a: PushMessage): Promise<PushResult>;
   /** Returns false if email is not configured. */
   mail(to: string, subject: string, text: string, account: string): Promise<boolean>;
   emailMode: "smtp" | "demo-outbox" | "off";
@@ -55,9 +66,12 @@ export function realChannels(store: Store, opts: { demo: boolean; subject: strin
   };
 }
 
-export function alertMail(a: Alert, appUrl: string): { subject: string; text: string } {
+/** `quick`: the account turned on one-tap lock, so the quick link is added after the normal one. */
+export function alertMail(a: Alert, appUrl: string, quick = false): { subject: string; text: string } {
+  const lines = [a.body, "", `${a.action}: ${appUrl}${a.href}`];
+  if (quick && a.quick) lines.push(`${a.quick.action} (one tap, you confirm on the page): ${appUrl}${a.quick.href}`);
   return {
     subject: `CapFare: ${a.title}`,
-    text: [a.body, "", `${a.action}: ${appUrl}${a.href}`, "", "You get this because you turned on CapFare alerts. Turn them off on your policies page."].join("\n"),
+    text: [...lines, "", "You get this because you turned on CapFare alerts. Turn them off on your policies page."].join("\n"),
   };
 }

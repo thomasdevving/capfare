@@ -99,6 +99,9 @@ describe("watched prices", () => {
     const up = at(19_000);
     expect(up.map((a) => [a.id, a.kind, a.title])).toEqual([["w:ab:watch_rise:1", "watch_rise", "KL1695 AMS→BCN, 2027-06-14: up €20 to €190"]]);
     expect(up[0].href).toBe("/quote?fn=KL1695&date=2027-06-14&from=AMS&to=BCN&fare=economy_light&product=cap&pax=2");
+    // One-tap lock: cap 6% above the price now, rounded up to €5.
+    expect(up[0].quick).toEqual({ href: "/quote?fn=KL1695&date=2027-06-14&from=AMS&to=BCN&fare=economy_light&product=cap&pax=2&quick=1&cap=20500", action: "Lock at €205" });
+    expect(at(15_000)[0].quick).toBeUndefined(); // a drop is not a reason to lock
     expect(at(19_500)[0].id).toBe("w:ab:watch_rise:1");
     expect(at(21_000)[0].id).toBe("w:ab:watch_rise:2");
     expect(at(15_000)[0].id).toBe("w:ab:watch_drop:1");

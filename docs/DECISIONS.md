@@ -255,3 +255,14 @@ which dates and airport codes are plain strings). A link without a flight number
 cover. The web app manifest declares a Web Share Target, so on phones that support it "Share"
 in any booking app or browser offers CapFare and opens Check a flight with the link already
 read: the extension's main benefit, without an extension.
+
+**D38. One-tap lock from price alerts (option, off by default).** A watch alert (D36) about a
+rise or a met target can carry a second action, "Lock at €…", next to its normal link. It opens
+Check a flight with `quick=1&cap=…`: the quote loads by itself, the maximum price is the one in
+the alert (6% above the price when the alert was made, rounded up to €5; today's default if the
+price has passed it since), and a summary sits next to the Lock button. Nothing is bought
+without the user pressing Lock and signing; credit, the waiting time and the premium formula
+apply as always. The option is a per-account notifier setting (`set_quick_lock`, signed like the
+other settings). With it off, alerts, emails and push notifications are exactly as before, and
+the normal link and full form always work. Push notifications show the two actions as buttons
+where the browser supports them; tapping the notification itself opens the normal link.

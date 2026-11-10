@@ -210,6 +210,45 @@ test("watch a price for free: alert by email when it rises (demo outbox)", async
   await expect
     .poll(async () => ((await (await request.get(`/api/notify/outbox?account=${accountId}`)).json()) as { subject: string }[]).map((m) => m.subject).join("\n"), { timeout: 60_000, intervals: [3000] })
     .toMatch(/KL1695 AMS→BCN, 2027-06-14: up €\d+ to €\d+/);
+  // One-tap lock is off unless turned on: the alert has only the normal link.
+  const rise = ((await (await request.get(`/api/notify/outbox?account=${accountId}`)).json()) as { subject: string; text: string }[]).find((m) => / up €/.test(m.subject))!;
+  expect(rise.text).toContain("/quote?fn=KL1695");
+  expect(rise.text).not.toContain("quick=1");
   await page.getByRole("button", { name: "Stop" }).click();
   await expect(page.getByText("Nothing watched yet")).toBeVisible({ timeout: 20_000 });
+});
+
+test("one-tap lock (optional): the alert's extra link opens the quote ready to lock", async ({ page, request }) => {
+  test.setTimeout(180_000);
+  await signUp(page, "e2eq", 1);
+  await advance(request, { flight_key: OUT, to: 0 });
+  await page.goto("/policies");
+  await page.getByText("Get alerts").click();
+  await page.getByLabel("Email address").fill(`quick${Date.now()}@example.org`);
+  await page.getByRole("button", { name: "Send confirmation" }).click();
+  await expect(page.getByText("Confirm your CapFare alerts")).toBeVisible({ timeout: 20_000 });
+  await page.getByLabel(/One-tap lock in price alerts/).check();
+  await expect(page.getByText("One-tap lock is on for price alerts.")).toBeVisible({ timeout: 20_000 });
+  const accountId = await page.evaluate(() => JSON.parse(localStorage.getItem("capfare.wallet.v1")!).accountId as string);
+  const outbox = async () => (await (await request.get(`/api/notify/outbox?account=${accountId}`)).json()) as { subject: string; text: string }[];
+  await page.goto(`/notify/confirm?token=${/token=([\w-]+)/.exec((await outbox())[0].text)![1]}`);
+  await expect(page.getByText("Your email address is confirmed")).toBeVisible({ timeout: 20_000 });
+
+  await page.goto("/quote?fn=KL1695&date=2027-06-14&from=AMS&to=BCN&fare=economy_light");
+  await page.getByRole("button", { name: "Get a quote" }).click();
+  await page.getByRole("button", { name: "Watch the price" }).click();
+  await expect(page.getByText(/Watching this price/)).toBeVisible({ timeout: 30_000 });
+  await advance(request, { flight_key: OUT, to: 3 });
+  await expect.poll(async () => (await outbox()).map((m) => m.subject).join("\n"), { timeout: 60_000, intervals: [3000] }).toMatch(/KL1695 .* up €/);
+  const text = (await outbox()).find((m) => / up €/.test(m.subject))!.text;
+  expect(text).toMatch(/Lock a max price: http\S+\/quote\?fn=KL1695/); // the normal link is still there
+  const quickUrl = /Lock at €\d+ \(one tap, you confirm on the page\): (\S+)/.exec(text)![1];
+  const cap = Number(new URL(quickUrl).searchParams.get("cap"));
+
+  await page.goto(new URL(quickUrl).pathname + new URL(quickUrl).search);
+  await expect(page.getByText("Ready to lock from your alert:")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#cap")).toHaveValue(String(cap));
+  await page.getByLabel(/Lead passenger.s last name/).fill("Visser");
+  await page.getByRole("button", { name: new RegExp(`^Lock €${cap / 100} for`) }).click();
+  await expect(page.getByText(/Protection #\d+ is active/)).toBeVisible({ timeout: 60_000 });
 });

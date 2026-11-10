@@ -24,6 +24,8 @@ export interface AccountSubs {
   email?: EmailSub;
   /** Alert ids already delivered (bounded). */
   sent: string[];
+  /** One-tap lock in price alerts (opt-in): an extra "Lock at €…" action next to the normal link. */
+  quick_lock?: boolean;
   /** Watched prices (free alerts, no policy). Which flights someone watches is personal: kept here only. */
   watches?: WatchRecord[];
 }

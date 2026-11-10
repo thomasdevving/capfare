@@ -66,4 +66,4 @@ export async function quoteInputs(coverage: Coverage, product: "cap" | "drop", r
 
 export { premiumFor } from "./premium";
 
-export const defaultCap = (price: number) => Math.ceil((price * 1.06) / 500) * 500;
+export { defaultCap } from "@capfare/shared";

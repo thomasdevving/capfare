@@ -11,6 +11,7 @@ interface View {
   push_devices: number;
   email: { address: string; verified: boolean } | null;
   email_mode: "smtp" | "demo-outbox" | "off";
+  quick_lock: boolean;
 }
 
 const b64ToBytes = (s: string) => {
@@ -27,6 +28,7 @@ export default function NotifySettings({ accountId }: { accountId: string }) {
   const [view, setView] = useState<View | null>(null);
   const [onThisDevice, setOnThisDevice] = useState(false);
   const [email, setEmail] = useState("");
+  const [quickOn, setQuickOn] = useState<boolean | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ kind: "ok" | "error" | "info"; text: string } | null>(null);
   const [outbox, setOutbox] = useState<{ subject: string; text: string; at: number }[]>([]);
@@ -91,7 +93,7 @@ export default function NotifySettings({ accountId }: { accountId: string }) {
 
   return (
     <details className="card" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && !view && run("load", () => send({ action: "get" }))}>
-      <summary><strong>Get alerts</strong> <span className="small muted">— when a price passes your cap, a payout needs a booking check, or money arrives</span></summary>
+      <summary><strong>Get alerts</strong> <span className="small muted">— when a price passes your cap or a watched price moves, a payout needs a booking check, or money arrives</span></summary>
       <div style={{ marginTop: 12 }}>
         <h3 style={{ fontSize: "var(--s3)" }}>On this device</h3>
         {pushSupported ? (
@@ -134,6 +136,30 @@ export default function NotifySettings({ accountId }: { accountId: string }) {
             <p className="hint">Your address is stored only by CapFare&apos;s alert service, never on the blockchain, and is deleted when you remove it.</p>
           </>
         ) : null}
+
+        <h3 style={{ fontSize: "var(--s3)", marginTop: 18 }}>Price alerts</h3>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={quickOn ?? view?.quick_lock ?? false}
+            disabled={!!busy || !view}
+            onChange={(e) => {
+              const on = e.target.checked;
+              setQuickOn(on);
+              run("quick", async () => {
+                try {
+                  return await send({ action: "set_quick_lock", on });
+                } finally {
+                  setQuickOn(null); // the saved setting (or the old one, if saving failed)
+                }
+              }, on ? "One-tap lock is on for price alerts." : "One-tap lock is off. Price alerts link to the quote as before.");
+            }}
+          />
+          <span>
+            <strong>One-tap lock in price alerts</strong> (optional). When a price you watch rises or reaches your target, the alert also gets a{" "}
+            <em>Lock at €…</em> button that opens the quote ready to confirm, with the maximum price set 6% above the price then. You still check it and press Lock yourself. The normal link stays.
+          </span>
+        </label>
 
         <div className="btn-row" style={{ marginTop: 12 }}>
           <button className="btn btn-sm" disabled={!!busy || !view || (view.push_devices === 0 && !view.email?.verified)} onClick={() => run("test", () => send({ action: "test" }), "Test alert sent.")}>Send a test alert</button>

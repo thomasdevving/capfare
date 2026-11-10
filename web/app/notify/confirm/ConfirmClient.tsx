@@ -1,10 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { errText, getJson, Msg } from "@/components/app/ui";
 
 export default function ConfirmClient() {
   const [state, setState] = useState<{ ok: boolean; text: string } | null>(null);
+  // The token works once: never send it twice (React runs effects twice in development).
+  const sent = useRef(false);
   useEffect(() => {
+    if (sent.current) return;
+    sent.current = true;
     const token = new URLSearchParams(location.search).get("token") ?? "";
     getJson(`/api/notify/confirm?token=${encodeURIComponent(token)}`)
       .then(() => setState({ ok: true, text: "Your email address is confirmed. You'll get an email when something needs your attention." }))

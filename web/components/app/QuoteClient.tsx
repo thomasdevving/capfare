@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   coverageLabel, FARE_CLASSES, MAX_SEATS, parseBookingLink, validateCoverage, validateFlightKey,
@@ -8,6 +8,7 @@ import {
 import { commitmentFor, gasless, rememberedLastName, rememberLastName } from "@/lib/wallet";
 import { dateTime, duration, eur, usdc } from "@/lib/format";
 import { maxPremium, premiumFor } from "@/lib/premium";
+import { defaultCap } from "@capfare/shared";
 import { errText, getJson, Msg, postJson, SignInFirst, useSession } from "./ui";
 import BookingProof, { type ProofResult } from "./BookingProof";
 import WatchButton from "./WatchButton";
@@ -101,6 +102,12 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
   const [hint, setHint] = useState<number | undefined>(sp.get("hint") ? Number(sp.get("hint")) : undefined);
   const [link, setLink] = useState("");
   const [linkNote, setLinkNote] = useState<string | null>(null);
+  // One-tap lock from a price alert (opt-in, see NotifySettings): ?quick=1&cap=… loads the quote
+  // with that maximum price, ready to confirm. Without it, the page works exactly as before.
+  const quick = sp.get("quick") === "1" && sp.get("product") !== "drop";
+  const quickCap = Number(sp.get("cap") ?? NaN);
+  const [quickNote, setQuickNote] = useState<string | null>(null);
+  const quickDone = useRef(false);
   const [quotes, setQuotes] = useState<QuoteData[] | null>(null);
   const [caps, setCaps] = useState<number[]>([]);
   const [autoDrop, setAutoDrop] = useState(false);
@@ -146,6 +153,11 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
     );
   }
 
+  useEffect(() => {
+    if (quick && !formErr) void getQuote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Shared to CapFare from another app (installed web app share target): ?link=… or ?text=….
   useEffect(() => {
     const shared = sp.get("link") ?? sp.get("text") ?? sp.get("title");
@@ -176,7 +188,14 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
     try {
       const qs = await Promise.all(list.map((coverage) => postJson<QuoteData>("/api/quote", { coverage, product })));
       setQuotes(qs);
-      setCaps(qs.map((q) => Math.ceil((q.snapshot.price_minor * 1.06) / 500) * 500));
+      const caps0 = qs.map((q) => defaultCap(q.snapshot.price_minor));
+      if (quick && !quickDone.current && qs.length === 1 && Number.isFinite(quickCap)) {
+        quickDone.current = true;
+        // The alert's maximum, unless the price has passed it since: then today's default.
+        if (quickCap >= qs[0].snapshot.price_minor && quickCap <= qs[0].snapshot.price_minor * 1.5) caps0[0] = quickCap;
+        else setQuickNote(`The price has moved since the alert, so the maximum is now ${eur(caps0[0])}.`);
+      }
+      setCaps(caps0);
     } catch (e) {
       setErr(errText(e));
     } finally {
@@ -395,6 +414,10 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
             </p>
           ) : null}
 
+          {quick && ok && product === "cap" && !done ? (
+            <QuickReady note={quickNote} cap={caps[0]} premium={premiumTotal} delay={duration(pp.activation_delay_secs)} />
+          ) : null}
+
           {product === "cap" && allAvailable ? <WatchButton coverages={coverages} seats={seats} prices={quotes.map((q) => q.snapshot.price_minor)} highlight={sp.get("watch") === "1"} /> : null}
 
           {done ? (
@@ -440,6 +463,20 @@ export default function QuoteClient({ cfg }: { cfg: Cfg }) {
           ) : null}
         </section>
       ) : null}
+    </div>
+  );
+}
+
+/** One-tap lock: what is about to be locked, next to the Lock button (which it scrolls to). */
+function QuickReady({ note, cap, premium, delay }: { note: string | null; cap: number; premium: number; delay: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, []);
+  return (
+    <div ref={ref} className="quick-ready" role="status">
+      <strong>Ready to lock from your alert:</strong> maximum <span className="num">{eur(cap)}</span> per traveller for <span className="num">{eur(premium)}</span>, starting after {delay}. Check the details and press Lock below, or change anything above.
+      {note ? <> {note}</> : null}
     </div>
   );
 }

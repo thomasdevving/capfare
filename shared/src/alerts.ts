@@ -40,6 +40,11 @@ export interface Alert {
   /** Path in the web app. */
   href: string;
   action: string;
+  /**
+   * Optional one-tap lock (price watches): opens Check a flight with the quote loaded and the
+   * cap pre-set, ready to confirm. Sent only to accounts that turned it on; `href` always works.
+   */
+  quick?: { href: string; action: string };
 }
 
 export interface AlertContext {
@@ -205,6 +210,9 @@ export function quoteHref(c: Coverage, seats = 1, product: "cap" | "drop" = "cap
   return `/quote?${q}`;
 }
 
+/** Default maximum price for a new Price Cap: 6% above the price now, rounded up to €5. */
+export const defaultCap = (price: number) => Math.ceil((price * 1.06) / 500) * 500;
+
 /** Price moves are reported per band: 10% of the starting price, at least €10. */
 export const watchBand = (baseline: number) => Math.max(1000, Math.round(baseline / 10));
 
@@ -214,8 +222,10 @@ export function watchAlerts(w: Watch, p: WatchPrice | null | undefined): Alert[]
   const label = coverageLabel(w.coverage);
   const href = quoteHref(w.coverage, w.seats);
   const out: Alert[] = [];
-  const add = (kind: AlertKind, urgency: Urgency, suffix: string, title: string, body: string, action: string) =>
-    out.push({ id: `w:${w.id}:${kind}${suffix}`, policy_id: 0, kind, urgency, title, body, action, href });
+  const cap = defaultCap(p.price_minor);
+  const quick = { href: `${href}&quick=1&cap=${cap}`, action: `Lock at ${eurText(cap)}` };
+  const add = (kind: AlertKind, urgency: Urgency, suffix: string, title: string, body: string, action: string, withQuick = false) =>
+    out.push({ id: `w:${w.id}:${kind}${suffix}`, policy_id: 0, kind, urgency, title, body, action, href, ...(withQuick ? { quick } : {}) });
   if (!p.available) {
     add("watch_sold_out", "info", "", `${label}: sold out`, "The fare you're watching is sold out for now. We'll tell you if it comes back cheaper.", "View");
     return out;
@@ -224,9 +234,9 @@ export function watchAlerts(w: Watch, p: WatchPrice | null | undefined): Alert[]
   const band = Math.trunc(diff / watchBand(w.baseline_minor));
   const pct = Math.round((Math.abs(diff) / w.baseline_minor) * 100);
   if (w.target_minor !== undefined && p.price_minor <= w.target_minor) {
-    add("watch_target", "action", "", `${label}: ${eurText(p.price_minor)}, at or below your ${eurText(w.target_minor)}`, `The price you were waiting for${travellers(w.seats)}. Book it on any site, then add a Drop Guarantee in case it falls further.`, "See the price");
+    add("watch_target", "action", "", `${label}: ${eurText(p.price_minor)}, at or below your ${eurText(w.target_minor)}`, `The price you were waiting for${travellers(w.seats)}. Book it on any site, then add a Drop Guarantee in case it falls further. Not booking yet? Lock a maximum price.`, "See the price", true);
   } else if (band >= 1) {
-    add("watch_rise", "action", `:${band}`, `${label}: up ${eurText(diff)} to ${eurText(p.price_minor)}`, `${pct}% more than when you started watching. A Price Cap locks a maximum price${travellers(w.seats)} before it climbs further.`, "Lock a max price");
+    add("watch_rise", "action", `:${band}`, `${label}: up ${eurText(diff)} to ${eurText(p.price_minor)}`, `${pct}% more than when you started watching. A Price Cap locks a maximum price${travellers(w.seats)} before it climbs further.`, "Lock a max price", true);
   } else if (band <= -1) {
     add("watch_drop", "action", `:${-band}`, `${label}: down ${eurText(-diff)} to ${eurText(p.price_minor)}`, `${pct}% less than when you started watching. A good moment to book; a Drop Guarantee pays you back if it falls further within a week.`, "See the price");
   }

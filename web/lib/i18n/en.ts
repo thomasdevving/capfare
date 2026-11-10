@@ -160,7 +160,7 @@ export const en = {
   footer: {
     testnet: "Testnet prototype. No real money is used.",
     notInsurance: "CapFare is price protection, not insurance. A commercial launch would require a licensed partner.",
-    links: { github: "GitHub", docs: "Docs", transparency: "Transparency", x: "X", legal: "Legal", lp: "LP dashboard" },
+    links: { github: "GitHub", docs: "Docs", transparency: "Transparency", x: "X", legal: "Legal", lp: "LP dashboard", extension: "Extension", skyline: "Demo booking site" },
   },
   app: {
   },

@@ -16,6 +16,13 @@ the price passes their cap or something needs doing.
 > contracts, vault balances, policy purchases, claims and payouts are all on the public
 > explorer ([docs/TESTNET.md](docs/TESTNET.md)).
 >
+> **Try it:** the app at [capfare-production.up.railway.app](https://capfare-production.up.railway.app),
+> the extension at [/extension](https://capfare-production.up.railway.app/extension) (a ready
+> build to load unpacked), and Skyline Travel, the demo booking site, on its own address at
+> [skyline-travel-demo.up.railway.app](https://skyline-travel-demo.up.railway.app): search,
+> book with test card 4242 4242 4242 4242, and the extension offers a cap, a Drop Guarantee and
+> a live booking check on its pages.
+>
 > **Testnet prototype.** No real money. CapFare is price protection, not insurance; a
 > commercial launch would require a licensed insurer or other licensed partner (docs/LEGAL.md).
 
@@ -192,7 +199,8 @@ booking checker (demo mode), the relayer, the alert service and the web app. Two
 | `CAPFARE_ACCOUNT_KEY` (secret, testnet) | A full-access key of `capfare.testnet` for the relayer and the test-USDC top-ups; a separate key that can be removed on its own. |
 | `ORACLE_DEV_SEED`, `VERIFIER_DEV_SEED` (secrets) | 32-byte hex each. On testnet they must be the seeds whose public keys are registered in `att.v2.capfare.testnet` (the stack refuses to start otherwise). On a sandbox, without them the demo keys come from a public string in the source, so anyone could sign fake prices or bookings for your demo chain. |
 | `NOTIFIER_DATA_FILE` | `/data/notifier.json` with a volume at `/data`: alert settings, watches and the generated web-push keys survive redeploys. |
-| `SITE_URL` | Your public address (e.g. `https://capfare.up.railway.app`). Used in page metadata, in booking links inside Skyline's emails, and so the booking checker accepts live checks of those links. |
+| `SITE_URL` | Your public address (e.g. `https://capfare.up.railway.app`). Used in page metadata, in booking links inside Skyline's emails, and so the booking checker accepts live checks of those links. Also a build variable: the image packs an extension build for this address (served at `/extension`). |
+| `SKYLINE_URL` | Optional, also as a build variable: a second public address of the same service for Skyline Travel, the demo booking site (e.g. `https://skyline-travel-demo.up.railway.app`). Its root opens the booking site, CapFare's `/booker` pages redirect there, booking links in its emails use it, the booking checker accepts live checks of it, and the packed extension checks its pages automatically. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (secret), `VAPID_SUBJECT` | Optional with the volume above. Without either, a new pair is generated on every redeploy and existing push subscriptions stop working. |
 | `EXTENSION_URL`, `X_URL`, `GITHUB_URL` | Optional links on the landing page. |
 | `ONECLICK_API_KEY` (secret) | Optional; NEAR Intents dry quotes work without it. |
@@ -201,7 +209,7 @@ booking checker (demo mode), the relayer, the alert service and the web app. Two
 
 ## 10. Decisions and deviations
 
-[docs/DECISIONS.md](docs/DECISIONS.md) lists every deviation from the brief and later decisions (D1–D44).
+[docs/DECISIONS.md](docs/DECISIONS.md) lists every deviation from the brief and later decisions (D1–D45).
 Landing design plan, review and revisions with screenshots: [docs/LANDING_DESIGN.md](docs/LANDING_DESIGN.md).
 Hosting: `deploy/Dockerfile` + `railway.json` run the whole demo stack in one container, on NEAR testnet or a local sandbox.
 

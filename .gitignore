@@ -40,3 +40,6 @@ video/out/
 video/.profile*/
 video/audio/*.wav
 video/audio/*/
+
+# Extension build packed by the Docker image for the hosted demo
+web/public/capfare-extension.zip

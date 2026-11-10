@@ -333,3 +333,13 @@ also the first backtest of route cover (D30). The resulting multipliers (`flex_w
 `airport_group_mult_bps`) are applied on top of the single-flight formula. In this synthetic
 model a group lowers the loss ratio (more flights keep the cheapest fare down); real airports
 differ in price level and correlation, so the fit must be redone on real fares.
+
+**D45. The demo booking site on its own address.** Skyline Travel used to live at `/booker` on
+the CapFare domain, so the extension was only ever seen on CapFare's own site. The hosted demo
+now gives the same service a second public domain (`SKYLINE_URL`) and routes by host
+(`web/proxy.ts`): that domain's root opens the booking site and CapFare pages there redirect to
+CapFare; `/booker` on CapFare redirects to it. One app keeps one booking store, so bookings,
+emails and live checks need no syncing. The booking checker accepts live checks of both public
+addresses (`DEMO_BOOKER_PUBLIC_ORIGIN` is now a list) and fetches them inside the container.
+The image packs an extension build for the deployment (`/capfare-extension.zip`, install steps
+at `/extension`) whose content script also matches the booking site's domain.

@@ -25,7 +25,12 @@ RUN pnpm install --frozen-lockfile
 # prerendered metadata and label this all-in-one demo as a sandbox from first load.
 ARG SITE_URL=http://localhost:3000
 ARG CAPFARE_NETWORK=sandbox
-RUN SITE_URL=$SITE_URL CAPFARE_NETWORK=$CAPFARE_NETWORK pnpm --filter web build
+# Optional: the Skyline Travel demo booking site's own public address (same app, host routing).
+ARG SKYLINE_URL=
+RUN SITE_URL=$SITE_URL CAPFARE_NETWORK=$CAPFARE_NETWORK SKYLINE_URL=$SKYLINE_URL pnpm --filter web build
+# A ready extension build for this deployment, offered at /extension (download + install steps).
+RUN CAPFARE_APP_URL=$SITE_URL CAPFARE_DEMO_SITE_URL=$SKYLINE_URL pnpm --filter @capfare/extension build \
+ && pnpm --filter @capfare/extension run zip ../web/public/capfare-extension.zip
 ENV CAPFARE_NETWORK=$CAPFARE_NETWORK
 RUN gcc -shared -fPIC -o scripts/dev/librlimit_shim.so scripts/dev/rlimit_shim.c -ldl
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 STACK_QUIET=1

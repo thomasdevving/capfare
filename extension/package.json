@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsx scripts/build.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "zip": "tsx scripts/zip.ts"
   },
   "dependencies": {
     "@capfare/shared": "workspace:*"

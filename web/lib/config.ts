@@ -16,6 +16,8 @@ export interface ServerConfig {
   demo: boolean;
   oneClickApiKey?: string;
   siteUrl: string;
+  /** Public address of the Skyline Travel demo booking site when it has its own domain (demo only). */
+  skylineUrl?: string;
   extensionUrl?: string;
   githubUrl: string;
   xUrl?: string;
@@ -42,6 +44,7 @@ export function serverConfig(): ServerConfig {
     demo: e.CAPFARE_DEMO === "true",
     oneClickApiKey: e.ONECLICK_API_KEY,
     siteUrl: e.SITE_URL ?? "http://localhost:3000",
+    skylineUrl: e.SKYLINE_URL?.replace(/\/$/, "") || undefined,
     extensionUrl: e.EXTENSION_URL,
     githubUrl: e.GITHUB_URL ?? "https://github.com/thomasdevving/capfare",
     xUrl: e.X_URL,

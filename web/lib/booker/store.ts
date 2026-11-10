@@ -140,7 +140,7 @@ const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct
 const cityOf = (code: string) => ({ AMS: "Amsterdam", RTM: "Rotterdam", EIN: "Eindhoven", BCN: "Barcelona", MAD: "Madrid", AGP: "Malaga", LIS: "Lisbon", CDG: "Paris", LHR: "London", FCO: "Rome", ATH: "Athens", CPH: "Copenhagen" })[code] ?? code;
 const eur = (c: number) => `EUR ${(c / 100).toFixed(2)}`;
 
-export function manageUrl(b: Booking, origin = serverConfig().siteUrl): string {
+export function manageUrl(b: Booking, origin = serverConfig().skylineUrl ?? serverConfig().siteUrl): string {
   return `${origin.replace(/\/$/, "")}/booker/manage?ref=${b.ref}&t=${b.token}`;
 }
 

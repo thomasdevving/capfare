@@ -7,5 +7,5 @@ export const revalidate = 300;
 export default async function Page() {
   const { params, live } = await paramsOrExample();
   const c = serverConfig();
-  return <Landing locale="en" params={params} live={live} extensionUrl={c.extensionUrl ?? `${c.githubUrl}/tree/main/extension#install`} />;
+  return <Landing locale="en" params={params} live={live} extensionUrl={c.extensionUrl ?? "/extension"} />;
 }

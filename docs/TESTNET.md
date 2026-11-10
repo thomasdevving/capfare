@@ -67,10 +67,15 @@ The image in `deploy/Dockerfile` runs either mode. For testnet, set these servic
 | `ORACLE_DEV_SEED` | from `testnet.secrets.json` | secret |
 | `VERIFIER_DEV_SEED` | from `testnet.secrets.json` | secret |
 | `SITE_URL` | the public URL | build and runtime |
+| `SKYLINE_URL` | a second public domain of the same service for the demo booking site | optional; build and runtime (see README section 9) |
 | `NOTIFIER_DATA_FILE` | `/data/notifier.json` | with a volume mounted at `/data`, alert settings and watches survive redeploys |
 
 Nothing is deployed when the container starts, so redeploys no longer reset accounts, policies
 or balances: they live on testnet.
+
+The public demo: CapFare at https://capfare-production.up.railway.app (extension download and
+install steps at `/extension`) and Skyline Travel, the demo booking site, at
+https://skyline-travel-demo.up.railway.app (the same service, routed by host).
 
 ## Deploy a fresh copy (maintainers)
 

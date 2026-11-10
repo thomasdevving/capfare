@@ -31,7 +31,7 @@ export function Header({ locale, variant = "landing" }: { locale: Locale; varian
             </>
           )}
           {variant === "landing" ? (
-            <a className="btn btn-primary btn-sm" href={serverConfig().extensionUrl ?? `${serverConfig().githubUrl}/tree/main/extension#install`}>
+            <a className="btn btn-primary btn-sm" href={serverConfig().extensionUrl ?? "/extension"}>
               {t.hero.ctaChrome}
             </a>
           ) : null}
@@ -55,6 +55,8 @@ export function Footer({ locale }: { locale: Locale }) {
           <a href={`${c.githubUrl}/tree/main/docs`}>{t.footer.links.docs}</a>
           <Link href="/transparency">{t.footer.links.transparency}</Link>
           <Link href="/lp">{t.footer.links.lp}</Link>
+          <Link href="/extension">{t.footer.links.extension}</Link>
+          <a href={c.skylineUrl ? `${c.skylineUrl}/booker` : "/booker"}>{t.footer.links.skyline}</a>
           {c.xUrl ? <a href={c.xUrl}>{t.footer.links.x}</a> : null}
           <Link href="/legal">{t.footer.links.legal}</Link>
         </div>

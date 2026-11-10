@@ -71,6 +71,8 @@ function testnetSecrets() {
 
 export async function stack(opts: StackOptions) {
   const site = process.env.SITE_URL ?? `http://localhost:${opts.webPort}`;
+  // Optional: the Skyline Travel demo booking site's own public address (same app, host routing).
+  const skyline = process.env.SKYLINE_URL;
   const common = { CAPFARE_DEPLOYMENT: "demo", CORS_ORIGINS: `${site},http://localhost:${opts.webPort}` };
   const tsx = join(ROOT_DIR, "scripts", "node_modules", ".bin", "tsx");
   let sandbox: Awaited<ReturnType<typeof startSandbox>>["sandbox"] | null = null;
@@ -96,7 +98,7 @@ export async function stack(opts: StackOptions) {
     ...seeds,
     PORT: "8082",
     DEMO_BOOKER_ORIGIN: `http://localhost:${opts.webPort}`,
-    DEMO_BOOKER_PUBLIC_ORIGIN: site,
+    DEMO_BOOKER_PUBLIC_ORIGIN: [site, ...(skyline ? [skyline] : [])].join(","),
   });
   await waitFor("http://localhost:8082/health");
   let d: Deployment;
@@ -163,6 +165,7 @@ export async function stack(opts: StackOptions) {
     RAMP_PRIVATE_KEY: accountKey,
     CAPFARE_DEMO: "true",
     SITE_URL: site,
+    ...(skyline ? { SKYLINE_URL: skyline } : {}),
   };
   writeFileSync(join(ROOT_DIR, "web", ".env.local"), Object.entries(webEnv).map(([k, v]) => `${k}=${v}`).join("\n") + "\n", { mode: 0o600 });
   console.log(`stack ready (${opts.network}): oracle :8081, verifier :8082, relayer :8083, notifier :8084; web env written to web/.env.local`);

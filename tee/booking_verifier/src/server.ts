@@ -32,10 +32,11 @@ export async function main() {
   const demoAirline = demo ? new DemoAirline() : undefined;
   const realDns = (n: string, rr: string) => dns.resolve(n, rr as "TXT");
   const bookerOrigin = process.env.DEMO_BOOKER_ORIGIN; // where the checker fetches from, e.g. http://localhost:3000 (demo only)
-  // The address visitors see (e.g. https://capfare.up.railway.app); its booking links are accepted
-  // and fetched from bookerOrigin inside the same container.
-  const bookerPublic = process.env.DEMO_BOOKER_PUBLIC_ORIGIN ? new URL(process.env.DEMO_BOOKER_PUBLIC_ORIGIN).origin : undefined;
-  const demoOrigins = bookerOrigin ? [...new Set([new URL(bookerOrigin).origin, ...(bookerPublic ? [bookerPublic] : [])])] : [];
+  // The addresses visitors see (comma-separated, e.g. https://capfare.up.railway.app and the demo
+  // booking site's own domain); their booking links are accepted and fetched from bookerOrigin
+  // inside the same container.
+  const bookerPublic = (process.env.DEMO_BOOKER_PUBLIC_ORIGIN ?? "").split(",").map((s) => s.trim()).filter(Boolean).map((u) => new URL(u).origin);
+  const demoOrigins = bookerOrigin ? [...new Set([new URL(bookerOrigin).origin, ...bookerPublic])] : [];
   const baseResolver = demoKeys ? demoResolver(demoKeys, realDns) : realDns;
   const verifier = new Verifier({
     keys,
@@ -43,7 +44,7 @@ export async function main() {
     resolver: demo && bookerOrigin ? skylineResolver(`${bookerOrigin}/api/booker/dkim`, baseResolver) : baseResolver,
     statusCheckers: demoAirline ? { KL: (r, l) => demoAirline.checkStatus(r, l) } : undefined,
     pageOrigins: demo && bookerOrigin ? demoOrigins : (process.env.LIVE_CHECK_ORIGINS ?? "").split(",").filter(Boolean),
-    pageFetchOrigins: demo && bookerOrigin && bookerPublic ? { [bookerPublic]: new URL(bookerOrigin).origin } : undefined,
+    pageFetchOrigins: demo && bookerOrigin && bookerPublic.length ? Object.fromEntries(bookerPublic.map((o) => [o, new URL(bookerOrigin).origin])) : undefined,
   });
   const limiter = new RateLimiter(10, 0.2);
   const guard = (req: { socket: { remoteAddress?: string } }) => {

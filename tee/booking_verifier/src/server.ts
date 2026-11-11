@@ -15,7 +15,7 @@ import { openJson, type FlightKey, type Refundability, type RouteKey, type Seale
 
 /** The covered flight, or for route coverage the route: picks the flight to attest. */
 const hintOf = (p: { flight_key?: FlightKey; route?: RouteKey }): Hint | undefined => p.flight_key ?? p.route;
-import { HttpError, loadKeys, logger, RateLimiter, serve } from "@capfare/tee-common";
+import { clientKey, HttpError, loadKeys, logger, RateLimiter, serve } from "@capfare/tee-common";
 import { klm } from "./airlines/klm.ts";
 import { skyline } from "./airlines/skyline.ts";
 import { skylineResolver } from "./demo-dns.ts";
@@ -47,8 +47,8 @@ export async function main() {
     pageFetchOrigins: demo && bookerOrigin && bookerPublic.length ? Object.fromEntries(bookerPublic.map((o) => [o, new URL(bookerOrigin).origin])) : undefined,
   });
   const limiter = new RateLimiter(10, 0.2);
-  const guard = (req: { socket: { remoteAddress?: string } }) => {
-    if (!limiter.take(req.socket.remoteAddress ?? "?")) throw new HttpError(429, "too many requests");
+  const guard = (req: { headers?: Record<string, string | string[] | undefined>; socket: { remoteAddress?: string } }) => {
+    if (!limiter.take(clientKey(req))) throw new HttpError(429, "too many requests");
   };
   const wrap = async <T>(f: () => Promise<T>) => {
     try {

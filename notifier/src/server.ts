@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { NearViewClient, type Coverage, type SignedAccountRequest, type SignedSnapshot } from "@capfare/shared";
-import { HttpError, logger, RateLimiter, serve } from "@capfare/tee-common";
+import { clientKey, HttpError, logger, RateLimiter, serve } from "@capfare/tee-common";
 import { realChannels } from "./channels.ts";
 import { Notifier, NotifyError, type SettingsAction } from "./notifier.ts";
 import { Store } from "./store.ts";
@@ -44,8 +44,8 @@ export async function main() {
     watchRefreshSecs: Number(process.env.WATCH_REFRESH_SECS ?? (demo ? 0 : 3600)),
   });
   const limiter = new RateLimiter(20, 0.5);
-  const wrap = async <T>(req: { socket: { remoteAddress?: string } }, f: () => Promise<T>) => {
-    if (!limiter.take(req.socket.remoteAddress ?? "?")) throw new HttpError(429, "too many requests");
+  const wrap = async <T>(req: { headers?: Record<string, string | string[] | undefined>; socket: { remoteAddress?: string } }, f: () => Promise<T>) => {
+    if (!limiter.take(clientKey(req))) throw new HttpError(429, "too many requests");
     try {
       return await f();
     } catch (e) {

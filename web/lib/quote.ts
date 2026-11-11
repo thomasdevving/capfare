@@ -1,6 +1,7 @@
 import { coverageHash, type Coverage, type FlightKey, type Params, type SnapshotRecord, type VaultState } from "@capfare/shared";
 import { viewClient } from "./chain";
 import { serverConfig } from "./config";
+import { serviceHeaders } from "./proxy";
 
 export interface RouteFlight {
   flight_key: FlightKey;
@@ -31,7 +32,7 @@ export async function quoteInputs(coverage: Coverage, product: "cap" | "drop", r
   if (refresh && c.oracleUrl) {
     try {
       const body = "route" in coverage ? { route: coverage.route, submit: true } : { flight_key: coverage.flight, submit: true };
-      const r = await fetch(`${c.oracleUrl}/v1/snapshot`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+      const r = await fetch(`${c.oracleUrl}/v1/snapshot`, { method: "POST", headers: await serviceHeaders(), body: JSON.stringify(body), cache: "no-store" });
       const j = (await r.json()) as { snapshot?: { snapshot: { observed_at: number } }; flights?: RouteFlight[]; error?: string };
       if (!r.ok) oracleNote = j.error ?? "no fresh price";
       else {

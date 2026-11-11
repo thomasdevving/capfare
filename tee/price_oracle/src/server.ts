@@ -9,7 +9,7 @@
  */
 import { fileURLToPath } from "node:url";
 import { NearViewClient, type FlightKey, type RouteKey } from "@capfare/shared";
-import { HttpError, loadKeys, logger, RateLimiter, serve } from "@capfare/tee-common";
+import { clientKey, HttpError, loadKeys, logger, RateLimiter, serve } from "@capfare/tee-common";
 import { ScriptedPriceAdapter } from "./adapters/scripted.ts";
 import { DemoModelAdapter } from "./adapters/demo-model.ts";
 import { AIRLINE_SITES, AirlineSiteAdapter } from "./adapters/airline-page.ts";
@@ -54,7 +54,7 @@ export async function main() {
         report: keys.report,
       }),
       "POST /v1/snapshot": async (body: { flight_key?: FlightKey; route?: RouteKey; submit?: boolean }, req) => {
-        if (!perClient.take(req.socket.remoteAddress ?? "?")) throw new HttpError(429, "too many requests");
+        if (!perClient.take(clientKey(req))) throw new HttpError(429, "too many requests");
         if (body?.route) {
           const r = await oracle.routeSnapshot(body.route).catch((e) => {
             throw new HttpError(422, String(e instanceof Error ? e.message : e));

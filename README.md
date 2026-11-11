@@ -104,7 +104,8 @@ a Rust toolchain.
 | Web: **Credit** → "Top up €20 (simulated iDEAL)" | 21.60 tUSDC credit (rate 1.08 USDC/EUR). |
 | Web: **Check a flight** → KL1695, 2027-06-14, AMS→BCN, Economy Light → Get a quote → Lock | Premium from the public formula; policy active; max payout locked in cap_vault. |
 | Web: **Policies** → wait for activation → "Demo: next scripted price" ×3 | Airline price €260 (scripted). |
-| Web: **Claim** → Demo confirmation → paid €255 → Check my booking | Payout €70 = min(260, 255) − 180 − 5, paid to your wallet. |
+| Web: **Claim** → Demo confirmation → paid €255 → Check my booking | Approved: payout €70 = min(260, 255) − 180 − 5, held for now. Bookings can often be cancelled free for a day, so a payout waits for a live check of the booking after that window (D41; 30 seconds on the demo, 24 hours in production). |
+| Web: **Policies** → after 30 s, "Check my booking" → Booking code and last name (code from the demo confirmation) | The checker asks the airline whether the booking is still active, and the €70 is paid to your wallet. Bookings made on Skyline Travel can use the Booking page link instead. |
 | Web: **Transparency** | Parameters, pending changes, enclave keys, oracle freshness, collateral check. |
 | Web: **LP** | Vault state, share price per epoch, exposure by flight and route-week, deposit/withdraw. |
 | Web: **Check a flight** → Return, Travellers 2, return flight number → Get a quote → tick "Option: protect against a drop too" → Lock both flights | Two Price Caps (one trip) for two travellers; premiums, locks and max payouts are per traveller × 2. |

@@ -413,7 +413,8 @@ async fn full_lifecycles_and_forced_failures() -> R<()> {
     e.push_price(19_000).await?;
     let now = e.now().await?;
     let booking = e.sign_att(22_000, Refundability::NonRefundable, BookingStatus::Active, 22, now - 60, now);
-    e.call(&e.alice, &e.reg, "buy_drop", json!({"attestation": booking, "flight_key": flight(), "max_premium_minor": 5_000}), 0).await?;
+    // Expected to be refused (asserted through its effect below).
+    let _refused = e.call(&e.alice, &e.reg, "buy_drop", json!({"attestation": booking, "flight_key": flight(), "max_premium_minor": 5_000}), 0).await?;
     let used: bool = e.view(&e.att, "is_nullifier_used", json!({"product": "drop", "nullifier": Hash32([22; 32]), "flight_key_hash": flight_key_hash(&flight())})).await?;
     assert!(!used, "nullifier must be released when the purchase fails");
     e.check_books().await?;
@@ -427,7 +428,8 @@ async fn full_lifecycles_and_forced_failures() -> R<()> {
     let claimable: String = e.view(&e.drop, "get_claimable", json!({"account_id": e.lp})).await?;
     assert!(claimable.parse::<u128>()? > 900 * USDC);
     e.set_blocked(&e.lp, true).await?;
-    e.call(&e.lp, &e.drop, "claim_withdrawal", json!({}), 0).await?;
+    // Expected to fail at the transfer (asserted through its effect below).
+    let _failed = e.call(&e.lp, &e.drop, "claim_withdrawal", json!({}), 0).await?;
     let still: String = e.view(&e.drop, "get_claimable", json!({"account_id": e.lp})).await?;
     assert_eq!(still, claimable);
     e.check_books().await?;

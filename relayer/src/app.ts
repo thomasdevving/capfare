@@ -1,5 +1,5 @@
 import { NearViewClient, verifySnapshot, type SignedSnapshot } from "@capfare/shared";
-import { HttpError, type Handler } from "@capfare/tee-common";
+import { clientKey, HttpError, type Handler } from "@capfare/tee-common";
 import { checkDelegate, Quota, validSubName, type RelayConfig } from "./policy.ts";
 import { decodeSignedDelegate, viewDelegate, type ChainOps } from "./near.ts";
 
@@ -25,7 +25,8 @@ export function routes(cfg: AppConfig, chain: ChainOps, view?: NearViewClient): 
     return signers.keys;
   }
 
-  const ip = (req: any) => String(req.headers["x-forwarded-for"] ?? req.socket.remoteAddress ?? "?").split(",")[0].trim();
+  // The visitor's address as handed over by the web app (see clientKey); never a client-set header.
+  const ip = (req: any) => clientKey(req);
 
   return {
     "GET /health": () => ({ ok: true, relayer: cfg.relayerId, sponsored: [cfg.registry, cfg.capVault, cfg.dropVault, cfg.token] }),

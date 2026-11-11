@@ -8,9 +8,14 @@ if [[ "${1:-}" == "--testnet" ]]; then
   NETWORK=testnet pnpm --silent --filter @capfare/scripts demo
   exit $?
 fi
-[[ -f contracts/target/near/capfare_policy_registry/capfare_policy_registry.wasm ]] || ./scripts/build-contracts.sh
+# Fresh builds if present, else the committed prebuilt wasm in contracts/res (no Rust toolchain needed).
+[[ -f contracts/target/near/capfare_policy_registry/capfare_policy_registry.wasm || -f contracts/res/capfare_policy_registry.wasm ]] || ./scripts/build-contracts.sh
 [[ -f backtest/output/demo_params.json ]] || (cd backtest && python3 -m capfare_backtest.cli run --out output)
-# Containers that cannot raise RLIMIT_NOFILE need the shim (see Makefile `shim`).
+# The sandbox node wants 65535 open files; containers that cannot raise the limit need the shim
+# (see Makefile `shim`). Build it on the fly when the hard limit is lower and gcc is there.
+if [[ ! -f scripts/dev/librlimit_shim.so ]] && [[ "$(ulimit -Hn)" != "unlimited" ]] && (( $(ulimit -Hn) < 65535 )) && command -v gcc >/dev/null; then
+  gcc -shared -fPIC -o scripts/dev/librlimit_shim.so scripts/dev/rlimit_shim.c -ldl
+fi
 if [[ -f scripts/dev/librlimit_shim.so ]]; then export LD_PRELOAD="$PWD/scripts/dev/librlimit_shim.so"; fi
 export STACK_QUIET=1
 setsid pnpm --silent --filter @capfare/scripts stack > /tmp/capfare-stack.log 2>&1 &

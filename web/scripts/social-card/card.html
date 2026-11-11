@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!--
+  Link-preview card (X, Open Graph, GitHub social preview), styled like the landing hero:
+  the wing photo, the CapFare mark, the hero headline and the example cap chart.
+  Rendered to PNG by render.cjs; ?w=1280&h=640 for GitHub's social preview size.
+-->
+<style>
+@font-face { font-family: "Outfit"; src: url("../../../video/film/fonts/outfit-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+@font-face { font-family: "Atkinson"; src: url("../../../video/film/fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: var(--w); height: var(--h); overflow: hidden; }
+body { position: relative; background: #081b36; color: #fff; font-family: "Atkinson", sans-serif; -webkit-font-smoothing: antialiased; }
+.photo { position: absolute; inset: 0; background: url("../../public/images/hero-flight-capfare.webp") center 62% / cover no-repeat; }
+.shade { position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(5, 22, 47, 0.96), rgba(8, 30, 60, 0.82) 46%, rgba(9, 31, 60, 0.35)),
+    linear-gradient(180deg, rgba(6, 23, 48, 0.55), transparent 45%, rgba(6, 23, 48, 0.35)); }
+.wrap { position: absolute; inset: 0; padding: 56px 64px; display: flex; gap: 48px; align-items: center; }
+.left { flex: 1 1 0; }
+.brand { display: flex; align-items: center; gap: 12px; font: 650 36px/1 "Outfit"; margin-bottom: 40px; }
+h1 { font: 700 64px/1.04 "Outfit"; letter-spacing: -0.015em; max-width: 470px; }
+h1 .y { color: #FFD100; display: block; }
+.sub { margin-top: 26px; font-size: 23px; line-height: 1.4; color: #c7d5e8; max-width: 520px; }
+.card { flex: 0 0 470px; padding: 26px 26px 22px; border-radius: 24px; background: rgba(9, 28, 58, 0.72);
+  box-shadow: inset 0 0 0 1.5px rgba(211, 227, 249, 0.22), 0 30px 60px rgba(3, 10, 30, 0.45); }
+.card h2 { font: 650 28px/1.1 "Outfit"; }
+.card .d { font-size: 17px; color: #c7d5e8; margin-top: 4px; }
+svg { display: block; margin: 16px 0 14px; overflow: visible; }
+.stats { display: flex; gap: 10px; }
+.stat { flex: 1; padding: 12px 14px; border-radius: 14px; background: rgba(211, 227, 249, 0.08); }
+.stat span { display: block; font-size: 15px; color: #c7d5e8; }
+.stat b { display: block; font: 700 34px/1.15 "Outfit"; }
+.stat .gold { color: #FFD100; }
+</style>
+</head>
+<body>
+<div class="photo"></div>
+<div class="shade"></div>
+<div class="wrap">
+  <div class="left">
+    <div class="brand"><svg width="47" height="36" viewBox="0 0 104 80"><g fill="#FFD100" stroke="#FFD100" stroke-width="9" stroke-linejoin="round"><path d="M9 74 L41 16 L60 16 L28 74 Z"/><path d="M45 74 L67 34 L86 34 L64 74 Z"/></g><g transform="translate(70 -2) rotate(45 15 15) scale(1.25)" fill="#FFD100"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg>CapFare</div>
+    <h1>Protect your flight price. <span class="y">Before and after booking.</span></h1>
+    <p class="sub">Lock a maximum price on any booking site, or cover a drop after you book. Built on NEAR.</p>
+  </div>
+  <div class="card">
+    <h2>KL1695 AMS → BCN</h2>
+    <div class="d">14 June 2027, Economy Light · example</div>
+    <svg id="chart" width="418" height="190"></svg>
+    <div class="stats">
+      <div class="stat"><span>You get back</span><b class="gold">€70</b></div>
+      <div class="stat"><span>Your cap</span><b>€180</b></div>
+      <div class="stat"><span>Max payout</span><b>€150</b></div>
+    </div>
+  </div>
+</div>
+<script>
+  // Same example path and cap as the hero chart (web/lib/hero.ts).
+  const path = [17000, 16900, 17200, 17500, 17400, 18100, 19000, 19900, 20500, 21400, 22600, 23900, 25000, 26000];
+  const W = 418, H = 190, PMIN = 16000, PMAX = 26800, CAP = 18000;
+  const x = (i) => (i * (W - 6)) / (path.length - 1);
+  const y = (p) => 8 + ((PMAX - p) * (H - 16)) / (PMAX - PMIN);
+  const pts = path.map((p, i) => [x(i), y(p)]);
+  const line = pts.map(([a, b], i) => `${i ? "L" : "M"}${a.toFixed(1)},${b.toFixed(1)}`).join(" ");
+  // Area between the price and the cap, where the price is above the cap.
+  const cy = y(CAP);
+  const above = pts.map(([a, b]) => `${a.toFixed(1)},${Math.min(b, cy).toFixed(1)}`).join(" L");
+  const s = document.getElementById("chart");
+  s.innerHTML = `
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD100" stop-opacity="0.85"/><stop offset="1" stop-color="#FFD100" stop-opacity="0.18"/></linearGradient></defs>
+    <path d="M${above} L${x(path.length - 1)},${cy} L0,${cy} Z" fill="url(#g)"/>
+    <line x1="0" x2="${W}" y1="${cy}" y2="${cy}" stroke="#FFD100" stroke-width="3" stroke-dasharray="9 7"/>
+    <path d="${line}" fill="none" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${pts[pts.length - 1][0]}" cy="${pts[pts.length - 1][1]}" r="6.5" fill="#FFD100"/>
+    <g transform="translate(6 ${cy - 42})"><rect width="128" height="30" rx="15" fill="#FFD100"/><text x="64" y="20.5" text-anchor="middle" font-family="Outfit" font-weight="650" font-size="16" fill="#14132e">Your cap: €180</text></g>
+    <g transform="translate(${W - 74} ${pts[pts.length - 1][1] - 16})"><rect x="-6" y="-2" width="64" height="30" rx="15" fill="#e3edfc"/><text x="26" y="18.5" text-anchor="middle" font-family="Outfit" font-weight="650" font-size="16" fill="#0b2447">€260</text></g>`;
+  const q = new URLSearchParams(location.search);
+  document.documentElement.style.setProperty("--w", (q.get("w") ?? 1200) + "px");
+  document.documentElement.style.setProperty("--h", (q.get("h") ?? 630) + "px");
+</script>
+</body>
+</html>

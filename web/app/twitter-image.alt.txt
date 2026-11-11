@@ -1,0 +1,1 @@
+CapFare: protect your flight price, before and after booking. Example cap chart for KL1695 Amsterdam to Barcelona: cap €180, €70 back.

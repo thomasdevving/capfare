@@ -5,7 +5,8 @@ on NEAR testnet, with motion graphics, burned-in captions and placeholders for a
 voice-over. Two cuts:
 
 * **Full version** (3:45.5): every feature and scenario, and a chapter on how CapFare uses NEAR.
-* **X cut** (2:16.5): the same story, shorter scenes, a few scenes left out.
+* **X cut** (2:19.0): the same story with Thomas's recorded voice and webcam (`voice/`): scene
+  lengths, captions and webcam moments follow the recording, word by word.
 
 Paperwork, generated from the same timeline:
 
@@ -104,6 +105,15 @@ Footage, frames and audio are not in git (`video/footage`, `video/frames`, `vide
 Audio stems in `video/audio/<cut>/`: `music.wav` (not ducked), `sfx.wav`, `vo-timing.wav` (a soft
 guide tone while each caption is on screen, for timing a real voice-over; not in the mix) and
 `mix.wav` (music ducked about 9 dB under the voice-over spans, plus effects).
+
+## The X cut's voice
+
+`voice/plan.py` builds the X cut around the two webcam recordings in `video/` (Git LFS): it reads
+`voice/words.json` (each word with its time, from `voice/align2.py` + `voice/final.py`:
+pocketsphinx recognition checked against the script, then aligned word by word), writes
+`film/xvoice.js` (scene lengths, voice clip per scene, captions, webcam windows), extracts the
+webcam frames the film shows, and writes `audio/x/voice.wav`, which `audio/music.py x` mixes over
+the music (ducked under every spoken line). Then render, music and encode as above.
 
 ## Compositing the webcam and voice-over
 

@@ -1,582 +1,497 @@
 {
  "cues": [
   {
-   "t": 0.895,
+   "t": 4.37,
    "kind": "land",
    "gain": 1
   },
   {
-   "t": 2.326,
-   "kind": "land",
-   "gain": 1
-  },
-  {
-   "t": 4.563,
+   "t": 5.1,
    "kind": "tick",
    "gain": 1
   },
   {
-   "t": 7.975,
+   "t": 7.95,
+   "kind": "land",
+   "gain": 1
+  },
+  {
+   "t": 12.375,
    "kind": "iris",
    "gain": 1
   },
   {
-   "t": 8.818,
+   "t": 13.25,
    "kind": "logo",
    "gain": 1
   },
   {
-   "t": 13.045,
+   "t": 18.045,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 14.752,
+   "t": 19.923,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 15.483,
+   "t": 21.05,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 16.028,
+   "t": 21.75,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 16.572,
+   "t": 22.45,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 20.045,
+   "t": 26.538,
+   "kind": "click",
+   "gain": 0.8
+  },
+  {
+   "t": 26.645,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 20.508,
+   "t": 28.1,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 21.495,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 23.431,
+   "t": 30.45,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 23.956,
-   "kind": "check",
-   "gain": 1
-  },
-  {
-   "t": 24.178,
+   "t": 30.812,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 24.481,
+   "t": 31.05,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 25.435,
+   "t": 31.65,
+   "kind": "check",
+   "gain": 1
+  },
+  {
+   "t": 32.083,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 27.045,
+   "t": 34.245,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 28.459,
+   "t": 35.619,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 30.515,
+   "t": 38.13,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 31.871,
+   "t": 39.915,
+   "kind": "click",
+   "gain": 0.8
+  },
+  {
+   "t": 40.1,
    "kind": "land",
    "gain": 1
   },
   {
-   "t": 32.368,
+   "t": 41.083,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 33.45,
+   "t": 42.05,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 33.747,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 34.648,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 35.545,
+   "t": 42.845,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 36.918,
+   "t": 44.204,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 37.975,
+   "t": 45.635,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 39.048,
+   "t": 47.115,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 40.081,
+   "t": 48.594,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 41.155,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 41.975,
+   "t": 49.175,
    "kind": "iris",
    "gain": 1
   },
   {
-   "t": 42.217,
+   "t": 50.407,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 43.38,
+   "t": 52.627,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 44.781,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 45.845,
+   "t": 54.3,
    "kind": "alert",
    "gain": 1
   },
   {
-   "t": 46.19,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 47.991,
-   "kind": "check",
-   "gain": 1
-  },
-  {
-   "t": 50.045,
+   "t": 57.045,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 51.467,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 51.614,
-   "kind": "tick",
-   "gain": 1
-  },
-  {
-   "t": 53.612,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 53.671,
-   "kind": "tick",
-   "gain": 1
-  },
-  {
-   "t": 54.389,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 56.071,
-   "kind": "tick",
-   "gain": 1
-  },
-  {
-   "t": 56.072,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 57.957,
-   "kind": "tick",
-   "gain": 1
-  },
-  {
-   "t": 58.933,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 59.5,
+   "t": 57.25,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 59.733,
+   "t": 58.1,
+   "kind": "tick",
+   "gain": 0.7
+  },
+  {
+   "t": 58.78,
+   "kind": "tick",
+   "gain": 0.7
+  },
+  {
+   "t": 59.624,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 61.183,
+   "t": 60.98,
+   "kind": "tick",
+   "gain": 0.7
+  },
+  {
+   "t": 61.52,
+   "kind": "tick",
+   "gain": 0.7
+  },
+  {
+   "t": 64.254,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 62.045,
+   "t": 64.37,
+   "kind": "check",
+   "gain": 0.7
+  },
+  {
+   "t": 66.645,
+   "kind": "click",
+   "gain": 0.8
+  },
+  {
+   "t": 69.645,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 63.57,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 64.577,
+   "t": 71.18,
    "kind": "land",
    "gain": 1
   },
   {
-   "t": 66.481,
-   "kind": "deny",
-   "gain": 1
-  },
-  {
-   "t": 66.613,
+   "t": 72.571,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 66.965,
-   "kind": "deny",
-   "gain": 1
-  },
-  {
-   "t": 67.45,
-   "kind": "deny",
-   "gain": 1
-  },
-  {
-   "t": 67.935,
-   "kind": "deny",
-   "gain": 1
-  },
-  {
-   "t": 69.367,
+   "t": 74.03,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 70.975,
+   "t": 74.9,
+   "kind": "deny",
+   "gain": 1
+  },
+  {
+   "t": 75.89,
+   "kind": "deny",
+   "gain": 1
+  },
+  {
+   "t": 77.21,
+   "kind": "deny",
+   "gain": 1
+  },
+  {
+   "t": 77.443,
+   "kind": "click",
+   "gain": 0.8
+  },
+  {
+   "t": 79.775,
    "kind": "iris",
    "gain": 1
   },
   {
-   "t": 74.415,
+   "t": 83.906,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 74.72,
+   "t": 84.9,
    "kind": "coin",
    "gain": 1
   },
   {
-   "t": 74.858,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 76.085,
+   "t": 86.85,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 76.105,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 78.045,
+   "t": 87.045,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 79.315,
+   "t": 88.447,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 80.245,
+   "t": 89.9,
    "kind": "tick",
    "gain": 1
   },
   {
-   "t": 80.57,
+   "t": 90.328,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 81.555,
+   "t": 91.7,
    "kind": "tick",
    "gain": 1
   },
   {
-   "t": 81.632,
+   "t": 91.921,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 82.177,
+   "t": 92.746,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 82.973,
+   "t": 93.65,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 83.409,
+   "t": 94.25,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 83.92,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 85.276,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 86.045,
+   "t": 94.945,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 87.192,
+   "t": 95.443,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 88.482,
+   "t": 96.193,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 89.617,
+   "t": 98.405,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 89.705,
+   "t": 99.75,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 90.026,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 90.589,
+   "t": 100.95,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 91.662,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 93.045,
+   "t": 101.345,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 97.136,
+   "t": 105.611,
    "kind": "click",
    "gain": 0.8
   },
   {
-   "t": 98.13,
-   "kind": "click",
-   "gain": 0.8
-  },
-  {
-   "t": 98.74,
-   "kind": "check",
-   "gain": 1
-  },
-  {
-   "t": 101.045,
+   "t": 108.345,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 102,
+   "t": 108.35,
+   "kind": "check",
+   "gain": 1
+  },
+  {
+   "t": 111.11,
    "kind": "land",
    "gain": 0.7
   },
   {
-   "t": 102.8,
+   "t": 111.91,
    "kind": "land",
    "gain": 0.7
   },
   {
-   "t": 103.6,
+   "t": 112.71,
    "kind": "land",
    "gain": 0.7
   },
   {
-   "t": 107.603,
+   "t": 114.15,
    "kind": "land",
    "gain": 0.8
   },
   {
-   "t": 111.437,
+   "t": 116.36,
    "kind": "tick",
    "gain": 0.6
   },
   {
-   "t": 111.987,
+   "t": 116.91,
    "kind": "tick",
    "gain": 0.6
   },
   {
-   "t": 112.537,
+   "t": 117.46,
    "kind": "tick",
    "gain": 0.6
   },
   {
-   "t": 113.087,
+   "t": 118.01,
    "kind": "tick",
    "gain": 0.6
   },
   {
-   "t": 113.637,
+   "t": 118.56,
    "kind": "tick",
    "gain": 0.6
   },
   {
-   "t": 114.187,
+   "t": 119.11,
    "kind": "tick",
    "gain": 0.6
   },
   {
-   "t": 114.737,
+   "t": 119.66,
    "kind": "tick",
    "gain": 0.6
   },
   {
-   "t": 115.287,
+   "t": 120.21,
    "kind": "tick",
    "gain": 0.6
   },
   {
-   "t": 115.837,
+   "t": 120.76,
    "kind": "land",
    "gain": 1
   },
   {
-   "t": 119.717,
-   "kind": "tick",
-   "gain": 0.5
-  },
-  {
-   "t": 119.947,
+   "t": 124.53,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 119.967,
+   "t": 125.95,
    "kind": "tick",
    "gain": 0.5
   },
   {
-   "t": 120.217,
+   "t": 126.2,
    "kind": "tick",
    "gain": 0.5
   },
   {
-   "t": 120.467,
+   "t": 126.45,
    "kind": "tick",
    "gain": 0.5
   },
   {
-   "t": 120.717,
+   "t": 126.7,
    "kind": "tick",
    "gain": 0.5
   },
   {
-   "t": 122.975,
+   "t": 126.95,
+   "kind": "tick",
+   "gain": 0.5
+  },
+  {
+   "t": 127.875,
    "kind": "iris",
    "gain": 1
   },
   {
-   "t": 126.057,
+   "t": 131.27,
    "kind": "check",
    "gain": 1
   },
   {
-   "t": 127.086,
+   "t": 132.43,
    "kind": "tick",
    "gain": 1
   },
   {
-   "t": 128.114,
-   "kind": "tick",
-   "gain": 1
-  },
-  {
-   "t": 131.045,
+   "t": 133.545,
    "kind": "wipe",
    "gain": 1
   },
   {
-   "t": 131.75,
+   "t": 134.3,
    "kind": "logo",
    "gain": 0.8
   }
@@ -584,262 +499,213 @@
  "vo": [
   {
    "beat": "intro",
-   "start": 0.45,
-   "end": 2.696,
-   "text": "You find a flight for 170 euros.",
-   "cam": true
+   "start": 0.68,
+   "end": 3.09,
+   "text": "Hi, my name's Thomas, and I built CapFare."
   },
   {
    "beat": "intro",
-   "start": 2.696,
-   "end": 5.263,
-   "text": "A day later, the same seat costs 260.",
-   "cam": true
+   "start": 3.64,
+   "end": 6.25,
+   "text": "So let's say you find a flight for 170 euros."
   },
   {
    "beat": "intro",
-   "start": 5.263,
-   "end": 8.15,
-   "text": "Or you book, and the next morning it's cheaper.",
-   "cam": true
+   "start": 6.7,
+   "end": 9.53,
+   "text": "A day later, the same seat costs 260 euros."
+  },
+  {
+   "beat": "intro",
+   "start": 9.92,
+   "end": 12.15,
+   "text": "Or you book, the next morning it's cheaper."
   },
   {
    "beat": "logo",
-   "start": 8.95,
-   "end": 11.95,
-   "text": "CapFare locks the price of your flight, wherever you book.",
-   "cam": false
+   "start": 13.58,
+   "end": 15.44,
+   "text": "CapFare locks the price of your flight,"
   },
   {
    "beat": "logo",
-   "start": 11.95,
-   "end": 13.15,
-   "text": "It runs on NEAR.",
-   "cam": false
+   "start": 15.44,
+   "end": 17.64,
+   "text": "wherever you book. And it runs on NEAR."
   },
   {
    "beat": "find",
-   "start": 13.95,
-   "end": 16.275,
-   "text": "The extension recognises the flight on",
-   "cam": false
+   "start": 19.18,
+   "end": 22.01,
+   "text": "The extension recognises the flight on any booking site"
   },
   {
    "beat": "find",
-   "start": 16.275,
-   "end": 20.15,
-   "text": "any booking site and offers to lock a maximum price.",
-   "cam": false
+   "start": 22.01,
+   "end": 24.04,
+   "text": "and offers to lock a maximum price."
   },
   {
    "beat": "account",
-   "start": 20.95,
-   "end": 24.05,
-   "text": "A passkey creates a readable NEAR account.",
-   "cam": false
+   "start": 27.78,
+   "end": 30.16,
+   "text": "A passkey creates a readable NEAR account."
   },
   {
    "beat": "account",
-   "start": 24.05,
-   "end": 27.15,
-   "text": "No seed phrase, no gas, prepaid credit.",
-   "cam": false
+   "start": 30.16,
+   "end": 33.03,
+   "text": "No seed phrase, no gas, and prepaid credit."
   },
   {
    "beat": "lock",
-   "start": 27.95,
-   "end": 31.574,
-   "text": "The premium comes from a public formula on-chain.",
-   "cam": false
+   "start": 35.38,
+   "end": 38.25,
+   "text": "The premium comes from a public formula on-chain."
   },
   {
    "beat": "lock",
-   "start": 31.574,
-   "end": 35.65,
-   "text": "The maximum payout is locked in the vault first.",
-   "cam": false
+   "start": 38.65,
+   "end": 41.38,
+   "text": "The maximum payout is locked in the vault first."
   },
   {
    "beat": "choices",
-   "start": 36.45,
-   "end": 42.15,
-   "text": "Choose the deductible and a lock of three to thirty days.",
-   "cam": false
+   "start": 43.98,
+   "end": 47.35,
+   "text": "Choose the deductible and a lock of three to thirty days."
   },
   {
    "beat": "alerts",
-   "start": 42.95,
-   "end": 45.603,
-   "text": "When the demo price passes your cap,",
-   "cam": false
+   "start": 50.38,
+   "end": 52.45,
+   "text": "When the price passes your cap,"
   },
   {
    "beat": "alerts",
-   "start": 45.603,
-   "end": 48.255,
-   "text": "you get an alert in the app,",
-   "cam": false
+   "start": 52.45,
+   "end": 53.78,
+   "text": "you get an alert in the app,"
   },
   {
    "beat": "alerts",
-   "start": 48.255,
-   "end": 50.15,
-   "text": "by push or by email.",
-   "cam": false
+   "start": 53.78,
+   "end": 55.59,
+   "text": "by push or by email."
   },
   {
    "beat": "claim",
-   "start": 50.95,
-   "end": 53.283,
-   "text": "Claim with the original email.",
-   "cam": false
+   "start": 58.18,
+   "end": 59.7,
+   "text": "Claim with the original email."
   },
   {
    "beat": "claim",
-   "start": 53.283,
-   "end": 56.083,
-   "text": "The payout waits for a live",
-   "cam": false
+   "start": 59.7,
+   "end": 62.63,
+   "text": "The payout waits for a live check of the booking"
   },
   {
    "beat": "claim",
-   "start": 56.083,
-   "end": 59.35,
-   "text": "check of the booking after a day,",
-   "cam": false
-  },
-  {
-   "beat": "claim",
-   "start": 59.35,
-   "end": 62.15,
-   "text": "then it's paid from the vault.",
-   "cam": false
+   "start": 62.63,
+   "end": 65.33,
+   "text": "after a day, then it's paid from the vault."
   },
   {
    "beat": "verify",
-   "start": 62.95,
-   "end": 66.834,
-   "text": "Only the flight, fare and price reach the chain.",
-   "cam": false
+   "start": 70.78,
+   "end": 74.17,
+   "text": "Only the flight, fare and price reach the chain."
   },
   {
    "beat": "verify",
-   "start": 66.834,
-   "end": 71.15,
-   "text": "Edited emails, reused bookings and other people's bookings are refused.",
-   "cam": false
+   "start": 74.75,
+   "end": 78.78,
+   "text": "Edited emails, reused bookings and other people's bookings are refused."
   },
   {
    "beat": "drop",
-   "start": 71.95,
-   "end": 75.05,
-   "text": "Just booked? The Drop Guarantee pays",
-   "cam": false
-  },
-  {
-   "beat": "drop",
-   "start": 75.05,
-   "end": 78.15,
-   "text": "if the same flight gets cheaper.",
-   "cam": false
+   "start": 80.98,
+   "end": 85.47,
+   "text": "Just booked? The Drop Guarantee pays if the same flight gets cheaper."
   },
   {
    "beat": "flex",
-   "start": 78.95,
-   "end": 81.915,
-   "text": "Route cover pays against the cheapest fare,",
-   "cam": false
+   "start": 88.18,
+   "end": 90.31,
+   "text": "Route cover pays against the cheapest fare,"
   },
   {
    "beat": "flex",
-   "start": 81.915,
-   "end": 86.15,
-   "text": "up to three days either side and from nearby airports.",
-   "cam": false
+   "start": 90.74,
+   "end": 93.81,
+   "text": "up to three days either side and from nearby airports."
   },
   {
    "beat": "travellers",
-   "start": 86.95,
-   "end": 90.05,
-   "text": "Up to nine travellers on one policy,",
-   "cam": false
+   "start": 96.08,
+   "end": 98.2,
+   "text": "Up to nine travellers on one policy,"
   },
   {
    "beat": "travellers",
-   "start": 90.05,
-   "end": 93.15,
-   "text": "and a return trip bought as one.",
-   "cam": false
+   "start": 98.2,
+   "end": 99.9,
+   "text": "and a return trip bought as one."
   },
   {
    "beat": "lp",
-   "start": 93.95,
-   "end": 97.55,
-   "text": "Liquidity providers fund two vaults.",
-   "cam": false
+   "start": 102.48,
+   "end": 104.58,
+   "text": "Liquidity providers fund two vaults."
   },
   {
    "beat": "lp",
-   "start": 97.55,
-   "end": 101.15,
-   "text": "Every policy is fully collateralised.",
-   "cam": false
+   "start": 105.03,
+   "end": 107.4,
+   "text": "Every policy is fully collateralised."
   },
   {
    "beat": "near",
-   "start": 101.95,
-   "end": 106.897,
-   "text": "Why NEAR? Gasless meta-transactions through our relayer,",
-   "cam": true
+   "start": 109.48,
+   "end": 113.41,
+   "text": "So why NEAR? Gasless meta-transactions through our relayer,"
   },
   {
    "beat": "near",
-   "start": 106.897,
-   "end": 109.723,
-   "text": "and readable named accounts.",
-   "cam": true
+   "start": 113.82,
+   "end": 115.39,
+   "text": "and readable named accounts."
   },
   {
    "beat": "near",
-   "start": 109.723,
-   "end": 116.79,
-   "text": "NEP-141 tokens, async cross-contract calls that roll back on failure,",
-   "cam": false
+   "start": 116.06,
+   "end": 121.27,
+   "text": "NEP-141 tokens, async cross-contract calls that roll back on failure,"
   },
   {
    "beat": "near",
-   "start": 116.79,
-   "end": 119.617,
-   "text": "and ed25519 checks on-chain.",
-   "cam": false
+   "start": 121.7,
+   "end": 125.01,
+   "text": "and ed25519 checks on-chain."
   },
   {
    "beat": "near",
-   "start": 119.617,
-   "end": 123.15,
-   "text": "All on the public explorer.",
-   "cam": false
+   "start": 125.85,
+   "end": 127.54,
+   "text": "All on the public explorer."
   },
   {
    "beat": "status",
-   "start": 123.95,
-   "end": 128.064,
-   "text": "It's a testnet prototype: live contracts, demo prices,",
-   "cam": true
-  },
-  {
-   "beat": "status",
-   "start": 128.064,
-   "end": 131.15,
-   "text": "services not in an enclave yet.",
-   "cam": true
+   "start": 129.08,
+   "end": 133.24,
+   "text": "It's a testnet prototype: live contracts, demo prices."
   },
   {
    "beat": "end",
-   "start": 131.95,
-   "end": 136.15,
-   "text": "CapFare. Built at the NEAR Hackathon.",
-   "cam": true
+   "start": 134.68,
+   "end": 137.77,
+   "text": "So this is CapFare, built for the NEAR Hackathon."
   }
  ]
 }

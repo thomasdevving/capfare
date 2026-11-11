@@ -20,7 +20,7 @@ m:ss.s from the start of each cut. **CAM** = said on camera (webcam placeholder 
   - `0:10.0` CapFare locks the price of your flight, wherever you book.
   - `0:13.3` It runs on NEAR.
 
-### 0:15.0–0:24.0  01 · Find a flight: It recognises the flight you're looking at
+### 0:15.0–0:24.0  01 · Chrome extension: The CapFare Chrome extension recognises your flight
 
 - **VO** 0:15.5–0:23.7: The CapFare extension recognises the flight on any booking site. Here, on our demo site, it offers to lock a maximum price.
   - `0:15.5` The CapFare extension recognises the flight on any booking site.
@@ -166,109 +166,104 @@ m:ss.s from the start of each cut. **CAM** = said on camera (webcam placeholder 
 - **CAM** 3:40.0–3:45.2: CapFare. Built at the NEAR Hackathon.
   - `3:40.0` CapFare. Built at the NEAR Hackathon.
 
-## X cut (2:16.5)
+## X cut (2:19.0)
 
-### 0:00.0–0:08.5  Opening (on camera)
+### 0:00.0–0:12.9  Opening (on camera)
 
-- **CAM** 0:00.5–0:05.3: You find a flight for 170 euros. A day later, the same seat costs 260.
-  - `0:00.5` You find a flight for 170 euros.
-  - `0:02.7` A day later, the same seat costs 260.
-- **CAM** 0:05.3–0:08.2: Or you book, and the next morning it's cheaper.
-  - `0:05.3` Or you book, and the next morning it's cheaper.
+- **CAM** (recorded, part 1 0.75–12.60 s)
+  - `0:00.7` Hi, my name's Thomas, and I built CapFare.
+  - `0:03.6` So let's say you find a flight for 170 euros.
+  - `0:06.7` A day later, the same seat costs 260 euros.
+  - `0:09.9` Or you book, the next morning it's cheaper.
 
-### 0:08.5–0:13.5  CapFare in one line
+### 0:12.9–0:18.5  CapFare in one line
 
-- **VO** 0:09.0–0:13.2: CapFare locks the price of your flight, wherever you book. It runs on NEAR.
-  - `0:09.0` CapFare locks the price of your flight, wherever you book.
-  - `0:12.0` It runs on NEAR.
+- **VO** (recorded, part 1 12.59–17.03 s)
+  - `0:13.6` CapFare locks the price of your flight,
+  - `0:15.4` wherever you book. And it runs on NEAR.
 
-### 0:13.5–0:20.5  01 · Find a flight: It recognises the flight you're looking at
+### 0:18.5–0:27.1  01 · Chrome extension: The CapFare Chrome extension recognises your flight
 
-- **VO** 0:14.0–0:20.2: The extension recognises the flight on any booking site and offers to lock a maximum price.
-  - `0:14.0` The extension recognises the flight on
-  - `0:16.3` any booking site and offers to lock a maximum price.
+- **VO** (recorded, part 1 18.06–23.30 s)
+  - `0:19.2` The extension recognises the flight on any booking site
+  - `0:22.0` and offers to lock a maximum price.
 
-### 0:20.5–0:27.5  02 · Account: A passkey, a readable name, no gas
+### 0:27.1–0:34.7  02 · Account: A passkey, a readable name, no gas
 
-- **VO** 0:21.0–0:27.2: A passkey creates a readable NEAR account. No seed phrase, no gas, prepaid credit.
-  - `0:21.0` A passkey creates a readable NEAR account.
-  - `0:24.1` No seed phrase, no gas, prepaid credit.
+- **VO** (recorded, part 1 23.58–29.21 s)
+  - `0:27.8` A passkey creates a readable NEAR account.
+  - `0:30.2` No seed phrase, no gas, and prepaid credit.
 
-### 0:27.5–0:36.0  04 · Price Cap: Lock a maximum price before you book
+### 0:34.7–0:43.3  04 · Price Cap: Lock a maximum price before you book
 
-- **VO** 0:28.0–0:35.7: The premium comes from a public formula on-chain. The maximum payout is locked in the vault first.
-  - `0:28.0` The premium comes from a public formula on-chain.
-  - `0:31.6` The maximum payout is locked in the vault first.
+- **VO** (recorded, part 1 29.72–36.10 s)
+  - `0:35.4` The premium comes from a public formula on-chain.
+  - `0:38.7` The maximum payout is locked in the vault first.
 
-### 0:36.0–0:42.5  05 · Your choices: Choose the deductible and how long the lock lasts
+### 0:43.3–0:49.7  05 · Your choices: Choose the deductible and how long the lock lasts
 
-- **VO** 0:36.5–0:42.2: Choose the deductible and a lock of three to thirty days.
-  - `0:36.5` Choose the deductible and a lock of three to thirty days.
+- **VO** (recorded, part 1 36.35–40.10 s)
+  - `0:44.0` Choose the deductible and a lock of three to thirty days.
 
-### 0:42.5–0:50.5  06 · Alerts: The price passes your cap. You hear about it.
+### 0:49.7–0:57.5  06 · Alerts: The price passes your cap. You hear about it.
 
-- **VO** 0:43.0–0:50.2: When the demo price passes your cap, you get an alert in the app, by push or by email.
-  - `0:43.0` When the demo price passes your cap,
-  - `0:45.6` you get an alert in the app,
-  - `0:48.3` by push or by email.
+- **VO** (recorded, part 1 40.21–45.80 s)
+  - `0:50.4` When the price passes your cap,
+  - `0:52.5` you get an alert in the app,
+  - `0:53.8` by push or by email.
 
-### 0:50.5–1:02.5  07 · Book and claim: Book anywhere. Claim the difference.
+### 0:57.5–1:10.1  07 · Book and claim: Book anywhere. Claim the difference.
 
-- **VO** 0:51.0–1:02.2: Claim with the original email. The payout waits for a live check of the booking after a day, then it's paid from the vault.
-  - `0:51.0` Claim with the original email.
-  - `0:53.3` The payout waits for a live
-  - `0:56.1` check of the booking after a day,
-  - `0:59.4` then it's paid from the vault.
+- **VO** (recorded, part 1 46.37–53.90 s)
+  - `0:58.2` Claim with the original email.
+  - `0:59.7` The payout waits for a live check of the booking
+  - `1:02.6` after a day, then it's paid from the vault.
 
-### 1:02.5–1:11.5  08 · Verification: Only the flight, fare and price reach the chain
+### 1:10.1–1:20.3  08 · Verification: Only the flight, fare and price reach the chain
 
-- **VO** 1:03.0–1:11.2: Only the flight, fare and price reach the chain. Edited emails, reused bookings and other people's bookings are refused.
-  - `1:03.0` Only the flight, fare and price reach the chain.
-  - `1:06.8` Edited emails, reused bookings and other people's bookings are refused.
+- **VO** (recorded, part 1 54.42–62.80 s)
+  - `1:10.8` Only the flight, fare and price reach the chain.
+  - `1:14.8` Edited emails, reused bookings and other people's bookings are refused.
 
-### 1:11.5–1:18.5  09 · Drop Guarantee: Just booked? Covered if it gets cheaper
+### 1:20.3–1:27.5  09 · Drop Guarantee: Just booked? Covered if it gets cheaper
 
-- **VO** 1:12.0–1:18.2: Just booked? The Drop Guarantee pays if the same flight gets cheaper.
-  - `1:12.0` Just booked? The Drop Guarantee pays
-  - `1:15.1` if the same flight gets cheaper.
+- **VO** (recorded, part 1 63.33–68.20 s)
+  - `1:21.0` Just booked? The Drop Guarantee pays if the same flight gets cheaper.
 
-### 1:18.5–1:26.5  10 · Flexible cover: Any flight on your route, days and airports
+### 1:27.5–1:35.4  10 · Flexible cover: Any flight on your route, days and airports
 
-- **VO** 1:19.0–1:26.2: Route cover pays against the cheapest fare, up to three days either side and from nearby airports.
-  - `1:19.0` Route cover pays against the cheapest fare,
-  - `1:21.9` up to three days either side and from nearby airports.
+- **VO** (recorded, part 1 68.41–74.42 s)
+  - `1:28.2` Route cover pays against the cheapest fare,
+  - `1:30.7` up to three days either side and from nearby airports.
 
-### 1:26.5–1:33.5  11 · Travellers and return trips: Up to nine travellers. Both flights at once.
+### 1:35.4–1:41.8  11 · Travellers and return trips: Up to nine travellers. Both flights at once.
 
-- **VO** 1:27.0–1:33.2: Up to nine travellers on one policy, and a return trip bought as one.
-  - `1:27.0` Up to nine travellers on one policy,
-  - `1:30.1` and a return trip bought as one.
+- **VO** (recorded, part 1 75.12–79.32 s)
+  - `1:36.1` Up to nine travellers on one policy,
+  - `1:38.2` and a return trip bought as one.
 
-### 1:33.5–1:41.5  14 · Liquidity providers: Two vaults. Every policy fully collateralised.
+### 1:41.8–1:48.8  14 · Liquidity providers: Two vaults. Every policy fully collateralised.
 
-- **VO** 1:34.0–1:41.2: Liquidity providers fund two vaults. Every policy is fully collateralised.
-  - `1:34.0` Liquidity providers fund two vaults.
-  - `1:37.6` Every policy is fully collateralised.
+- **VO** (recorded, part 1 80.08–85.38 s)
+  - `1:42.5` Liquidity providers fund two vaults.
+  - `1:45.0` Every policy is fully collateralised.
 
-### 1:41.5–2:03.5  17 · How CapFare uses NEAR: Why NEAR
+### 1:48.8–2:08.4  17 · How CapFare uses NEAR: Why NEAR
 
-- **CAM** 1:42.0–1:49.7: Why NEAR? Gasless meta-transactions through our relayer, and readable named accounts.
-  - `1:42.0` Why NEAR? Gasless meta-transactions through our relayer,
-  - `1:46.9` and readable named accounts.
-- **VO** 1:49.7–1:59.6: NEP-141 tokens, async cross-contract calls that roll back on failure, and ed25519 checks on-chain.
-  - `1:49.7` NEP-141 tokens, async cross-contract calls that roll back on failure,
-  - `1:56.8` and ed25519 checks on-chain.
-- **VO** 1:59.6–2:03.2: All on the public explorer.
-  - `1:59.6` All on the public explorer.
+- **CAM** (recorded, part 2 1.61–20.05 s)
+  - `1:49.5` So why NEAR? Gasless meta-transactions through our relayer,
+  - `1:53.8` and readable named accounts.
+  - `1:56.1` NEP-141 tokens, async cross-contract calls that roll back on failure,
+  - `2:01.7` and ed25519 checks on-chain.
+  - `2:05.9` All on the public explorer.
 
-### 2:03.5–2:11.5  Why I built it, honest status (on camera)
+### 2:08.4–2:14.0  Why I built it, honest status (on camera)
 
-- **CAM** 2:04.0–2:11.2: It's a testnet prototype: live contracts, demo prices, services not in an enclave yet.
-  - `2:04.0` It's a testnet prototype: live contracts, demo prices,
-  - `2:08.1` services not in an enclave yet.
+- **CAM** (recorded, part 2 20.45–24.99 s)
+  - `2:09.1` It's a testnet prototype: live contracts, demo prices.
 
-### 2:11.5–2:16.5  End card
+### 2:14.0–2:19.0  End card
 
-- **CAM** 2:12.0–2:16.2: CapFare. Built at the NEAR Hackathon.
-  - `2:12.0` CapFare. Built at the NEAR Hackathon.
+- **CAM** (recorded, part 2 27.73–31.20 s)
+  - `2:14.7` So this is CapFare, built for the NEAR Hackathon.
 

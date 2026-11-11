@@ -8,35 +8,35 @@
   "h": 760,
   "round": false,
   "start": 0.017,
-  "end": 8.383,
-  "fullStart": 0.6,
-  "fullEnd": 7.95
+  "end": 12.883,
+  "fullStart": 0.017,
+  "fullEnd": 12.5
  },
  {
   "beat": "near",
-  "kind": "pip",
-  "x": 72,
-  "y": 812,
-  "w": 220,
-  "h": 220,
-  "round": true,
-  "start": 101.767,
-  "end": 110.067,
-  "fullStart": 102.25,
-  "fullEnd": 109.617
- },
- {
-  "beat": "status",
-  "kind": "pip",
+  "kind": "large",
   "x": 1240,
   "y": 300,
   "w": 560,
   "h": 560,
   "round": false,
-  "start": 123.767,
-  "end": 131.383,
-  "fullStart": 124.25,
-  "fullEnd": 130.95
+  "start": 108.65,
+  "end": 111.7,
+  "fullStart": 109.05,
+  "fullEnd": 111.3
+ },
+ {
+  "beat": "status",
+  "kind": "large",
+  "x": 1240,
+  "y": 300,
+  "w": 560,
+  "h": 560,
+  "round": false,
+  "start": 128.267,
+  "end": 134.25,
+  "fullStart": 128.65,
+  "fullEnd": 133.85
  },
  {
   "beat": "end",
@@ -46,9 +46,9 @@
   "w": 260,
   "h": 260,
   "round": true,
-  "start": 131.767,
-  "end": 136.383,
-  "fullStart": 132.25,
-  "fullEnd": 135.95
+  "start": 134.267,
+  "end": 139,
+  "fullStart": 134.267,
+  "fullEnd": 138.85
  }
 ]

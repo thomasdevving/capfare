@@ -17,8 +17,8 @@ with your camera recording: see "Compositing the webcam" in README.md.
 
 | Scene | Kind | Start | Full from | Full until | End | x | y | w | h | Shape |
 |---|---|---|---|---|---|---|---|---|---|---|
-| intro | large | 0:00.0 | 0:00.6 | 0:08.0 | 0:08.4 | 96 | 120 | 860 | 760 | rounded rect (r = 26 px) |
-| near | pip | 1:41.8 | 1:42.3 | 1:49.6 | 1:50.1 | 72 | 812 | 220 | 220 | circle |
-| status | pip | 2:03.8 | 2:04.3 | 2:11.0 | 2:11.4 | 1240 | 300 | 560 | 560 | rounded rect (r = 26 px) |
-| end | pip | 2:11.8 | 2:12.3 | 2:16.0 | 2:16.4 | 1560 | 760 | 260 | 260 | circle |
+| intro | large | 0:00.0 | 0:00.0 | 0:12.5 | 0:12.9 | 96 | 120 | 860 | 760 | rounded rect (r = 26 px) |
+| near | large | 1:48.7 | 1:49.1 | 1:51.3 | 1:51.7 | 1240 | 300 | 560 | 560 | rounded rect (r = 26 px) |
+| status | large | 2:08.3 | 2:08.7 | 2:13.9 | 2:14.3 | 1240 | 300 | 560 | 560 | rounded rect (r = 26 px) |
+| end | pip | 2:14.3 | 2:14.3 | 2:18.9 | 2:19.0 | 1560 | 760 | 260 | 260 | circle |
 

@@ -14,6 +14,10 @@
 const fs = require("fs");
 const path = require("path");
 const TL = require("../film/timeline.js");
+// The X cut follows the recorded voice when there is one (video/voice/plan.py).
+global.window = global.window ?? {};
+try { require("../film/xvoice.js"); } catch {}
+const XV = global.window.XVOICE;
 
 const ROOT = path.join(__dirname, "..");
 const meta = (cut) => JSON.parse(fs.readFileSync(path.join(ROOT, "out", cut, "meta.json"), "utf8"));
@@ -30,8 +34,12 @@ const srtT = (t) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(ms % 1000).padStart(3, "0")}`;
 };
 // The NEAR chapter's sections start when the voice-over reaches them (same rule as film.js).
-const NEAR_KEYS = [[/^Why$/], [/^Accounts$/, /^readable$/], [/^Premiums,$/], [/^Every$/, /^async$/], [/^Price$/, /^ed25519$/], [/^And$/, /^All$/]];
+const NEAR_KEYS = [[/^Gasless$/, /^why$/i], [/^Accounts$/, /^readable$/], [/^Premiums,$/], [/^Every$/, /^NEP-141$/, /^async$/], [/^Price$/, /^ed25519$/], [/^And$/, /^All$/]];
 function wordTime(beat, re) {
+  if (beat.xwords) {
+    const w = beat.xwords.find((x) => re.test(x.w) || re.test(x.w.replace(/[.,?!:;]+$/, "")));
+    return w ? w.t : null;
+  }
   for (const c of TL.captions(beat)) {
     const ws = c.text.split(" ");
     const i = ws.findIndex((w) => re.test(w));
@@ -40,8 +48,9 @@ function wordTime(beat, re) {
   return null;
 }
 function nearSpan(cut, k) {
-  const beat = TL.cut(cut).beats.find((b) => b.id === "near");
+  let beat = TL.cut(cut).beats.find((b) => b.id === "near");
   if (!beat) return "not in this cut";
+  if (cut === "x" && XV) { const v = XV.beats.find((b) => b.id === "near"); beat = { ...beat, start: v.start, dur: v.dur, xwords: v.words }; }
   const starts = NEAR_KEYS.map((ks) => { for (const re of ks) { const t = wordTime(beat, re); if (t != null) return Math.max(0.2, t - 0.3); } return null; });
   if (starts[k] == null) return "in the receipts (next row)";
   const next = starts.slice(k + 1).find((x) => x != null) ?? beat.dur;
@@ -64,6 +73,13 @@ for (const cut of CUTS) {
     const title = b.kicker ? `${b.kicker}: ${b.title}` : NAMES[b.id] ?? b.id;
     s += `### ${mmss(mb.start)}–${mmss(mb.start + mb.dur)}  ${title}\n\n`;
     const caps = M[cut].vo.filter((v) => v.beat === b.id);
+    if (cut === "x" && XV) {
+      const xv = XV.beats.find((x) => x.id === b.id);
+      s += `- **${xv.cam ? "CAM" : "VO"}** (recorded, ${xv.voice.src === "p1" ? "part 1" : "part 2"} ${xv.voice.in.toFixed(2)}–${xv.voice.out.toFixed(2)} s)\n`;
+      for (const c of caps) s += `  - \`${mmss(c.start)}\` ${c.text}\n`;
+      s += `\n`;
+      continue;
+    }
     for (const v of b.vo) {
       const mine = caps.filter((c) => v.t.includes(c.text.split(" ").slice(0, 3).join(" ")) || v.t.includes(c.text));
       const t0 = mine.length ? mine[0].start : mb.start, t1 = mine.length ? mine[mine.length - 1].end : mb.start + mb.dur;

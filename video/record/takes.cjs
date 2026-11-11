@@ -538,6 +538,71 @@ const TAKES = {
     });
   },
 
+  /**
+   * Verification on the hosted demo, so the footage shows the real public addresses: someone
+   * else's booking on Skyline Travel, checked live through the extension, then refused for a claim.
+   *   APP_URL=https://capfare-production.up.railway.app EXT_DIR=video/out/ext-hosted \
+   *   REC_PROFILE=.profile-hosted REC_PROXY=1 NODE_USE_ENV_PROXY=1 node video/record/takes.cjs verifyhosted
+   */
+  async verifyhosted(ctx) {
+    const page = ctx.pages()[0];
+    if (!state.hostedMain) {
+      await go(page, "/account");
+      await page.getByLabel("Choose an account name").fill(state.hostedName ?? "anna-demo");
+      await page.getByLabel(/Device key in this browser/).check();
+      await page.getByRole("button", { name: "Create account" }).click();
+      await page.getByText("Signed in as").waitFor({ timeout: 120_000 });
+      state.hostedMain = (await page.locator("main").innerText()).match(/Signed in as\s+(\S+)/)?.[1];
+      save();
+      await topUp(page);
+    }
+    if (!state.hostedCap) {
+      await go(page, "/quote?fn=KL1695&date=2027-06-14&from=AMS&to=BCN&fare=economy_light");
+      await page.getByRole("button", { name: "Get a quote" }).click();
+      await page.getByText(/Verified airline price/).first().waitFor({ timeout: 90_000 });
+      const slider = page.locator("#cap");
+      if (await slider.count()) await slider.fill((await slider.getAttribute("max")) ?? "30000");
+      await page.getByLabel(/Lead passenger.s last name/).fill("de Vries");
+      await page.getByRole("button", { name: /^Lock / }).click();
+      await page.getByText(/Protection(s)? #\d+/).first().waitFor({ timeout: 180_000 });
+      state.hostedCap = Number((await page.getByText(/Protection(s)? #\d+/).first().innerText()).match(/#(\d+)/)[1]);
+      save();
+      await sleep(25_000); // the cap becomes active after its activation delay
+    }
+    const b = await api("/api/booker/bookings", { fn: "KL1695", from: "AMS", to: "BCN", date: "2027-06-14", fare: "economy_light", passengers: [{ title: "Ms", first: "Eva", last: "Smit" }], email: "eva@example.org", card: "4242424242424242" });
+    state.hostedEva = b.manage;
+    save();
+    console.log("booking page", b.manage);
+    await page.goto(b.manage, { waitUntil: "load" });
+    await page.waitForLoadState("networkidle").catch(() => {});
+    await take(ctx, "verify-hosted", async (tk) => {
+      await page.waitForSelector("capfare-overlay", { state: "attached", timeout: 60_000 });
+      await sleep(2200);
+      const at = await findOverlayCta(page);
+      if (!at) throw new Error("overlay call to action not found");
+      const popup = ctx.waitForEvent("page", { timeout: 15_000 });
+      await tk.clickAt(at[0], at[1], "verify with capfare");
+      const np = await popup;
+      const url = np.url() === "about:blank" ? (await np.waitForURL(/http/), np.url()) : np.url();
+      await np.close();
+      // Opening the CapFare page is a page change: cut straight to it once it is ready.
+      await tk.idle(async () => {
+        await page.goto(url, { waitUntil: "load" });
+        await page.getByRole("button", { name: "Verify booking" }).waitFor({ timeout: 90_000 });
+        await sleep(1200);
+      }, "open verify");
+      await sleep(900);
+      await tk.click(page.getByRole("button", { name: "Verify booking" }), "verify booking");
+      await tk.idle(() => page.getByText("Booking verified").first().waitFor({ timeout: 120_000 }), "verify");
+      await sleep(2000);
+      await tk.click(page.getByRole("button", { name: `Claim Price Cap #${state.hostedCap}` }), "claim");
+      await tk.idle(() => page.getByText(/another passenger/).waitFor({ timeout: 180_000 }), "binding");
+      await sleep(1000);
+      await tk.ensureVisible(page.getByText(/another passenger/));
+      await sleep(3500);
+    });
+  },
+
   /** Drop Guarantee bought right after booking; the price drops inside the window; settle. */
   async drop(ctx) {
     await advance(fare("economy_standard"), 0);

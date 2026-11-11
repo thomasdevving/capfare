@@ -30,8 +30,10 @@
   const C = { navy: "#0b2447", ink: "#0b1024", yellow: "#FFD100", onYellow: "#14132e", blue: "#0f5fc2", link: "#173f73", light: "#f2f6fb", light2: "#e3edfc", line: "#dfe7f0", lav: "#d9cfff", green: "#246c42", muted: "#50627a" };
   const TS = 1;      // pace factor for entrances (1 = as designed)
   const TR = 1.15;   // transition length (s)
-  const XF = 0.45;   // crossfade between footage shots (s)
-  const DIS = 0.35;  // dissolve over a cut-out wait (s)
+  const XF = 0.45;   // crossfade between footage shots, only where a shot asks for it (xf: true)
+  // A wait that was cut out (chain finality) is an instant cut: the page simply updates, as it
+  // does in a browser. A dissolve there blends two scroll positions and looks unnatural.
+  const DIS = 0;
 
   // ---------- easing ----------
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -183,7 +185,7 @@
     const r = realOf(f, c);
     for (let k = f.cuts.length - 1; k >= 0; k--) {
       const cc = f.cuts[k];
-      if (c >= cc && c - cc < DIS) {
+      if (DIS > 0 && c >= cc && c - cc < DIS) {
         const before = f.idles[k][0] - 0.02;
         return [{ src: frameSrc(f, before), a: 1 }, { src: frameSrc(f, r), a: ease((c - cc) / DIS) }];
       }
@@ -319,19 +321,35 @@
       const to = s.to ?? f.cend;
       const len = (s.len ?? to - s.from) * fit;
       const o = { ...s, f, to, len, at: t, rate: (to - s.from) / len };
+      // tmap [[u, c], ...]: one continuous shot played at varying speed (u = 0..1 of its screen
+      // time, c = compressed take seconds), instead of cutting between parts of a page.
+      o.cAt = (u) => {
+        const m = s.tmap;
+        if (!m) return s.from + u * (to - s.from);
+        if (u <= m[0][0]) return m[0][1];
+        for (let i = 0; i < m.length - 1; i++) if (u <= m[i + 1][0]) return lerp(m[i][1], m[i + 1][1], (u - m[i][0]) / (m[i + 1][0] - m[i][0]));
+        return m[m.length - 1][1];
+      };
+      o.uAt = (c) => {
+        const m = s.tmap;
+        if (!m) return (c - s.from) / (to - s.from);
+        if (c <= m[0][1]) return m[0][0];
+        for (let i = 0; i < m.length - 1; i++) if (c <= m[i + 1][1]) return lerp(m[i][0], m[i + 1][0], (c - m[i][1]) / (m[i + 1][1] - m[i][1]));
+        return m[m.length - 1][0];
+      };
       o.crop = Array.isArray(s.crop) ? s.crop : autoCrop(f, s.from, to, browser, s.crop ?? {});
       o.clicks = f.events
         .filter((e) => e.type === "click")
         .map((e) => ({ x: e.x * 1440, y: e.y * 900, c: compOf(f, e.t), label: e.label }))
         .filter((k) => k.c >= s.from && k.c <= to)
-        .map((k) => ({ ...k, lt: o.at + (k.c - s.from) / o.rate }));
+        .map((k) => ({ ...k, lt: o.at + o.uAt(k.c) * o.len }));
       o.clicks.forEach((k) => cue(beat.start + k.lt, "click", 0.8));
       t += len;
       return o;
     });
     const end = t;
     function stateAt(o, lt) {
-      const c = clamp(s2c(o, lt), o.from, o.to);
+      const c = clamp(o.cAt(clamp((lt - o.at) / o.len)), o.from, o.to);
       const u = clamp((lt - o.at) / o.len);
       const crop = cropAt(o.crop, u, browser.vw, browser.vh);
       return { c, crop };
@@ -346,14 +364,17 @@
         const o = S2[i];
         const st = stateAt(o, lt);
         let layers = layersAt(o.f, st.c).map((L) => ({ ...L, crop: st.crop }));
-        if (i > 0 && lt - o.at < XF) {
+        if (i > 0 && o.xf && lt - o.at < XF) {
           const pv = S2[i - 1];
           const ps = stateAt(pv, pv.at + pv.len);
           const mix = ease((lt - o.at) / XF);
           layers = [{ src: frameSrc(pv.f, realOf(pv.f, ps.c)), a: 1, crop: ps.crop }, ...layers.map((L) => ({ ...L, a: L.a * mix }))];
         }
         browser.draw(layers);
-        browser.setUrl(o.url ?? "", o.host, !!o.badge && lt - o.at > (o.badgeAt ?? 0));
+        // urls: [[c, path, host, badge], ...] when the page changes inside one shot.
+        const u = o.urls ? [...o.urls].reverse().find((x) => st.c >= x[0]) ?? o.urls[0] : null;
+        if (u) browser.setUrl(u[1], u[2], !!u[3]);
+        else browser.setUrl(o.url ?? "", o.host, !!o.badge && lt - o.at > (o.badgeAt ?? 0));
         browser.ringsAt(o.clicks.filter((k) => lt >= k.lt && lt - k.lt < 0.75).map((k) => ({ x: k.x, y: k.y, p: (lt - k.lt) / 0.75 })), st.crop);
       },
     };

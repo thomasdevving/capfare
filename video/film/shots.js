@@ -86,46 +86,39 @@ window.SHOTS = {
  */
 window.FACTS.verified = 170;
 window.SHOTS_X = {
+  // One continuous recording per scene where the page stays the same (tmap speeds through
+  // dead time); a cut only where the page itself changes, and then an instant one.
   find: [
-    { take: "ext-search", from: 6.4, to: 10.6, len: 3.4, crop: { w: 1240, bias: 0.4 }, url: "/booker", host: "skyline" },
-    { take: "ext-search", from: 12.0, to: 16.6, len: 4.6, crop: [[0, 520, 300, 920], [0.35, 520, 300, 920], [0.75, 560, 380, 880], [1, 560, 380, 880]], url: "/booker/results", host: "skyline", badge: true, badgeAt: 0.9 },
+    { take: "ext-search", from: 6.4, to: 16.6, len: 8.0, tmap: [[0, 6.4], [0.42, 10.2], [0.5, 11.6], [1, 16.6]], crop: [[0, 100, 40, 1240], [0.44, 100, 40, 1240], [0.64, 520, 300, 920], [1, 560, 380, 880]], url: "/booker/results", host: "skyline", badge: true, badgeAt: 4.2 },
   ],
   account: [{ take: "account", from: 2.4, to: 10.46, len: 7.0, crop: { w: 1000, x0: 110 }, url: "/account" }],
-  // The cap slider jumps when the recorder sets it (5.6-8.6 s of the take): left out.
-  lock: [
-    { take: "buy-cap", from: 2.2, to: 5.5, len: 2.6, crop: { w: 960, x0: 100 }, url: "/quote" },
-    { take: "buy-cap", from: 8.7, to: 15.76, len: 5.6, crop: { w: 960, x0: 100 }, url: "/quote" },
-  ],
-  choices: [
-    { take: "options", from: 37.4, to: 41.4, len: 2.9, crop: { w: 900, x0: 120, y: 470 }, url: "/quote" },
-    { take: "options", from: 45.4, to: 49.4, len: 2.9, crop: { w: 900, x0: 120, y: 560 }, url: "/quote" },
-  ],
+  // Starts after the recorder set the cap slider (it jumps when set by a script).
+  lock: [{ take: "buy-cap", from: 6.9, to: 15.76, len: 8.4, crop: { w: 960, x0: 100 }, url: "/quote" }],
+  choices: [{ take: "options", from: 39.5, to: 46.4, len: 5.9, crop: { w: 960, x0: 110, y: 520 }, url: "/quote" }],
   alerts: [{ take: "price-rise", from: 36.2, to: 44.6, len: 7.2, crop: { w: 1100, x0: 110 }, url: "/policies" }],
   claim: {
     // Frame the upload, then the result at the top of the page once it is in.
     left: [{ take: "claim", from: 38.0, to: 45.0, len: 5.4, crop: [[0, 110, 300, 900], [0.3, 110, 300, 900], [0.5, 110, 40, 900], [1, 110, 40, 900]], url: "/claim/11" }],
-    right: [{ take: "claim-release", from: 41.6, to: 48.0, len: 5.8, crop: [[0, 110, 260, 900], [0.5, 110, 260, 900], [0.64, 110, 40, 900], [1, 110, 40, 900]], url: "/claim/11" }],
-    rightAt: 6.3,
+    // Only the button, then the paid result: the link field and help text above it show the
+    // local recording address.
+    right: [{ take: "claim-release", from: 44.0, to: 48.0, len: 4.6, crop: [[0, 110, 638, 507], [0.3, 110, 638, 507], [0.305, 110, 40, 900], [1, 110, 40, 900]], url: "/claim/11" }],
+    rightAt: 6.2,
   },
   verify: [
-    { take: "binding", from: 1.6, to: 4.2, len: 2.6, crop: [[0, 160, 120, 1280], [1, 300, 300, 1100]], url: "/booker/manage", host: "skyline", badge: true, badgeAt: 1.2 },
-    { take: "binding", from: 31.6, to: 35.6, len: 3.8, crop: { w: 1000, x0: 110, y: 430 }, url: "/verify" },
-    { take: "binding", from: 36.2, to: 41.7, len: 3.6, crop: { w: 1000, x0: 110, y: 520 }, url: "/verify" },
+    // Recorded on the hosted demo: Skyline's booking page -> "Verify with CapFare" -> CapFare's
+    // checker (the real booking-page address in the link field) -> verified -> claim refused.
+    { take: "verify-hosted", from: 0.6, to: 12.6, len: 9.6, tmap: [[0, 0.6], [0.29, 3.9], [0.52, 6.4], [0.8, 10.4], [1, 12.6]],
+      crop: [[0, 200, 120, 1240], [0.289, 200, 120, 1240], [0.29, 110, 150, 1000], [1, 110, 150, 1000]],
+      urls: [[0, "/booker/manage?ref=DC55M6", "skyline", true], [3.89, "/verify", "app", false]] },
   ],
   drop: [
     { take: "drop-buy", from: 32.6, to: 37.4, len: 3.6, crop: [[0, 340, 300, 1100], [1, 440, 380, 1000]], url: "/booker/confirmation", host: "skyline", badge: true, badgeAt: 0.8 },
-    { take: "drop-settle", from: 13.4, to: 18.29, len: 3.2, crop: { w: 1000, x0: 110, y: 330 }, url: "/claim/18" },
+    { take: "drop-settle", from: 15.0, to: 18.29, len: 3.2, crop: { w: 1000, x0: 110, y: 330 }, url: "/claim/18" },
   ],
-  flex: [
-    { take: "route", from: 31.4, to: 37.6, len: 4.4, crop: { w: 960, x0: 100 }, url: "/quote" },
-    { take: "route", from: 40.1, to: 44.6, len: 3.3, crop: { w: 1000, x0: 100 }, url: "/quote" },
-  ],
+  flex: [{ take: "route", from: 31.6, to: 41.6, len: 7.3, crop: { w: 960, x0: 100 }, url: "/quote" }],
   travellers: [
     { take: "return-buy", from: 5.6, to: 10.2, len: 3.0, crop: { w: 1000, x0: 110 }, url: "/quote" },
     { take: "return-paid", from: 44.2, to: 47.8, len: 2.9, crop: { w: 1000, x0: 110, y: 300 }, url: "/policies" },
   ],
-  lp: [
-    { take: "lp", from: 0.4, to: 3.4, len: 2.5, crop: { w: 1000, x0: 110, y: 380 }, url: "/lp" },
-    { take: "lp", from: 9.0, to: 13.45, len: 3.6, crop: { w: 1000, x0: 110, y: 380 }, url: "/lp" },
-  ],
+  lp: [{ take: "lp", from: 5.5, to: 13.45, len: 6.4, crop: { w: 1000, x0: 110, y: 380 }, url: "/lp" }],
 };

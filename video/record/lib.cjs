@@ -16,7 +16,8 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..", "..");
 const FOOTAGE = path.join(__dirname, "..", "footage");
 const APP = process.env.APP_URL ?? "http://localhost:3000";
-const EXT = path.join(ROOT, "extension", "build");
+// EXT_DIR: another build of the extension, e.g. the one the hosted demo offers for download.
+const EXT = process.env.EXT_DIR ?? path.join(ROOT, "extension", "build");
 const VIEW = { width: 1440, height: 900 };
 
 const CURSOR = `
@@ -49,6 +50,8 @@ async function openBrowser(profileDir) {
     viewport: VIEW,
     deviceScaleFactor: 4 / 3,
     acceptDownloads: true,
+    // REC_PROXY=1: go through the session's HTTPS proxy (recording the hosted demo).
+    ...(process.env.REC_PROXY && process.env.HTTPS_PROXY ? { proxy: { server: process.env.HTTPS_PROXY, bypass: "localhost,127.0.0.1" } } : {}),
     // Headless screencast frames are in CSS pixels unless the device scale is forced at launch:
     // with it, frames come out at 1920x1200 (sharper zooms in the film).
     args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, "--hide-scrollbars", "--force-device-scale-factor=1.3333333"],
